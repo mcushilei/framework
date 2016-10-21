@@ -53,6 +53,22 @@
 #define IS_POWER_OF_2(__N)  (   ((__N) == 0)                                \
                              || (((__N) != 1u) && !(((__N) - 1u) & (__N))))
 
+#define LFSM_BEGIN(__M)     do {
+    
+#define LFSM_END(__M)       __##__M##:\
+                            break;\
+                            } while (0);
+
+#define LFSM_CPL(__M)       goto __##__M##;
+
+#define LFSM_STATE_BEGIN(__S)       __##__S##:\
+                                    {
+    
+#define LFSM_STATE_END(__S)         }\
+                                    goto __##__S##;
+
+#define LFSM_STATE_TRANS_TO(__S)    goto __##__S##;
+                                    
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/

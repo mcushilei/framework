@@ -31,17 +31,17 @@
 #define FSM_INIT()              fsm_init()
 
 //! \brief start define a FSM state
-#define DEF_STATE(__NAME)       fsm_rt_t __NAME(void *pArg)
+#define DEF_STATE(__NAME)       void __NAME(void *pArg)
 #define REF_STATE(__NAME)       __NAME
-#define PROTOTYPE_STATE(__NAME) fsm_rt_t __NAME(void *pArg)
+#define PROTOTYPE_STATE(__NAME) void __NAME(void *pArg)
 
 //! \brief state transfering
-#define TRANSFER_TO_STATE(__ROUTINE)                                            \
-            fsm_state_transfer(__ROUTINE, pArg)
-
-//! \brief state transfering
-#define TRANSFER_TO_STATE_EX(__ROUTINE, __ARG_ADDR)                             \
+#define FSM_TRANSFER_TO(__ROUTINE, __ARG_ADDR)                                  \
             fsm_state_transfer(__ROUTINE, __ARG_ADDR)
+
+//! \brief state complete
+#define FSM_COMPLETE()                                                          \
+            fsm_state_transfer(NULL, NULL)
 
 //! \brief call sub state machine and return to current state when sub state machine run complete
 #define FSM_CALL(__ROUTINE, __ARG_ADDR)                                         \

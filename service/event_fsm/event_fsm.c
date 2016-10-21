@@ -82,7 +82,7 @@ bool event_fsm_transfer_to_uper(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState
 }
 
 //! internal use only.
-static bool event_fsm_current_level_decrease(event_fsm_tcb_t *ptTCB)
+bool event_fsm_current_level_decrease(event_fsm_tcb_t *ptTCB)
 {
     if (ptTCB->chCurrentSP) {
         ptTCB->chCurrentSP--;
@@ -155,7 +155,7 @@ fsm_rt_t event_fsm_handle_event(event_fsm_tcb_t *ptFSM, void *ptEvent)
                         return fsm_rt_cpl;
                     }
                 }
-            } else if (fsm_rt_on_going == chRes) {
+            } else if (fsm_rt_ongoing == chRes) {
                 break;
             } else {
                 s_tState = EVENT_HANDLE_START;
@@ -168,7 +168,7 @@ fsm_rt_t event_fsm_handle_event(event_fsm_tcb_t *ptFSM, void *ptEvent)
         break;
     }
     
-    return fsm_rt_on_going;
+    return fsm_rt_ongoing;
 }
 
 

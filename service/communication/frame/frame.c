@@ -171,7 +171,7 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t **ppchDate, uint
             if (chEvent) {  //!< timeout
                 FRAME_DEQUEUE(&chByte);
                 s_tState1 = WAIT_FOR_HEAD_0;
-                return fsm_rt_on_going;
+                return fsm_rt_ongoing;
             } else {        //!< byte received
                 if (!FRAME_ENQUEUE(chByte)) {
                     FRAME_DEQUEUE(&chByte);
@@ -186,7 +186,7 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t **ppchDate, uint
             do {
                 if (!FRAME_PEEK_QUEUE(&chByte)) {
                     s_tState0 = RCV_ENQUEUE;
-                    return fsm_rt_on_going;
+                    return fsm_rt_ongoing;
                 }
 
                 switch (s_tState1) {
@@ -290,7 +290,7 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t **ppchDate, uint
             return fsm_rt_cpl;
     }
 
-    return fsm_rt_on_going;
+    return fsm_rt_ongoing;
 }
 
 extern bool frame_output_byte(uint8_t chByte);
@@ -406,7 +406,7 @@ fsm_rt_t frame_snd_fsm(const uint8_t *pchData, uint16_t hwLength)
             break;
     }
     
-    return fsm_rt_on_going;
+    return fsm_rt_ongoing;
 }
 
 /* EOF */

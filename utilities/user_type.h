@@ -133,14 +133,15 @@ typedef volatile uint16_t   reg16_t;
 typedef volatile uint32_t   reg32_t;
 
 typedef enum {
-    fsm_rt_err = -1,
     fsm_rt_cpl = 0,    //!< fsm complete
-    fsm_rt_on_going = 1,            //!< fsm on-going
-    fsm_rt_ongoing = 1,
+    fsm_rt_ongoing,
     fsm_rt_wait_for_obj,        //!< fsm wait for object
     fsm_rt_unhandle,            //!< event unhandle
+    fsm_rt_err,
 } em_fsm_rt_t;
-typedef uint8_t fsm_rt_t;
+typedef uint_fast8_t fsm_rt_t;
+
+typedef uint_fast8_t error_t;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/

@@ -197,74 +197,60 @@ bool scheduler_register_task(task_ctrl_block_t *pTask)
  */
 bool scheduler(void)
 {  
-    do {
 #if TASK_QUEUE_POOL_SIZE > 1
-        task_queue_t *ptQueue = NULL;
+    task_queue_t *ptQueue = NULL;
 #endif
-        task_ctrl_block_t *pTask        = NULL;
-        task_stack_item_t *ptRoutine    = NULL;
+    task_ctrl_block_t *pTask        = NULL;
+    task_stack_item_t *ptRoutine    = NULL;
 
-        /* get a task from queue */
+    /* get a task from queue */
 #if TASK_QUEUE_POOL_SIZE > 1
-        SAFE_ATOM_CODE(
+    SAFE_ATOM_CODE(
+        do {
             ptQueue = get_task_queue();
             if (NULL == ptQueue) {
                 break;
             }
             pTask = remove_task_from_queue(ptQueue);
             release_task_queue(ptQueue);
-        )
-        if (NULL == pTask) {
-            return g_tScheduler.hwQueueBusyFlag ? true : false;
-        }
+        } while (false);
+    )
+    if (NULL == pTask) {
+        return g_tScheduler.hwQueueBusyFlag ? true : false;
+    }
 #else       //! #if TASK_QUEUE_POOL_SIZE > 1
-        pTask = remove_task_from_queue(s_TaskQueuePool);
-        if (NULL == pTask) {
-            return false;
-        }
+    pTask = remove_task_from_queue(s_TaskQueuePool);
+    if (NULL == pTask) {
+        return false;
+    }
 #endif
 
-        g_tScheduler.ptCurrentTask = pTask;
-        pTask->bStateTransfer = false;
-        ptRoutine = pTask->pStack;
+    g_tScheduler.ptCurrentTask = pTask;
+    ptRoutine = pTask->pStack;
 
-        /* run task routine */
-        fsm_rt_t tState = ptRoutine->fnState(ptRoutine->pArg);
-        if (fsm_rt_cpl == tState) {                 //!< this state is complete.
-            if (pTask->bStateTransfer) {            //!< if it has transfered state or called a sub-fsm.
-                scheduler_register_task(pTask);     //!< re-add this task to queue
-                break;
-            } else {                                
-                if (task_stack_pop(pTask)) {        //!< has parent fsm?
-                    scheduler_register_task(pTask); //!< re-add this task to queue
-                    break;                          //!< this FSM has run complete.
-                }
-            }
+    /* run task routine */
+    ptRoutine->fnState(ptRoutine->pArg);
+
+    do {
     #if SAFE_TASK_THREAD_SYNC == ENABLED
-        } else if (fsm_rt_wait_for_obj == tState) { //!< task waitting synchronization object to set.
-            if (NULL == pTask->pObject) {           //!< synchronization object pointer should not be NULL.
-                pTask->bSignalRaised = false;       //!< this should not be happen, this is fatal error!
-                scheduler_register_task(pTask);     //!< add this task to shedule queue
-                break;
-            }
-
-            SAFE_ATOM_CODE(
-                if (pTask->pObject->bSignal) {      //!< signal already set
-                    pTask->bBlocked = false;
-                    scheduler_register_task(pTask); //!< re-add this task to queue
-                    pTask->bSignalRaised = true;    //!< set task flag
-                    pTask->pObject = NULL;
-                } else {                            //!< event is not raised
-                    pTask->bBlocked = true;
-                }
-            )
-            break;
-    #endif
-        } else if (fsm_rt_on_going == tState) { //!< fsm_rt_on_going == tState
-            scheduler_register_task(pTask);     //!< re-add this task to queue
+        /* Is task waitting synchronization object to set? */
+        if (NULL != pTask->pObject) {           //!< task is waitting synchronization object
             break;
         }
-        task_ctrl_block_free(pTask);                    //!< this task finished, free task
+    #endif
+        
+        /* check whether this fsm is complete. */
+        if (ptRoutine->fnState != NULL) {       
+            scheduler_register_task(pTask);     //!< re-add this task to queue
+            break;
+        } else {                                //!< it has returned from a sub-fsm.
+            if (task_stack_pop(pTask)) {        //!< has parent fsm?
+                scheduler_register_task(pTask); //!< re-add this task to queue
+                break;
+            }
+        }
+        
+        task_ctrl_block_free(pTask);            //!< this task finished, free task
     } while (false);
 
 #if TASK_QUEUE_POOL_SIZE > 1
@@ -283,42 +269,38 @@ bool scheduler(void)
  */
 bool scheduler_wait_for_single_object(event_t *pObject)
 {
-    bool bResult = true;
+    bool bResult;
     task_ctrl_block_t *pTask = g_tScheduler.ptCurrentTask;
 
-    if (NULL == pObject) {
-        return bResult;                         //!< wait nothing
+    if (NULL == pTask) {            //!< fatal error!
+        return false;
+    }
+    
+    if (NULL != pTask->pObject) {   //!< fatal error!
+        return false;
+    }
+    
+    if (NULL == pObject) {          //!< fatal error!
+        return true;
     }
     
     SAFE_ATOM_CODE(
         bResult = pObject->bSignal;
-
-        if (!pObject->bManualReset) {           //!< if not manual reset
-            pObject->bSignal = false;           //!< clear obj's signal.
-        }
-
-        if (NULL != pTask) {
-            if (bResult) {                      //!< obj's signal raised.
-                pTask->bSignalRaised = false;       //!< clear task's signal and run it.
-            } else {                            //!< obj's signal not raised.
-                if (pTask->bSignalRaised) {     //!< but task's signal has been raised,
-                    pTask->bSignalRaised = false;   //!< clear task's signal and run it.
-                } else {                        //!< and task's signal not raised,
-                                                //! add task to the wait list table of object
-                    pTask->pNext = NULL;
-                    if (NULL == pObject->ptTail) {
-                        pObject->ptHead = pTask;
-                    } else {
-                        pObject->ptTail->pNext = pTask;
-                    }
-                    pObject->ptTail = pTask;
-
-                    pTask->pObject = pObject;
-                    pTask->bBlocked = false;
-
-                    bResult = false;
-                }
+        if (bResult) {                      //!< obj's signal raised.
+            if (!pObject->bManualReset) {
+                pObject->bSignal = false;   //!< clear obj's signal.
             }
+        } else {                            //!< obj's signal not raised.
+            //! add task to the wait list of object
+            pTask->pNext = NULL;
+            if (NULL == pObject->ptTail) {
+                pObject->ptHead = pTask;
+            } else {
+                pObject->ptTail->pNext = pTask;
+            }
+            pObject->ptTail = pTask;
+
+            pTask->pObject = pObject;
         }
     )
 
@@ -329,7 +311,7 @@ bool scheduler_wait_for_single_object(event_t *pObject)
 event_t tEvent;
 
 STATE(Demo) BEGIN
-    if (!wait_for_single_object(&tEvent, THIS_TASK)) {
+    if (!wait_for_single_object(&tEvent)) {
         WAIT_FOR_OBJ;
     }
     ...

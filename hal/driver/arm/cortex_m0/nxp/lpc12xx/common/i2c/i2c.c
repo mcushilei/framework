@@ -611,7 +611,7 @@ static uint32_t i2c_bus_get_status(__i2c_t *ptThis)
 //            return fsm_rt_cpl;
 //    }
 //    
-//    return fsm_rt_on_going;
+//    return fsm_rt_ongoing;
 //}
 
 

@@ -66,12 +66,10 @@ bool fsm_state_transfer(
 {
     task_ctrl_block_t *pTask = g_tScheduler.ptCurrentTask;
     
-    if ((NULL == pTask)
-    ||  (NULL == fnState)) {
+    if (NULL == pTask) {
         return false;
     }
 
-    pTask->bStateTransfer = true;
     do {
         task_stack_item_t *ptRoutine = pTask->pStack;
 
@@ -111,7 +109,6 @@ bool fsm_call_sub_ex(
         return false;
     }
 
-    pTask->bStateTransfer = true;
     do {
         task_stack_item_t *ptRoutine = pTask->pStack;
 

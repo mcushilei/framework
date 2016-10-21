@@ -121,6 +121,11 @@ void *mem_set(void *m, uint32_t v, uint32_t n)
 
     return m;
 }
+
+void *mem_zero(void *m, uint32_t n)
+{
+    return mem_set(m, 0u, n);
+}
 #endif
 
 uint32_t hex_str2uint(const uint8_t *str)

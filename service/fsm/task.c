@@ -127,12 +127,8 @@ task_ctrl_block_t *task_ctrl_block_new(
         pTCB->chStackSize      = chStackSize;   //!< set stack size
         pTCB->chStackLevel     = 0;             //!< set stack point
 
-        pTCB->bStateTransfer   = false;
-
 #if SAFE_TASK_THREAD_SYNC == ENABLED
         pTCB->pObject          = NULL;
-        pTCB->bSignalRaised    = false;
-        pTCB->bBlocked         = false;
 #endif
     }
 

@@ -34,7 +34,7 @@
         uint32_t tPCLK   = PM_PCLK_GET_STATUS(ptThis->tPClk);               \
         PM_AHB_CLK_ENABLE(ptThis->tAHBClk);                                 \
         PM_PCLK_CFG(ptThis->tPClk, uart_calculate_pclk_prescaler());       \
-        __VA_ARGS__;                                                        \
+        __VA_ARGS__                                                         \
         PM_AHB_CLK_RESUME(ptThis->tAHBClk, tStatus);                        \
         PM_PCLK_RESUME(ptThis->tPClk, tPCLK);                               \
     }

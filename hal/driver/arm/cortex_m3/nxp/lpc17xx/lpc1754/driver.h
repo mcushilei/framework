@@ -27,7 +27,8 @@
 #include "..\common\io\io.h"
 #include "..\common\wdt\wdt.h"
 #include "..\common\spi\spi.h"
-//#include "..\common\flash\flash.h"
+#include "..\common\flash\flash.h"
+#include "..\common\i2c\i2c.h"
 //#include "..\common\rtc\rtc.h"
 //#include "..\common\timer\timer.h"
 

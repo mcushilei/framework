@@ -88,7 +88,7 @@ fsm_rt_t pipe_out(c_pipe_t *ptPipe)
             this.wCount++;
             this.wAmount--;
         } else {
-            return fsm_rt_on_going;
+            return fsm_rt_ongoing;
         }
     }
 

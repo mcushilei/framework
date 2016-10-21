@@ -5,7 +5,7 @@
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\device.h"
-#include ".\i_io_i2c.h"
+#include ".\reg_i2c.h"
 
 /*============================ MACROS ========================================*/
 //! \brief Macro for i2c interface function
@@ -27,6 +27,11 @@
     extern void i2c##__N##_bus_send_nack(void);\
     extern uint32_t i2c##__N##_bus_get_status(void);\
     
+#define I2C0       I2C[0]
+#define I2C1       I2C[1]
+#define I2C2       I2C[2]
+#define I2C3       I2C[3]
+
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 //! \name i2c bus status
@@ -94,7 +99,7 @@ DEF_INTERFACE(i_i2c_t)
     uint8_t (*GetData)(void);
     void    (*BusSendAck)(void);
     void    (*BusSendNack)(void);
-    uint32_t(*BusGetStatus)(void);
+    bool    (*BusGetStatus)(uint8_t *pchStatus);
 END_DEF_INTERFACE(i_i2c_t)
 
 /*============================ PROTOTYPES ====================================*/

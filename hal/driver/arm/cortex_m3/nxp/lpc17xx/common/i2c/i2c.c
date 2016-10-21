@@ -67,7 +67,7 @@
     extern uint8_t i2c##__N##_bus_get_data(void);\
     extern void i2c##__N##_bus_send_ack(void);\
     extern void i2c##__N##_bus_send_nack(void);\
-    extern uint32_t i2c##__N##_bus_get_status(void);\
+    extern bool i2c##__N##_bus_get_status(uint8_t *pchStatus);\
 
 //! \brief Macro of i2c modules interface function body
 #define __I2C_INTERFACE_DEFINE(__N,__DATA)                          \
@@ -131,9 +131,9 @@
     {                                                               \
         i2c_bus_send_nack((__i2c_t *)&__I2C[__N]);                  \
     }                                                               \
-    uint32_t i2c##__N##_bus_get_status(void)                        \
+    bool i2c##__N##_bus_get_status(uint8_t *pchStatus)                        \
     {                                                               \
-        return i2c_bus_get_status((__i2c_t *)&__I2C[__N]);          \
+        return i2c_bus_get_status((__i2c_t *)&__I2C[__N], pchStatus);          \
     }                                                               \
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
@@ -163,7 +163,7 @@ DEF_INTERFACE(i_i2c_t)
     uint8_t (*GetData)(void);
     void    (*BusSendAck)(void);
     void    (*BusSendNack)(void);
-    uint32_t(*BusGetStatus)(void);
+    bool    (*BusGetStatus)(uint8_t *pchStatus);
 END_DEF_INTERFACE(i_i2c_t)
 
 //! \name i2c internal class
@@ -468,23 +468,31 @@ static void i2c_bus_send_nack(__i2c_t *ptThis)
     this.ptREG->CONCLR = I2C_CONCLR_SIC_MSK;
 }
 
-static uint32_t i2c_bus_get_status(__i2c_t *ptThis)
+static bool i2c_bus_get_status(__i2c_t *ptThis, uint8_t *pchStatus)
 {
-    uint32_t wStatus = this.ptREG->STAT;
+    uint32_t wStatus;
     
-    if ((I2C_BUS_M_START == wStatus)
-    ||  (I2C_BUS_M_RESTART == wStatus)) {
-        //! clear start bit
-        this.ptREG->CONCLR = I2C_CONCLR_STAC_MSK;
+    if (this.ptREG->CONSET & I2C_CONSET_SI_MSK) {
+        wStatus = this.ptREG->STAT;
+        if ((I2C_BUS_M_START == wStatus)
+        ||  (I2C_BUS_M_RESTART == wStatus)) {
+            //! clear start bit
+            this.ptREG->CONCLR = I2C_CONCLR_STAC_MSK;
+        }
+        
+        if (I2C_BUS_INVALID_STATUS == wStatus) {
+            this.ptREG->CONSET = I2C_CONSET_STO_MSK;
+            //! clear SI bit
+            this.ptREG->CONCLR = I2C_CONCLR_SIC_MSK;
+        }
+        
+        if (pchStatus != NULL) {
+            *pchStatus = wStatus;
+        }
+        return true;
     }
     
-    if (I2C_BUS_INVALID_STATUS == wStatus) {
-        this.ptREG->CONSET = I2C_CONSET_STO_MSK;
-        //! clear SI bit
-        this.ptREG->CONCLR = I2C_CONCLR_SIC_MSK;
-    }
-    
-    return wStatus;
+    return false;
 }
 
 //    switch (this.ptREG->STAT) {
@@ -611,7 +619,7 @@ static uint32_t i2c_bus_get_status(__i2c_t *ptThis)
 //            return fsm_rt_cpl;
 //    }
 //    
-//    return fsm_rt_on_going;
+//    return fsm_rt_ongoing;
 //}
 
 

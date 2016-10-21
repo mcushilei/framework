@@ -83,7 +83,7 @@ typedef enum {
 /*============================ MACROS ========================================*/
 
 #define UART_COUNT                      4
-#define I2C_COUNT                       1
+#define I2C_COUNT                       2
 #define SPI_COUNT                       1
 #define SSP_COUNT                       2
 #define GPIO_COUNT                      5

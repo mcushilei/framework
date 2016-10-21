@@ -75,15 +75,11 @@ void set_event(event_t *ptEvent)
         
         //! wake up blocked tasks
         for (pTask = ptEvent->ptHead; NULL != pTask; pTask = pTask->pNext) {
-            if (pTask->bBlocked) {
-                pTask->bBlocked = false;
-                scheduler_register_task(pTask);    //!< move task to ready table.
-            }
-            pTask->pObject          = NULL;
-            pTask->bSignalRaised    = true;         //!< set task flag
+            pTask->pObject = NULL;
+            scheduler_register_task(pTask);    //!< move task to ready table.
         }
-        ptEvent->ptHead  = NULL;                    //!< clear waiting tasks list
-        ptEvent->ptTail  = NULL;
+        ptEvent->ptHead = NULL;    //!< clear waiting tasks list
+        ptEvent->ptTail = NULL;
     )
 }
 

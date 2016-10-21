@@ -27,7 +27,7 @@
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 typedef volatile struct _task   task_ctrl_block_t;
-typedef fsm_rt_t                state_func_t(void *pArg);
+typedef void state_func_t(void *pArg);
 
 DEF_STRUCTURE(task_stack_item_t)
     state_func_t        *fnState;       //!< routine
@@ -51,11 +51,7 @@ struct _task
     
 #if SAFE_TASK_THREAD_SYNC == ENABLED
     event_t             *pObject;           //!< target event
-    bool                bSignalRaised;      //!< signal 
-    bool                bBlocked;           //!< task blocked flag
 #endif
-
-    bool                bStateTransfer;     //!< has state transfer?
 };
 
 

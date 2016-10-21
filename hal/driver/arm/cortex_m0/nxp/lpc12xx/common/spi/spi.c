@@ -286,8 +286,6 @@ static uint8_t spi_calculate_pclk_prescaler(void)
 
 /*! \brief enable spi
  *! \param void
- *! \retval fsm_rt_cpl spi enabled
- *! \retval fsm_rt_err illegal input pointer
  */
 static bool spi_open(__spi_t *ptThis)
 {
@@ -303,9 +301,6 @@ static bool spi_open(__spi_t *ptThis)
 
 /*! \brief disable spi
  *! \param void
- *! \retval fsm_rt_cpl close prosess is complete
- *! \retval fsm_rt_on_going close prosess is on going
- *! \retval fsm_rt_err illegal input pointer
  */
 static bool spi_close(__spi_t *ptThis)
 {
