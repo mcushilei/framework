@@ -26,8 +26,8 @@
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
-static task_ctrl_block_t *spTCBPool = NULL;             //! Head of task control block pool
-static task_ctrl_block_t stTCBPool[TASK_TCB_POOL_SIZE]; //! task control block pool
+static fsm_tcb_t *spTCBPool = NULL;             //! Head of task control block pool
+static fsm_tcb_t stTCBPool[TASK_TCB_POOL_SIZE]; //! task control block pool
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ IMPLEMENTATION ================================*/
@@ -39,7 +39,7 @@ static task_ctrl_block_t stTCBPool[TASK_TCB_POOL_SIZE]; //! task control block p
  *  \retval false failed to push task routine into common return stack
  */
 bool task_stack_push(
-        task_ctrl_block_t   *pTask,
+        fsm_tcb_t   *pTask,
         state_func_t        *fnState,
         void                *pArg) 
 {
@@ -72,7 +72,7 @@ bool task_stack_push(
  *  \retval true succeeded in pushing task routine into common return stack.
  *  \retval false failed to push task routine into common return stack
  */
-bool task_stack_pop(task_ctrl_block_t *pTask)
+bool task_stack_pop(fsm_tcb_t *pTask)
 {
     //! validate parameters.
     if ((NULL == pTask)
@@ -99,13 +99,13 @@ bool task_stack_pop(task_ctrl_block_t *pTask)
  *  \retval NULL failed to create a new task control block
  *  \retval a pointer for a initialized task control block
  */
-task_ctrl_block_t *task_ctrl_block_new(
+fsm_tcb_t *task_ctrl_block_new(
         state_func_t        *fnState,
         void                *pArg,
         task_stack_item_t   *pStack,
         uint_fast8_t        chStackSize)
 {
-    task_ctrl_block_t *pTCB = NULL;
+    fsm_tcb_t *pTCB = NULL;
 
     if ((NULL == fnState)                       //! validate parameters.
     ||  (NULL == pStack) 
@@ -139,13 +139,13 @@ task_ctrl_block_t *task_ctrl_block_new(
  *  \param  pTCB a pointer of a task control block
  *  \return none
  */
-void task_ctrl_block_free(task_ctrl_block_t *pTCB)
+void task_ctrl_block_free(fsm_tcb_t *pTCB)
 {
     if (NULL == pTCB) {
         return;
     }
 
-    MEM_SET_ZERO((void *)pTCB, sizeof(task_ctrl_block_t));
+    MEM_SET_ZERO((void *)pTCB, sizeof(fsm_tcb_t));
 
     pTCB->pNext  = spTCBPool;        //! add task item to freelist
     spTCBPool   = pTCB;
@@ -159,7 +159,7 @@ void task_ctrl_block_free(task_ctrl_block_t *pTCB)
 void task_ctrl_block_pool_init(void)
 {
     uint_fast8_t n = 0;
-    task_ctrl_block_t *p = stTCBPool;
+    fsm_tcb_t *p = stTCBPool;
 
     MEM_SET_ZERO((void *)stTCBPool, sizeof(stTCBPool));
 

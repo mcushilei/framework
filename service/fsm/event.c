@@ -69,7 +69,7 @@ void set_event(event_t *ptEvent)
     }
     
     SAFE_ATOM_CODE(
-        task_ctrl_block_t *pTask;
+        fsm_tcb_t *pTask;
         
         ptEvent->bSignal = true;
         

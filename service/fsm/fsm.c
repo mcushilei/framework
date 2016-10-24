@@ -64,7 +64,7 @@ bool fsm_state_transfer(
                 state_func_t *      fnState,
                 void *              pArg)
 {
-    task_ctrl_block_t *pTask = g_tScheduler.ptCurrentTask;
+    fsm_tcb_t *pTask = g_tScheduler.ptCurrentTask;
     
     if (NULL == pTask) {
         return false;
@@ -95,7 +95,7 @@ bool fsm_call_sub_ex(
                 state_func_t *      fnReturnRoutine,
                 void *              pReturnArg)
 {
-    task_ctrl_block_t *pTask = g_tScheduler.ptCurrentTask;
+    fsm_tcb_t *pTask = g_tScheduler.ptCurrentTask;
 
     if ((NULL == pTask)
     ||  (NULL == fnState)
@@ -130,7 +130,7 @@ bool fsm_call_sub(
                 state_func_t *      fnState, 
                 void *              pArg)
 {
-    task_ctrl_block_t *pTask = g_tScheduler.ptCurrentTask;
+    fsm_tcb_t *pTask = g_tScheduler.ptCurrentTask;
 
     if (NULL == pTask) {
         return false;
@@ -153,14 +153,14 @@ bool fsm_call_sub(
  *  \param  chStackSize return stack size
  *  \return task handle
  */
-task_ctrl_block_t *fsm_create_task(
+fsm_tcb_t *fsm_create_task(
             state_func_t *      fnState,
             void *              pArg,
             task_stack_item_t * pStack,
             uint_fast8_t        chStackSize)
 {
     /*! try to get a new task control block */
-    task_ctrl_block_t *pTask = task_ctrl_block_new(fnState, pArg, pStack, chStackSize);
+    fsm_tcb_t *pTask = task_ctrl_block_new(fnState, pArg, pStack, chStackSize);
     if (NULL != pTask) {
         if (scheduler_register_task(pTask)) {
             return pTask;

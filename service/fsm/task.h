@@ -31,17 +31,17 @@
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
 extern bool task_stack_push(
-                            task_ctrl_block_t   *pTask,
+                            fsm_tcb_t   *pTask,
                             state_func_t        *fnState,
                             void                *pArg);
-extern bool task_stack_pop(task_ctrl_block_t *pTask);
+extern bool task_stack_pop(fsm_tcb_t *pTask);
 
-extern task_ctrl_block_t *task_ctrl_block_new(
+extern fsm_tcb_t *task_ctrl_block_new(
                             state_func_t        *fnState,
                             void                *pArg,
                             task_stack_item_t   *pStack,
                             uint_fast8_t        chStackSize);
-extern void task_ctrl_block_free(task_ctrl_block_t *pTask);
+extern void task_ctrl_block_free(fsm_tcb_t *pTask);
 extern void task_ctrl_block_pool_init(void);
 extern void task_ctrl_block_pool_deinit(void);
 

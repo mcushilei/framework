@@ -26,7 +26,7 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef volatile struct _task   task_ctrl_block_t;
+typedef volatile struct _task   fsm_tcb_t;
 typedef void state_func_t(void *pArg);
 
 DEF_STRUCTURE(task_stack_item_t)
@@ -36,14 +36,14 @@ END_DEF_STRUCTURE(task_stack_item_t);
 
 DEF_STRUCTURE(event_t)
     bool                bSignal;        //!< signal
-    task_ctrl_block_t   *ptHead;        //!< task item  
-    task_ctrl_block_t   *ptTail;
+    fsm_tcb_t   *ptHead;        //!< task item  
+    fsm_tcb_t   *ptTail;
     bool                bManualReset;   //!< manual reset flag
 END_DEF_STRUCTURE(event_t)
 
 struct _task
 {
-    task_ctrl_block_t   *pNext;
+    fsm_tcb_t   *pNext;
 
     task_stack_item_t   *pStack;            //!< task call stack
     uint8_t             chStackSize;        //!< stack size

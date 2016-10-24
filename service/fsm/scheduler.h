@@ -30,8 +30,8 @@
 /*============================ TYPES =========================================*/
 //! \name task queue control block
 DEF_STRUCTURE(task_queue_t)
-    task_ctrl_block_t   *pHead;         //!< queue head
-    task_ctrl_block_t   *pTail;         //!< queue tail
+    fsm_tcb_t   *pHead;         //!< queue head
+    fsm_tcb_t   *pTail;         //!< queue tail
 #if TASK_QUEUE_POOL_SIZE > 1
     task_queue_t        *ptNext;
     uint8_t             chID;
@@ -40,7 +40,7 @@ END_DEF_STRUCTURE(task_queue_t)
 
 //! \name scheduler
 DEF_STRUCTURE(scheduler_t)
-    task_ctrl_block_t   *ptCurrentTask;
+    fsm_tcb_t   *ptCurrentTask;
 #if TASK_QUEUE_POOL_SIZE > 1
     //! \brief free task queue list
     task_queue_t        *ptQHead;
@@ -56,7 +56,7 @@ extern scheduler_t g_tScheduler;
 /*============================ PROTOTYPES ====================================*/
 extern void scheduler_init(void);
 extern void scheduler_deinit(void);
-extern bool scheduler_register_task(task_ctrl_block_t *pTask);
+extern bool scheduler_register_task(fsm_tcb_t *pTask);
 extern bool scheduler(void);
 
 #if SAFE_TASK_THREAD_SYNC == ENABLED

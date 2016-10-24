@@ -74,7 +74,7 @@
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 extern bool fsm_init(void);
-extern task_ctrl_block_t *fsm_create_task(
+extern fsm_tcb_t *fsm_create_task(
                 state_func_t *      fnState,
                 void *              pArg,
                 task_stack_item_t * pStack,

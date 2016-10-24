@@ -41,8 +41,8 @@
 /*============================ TYPES =========================================*/
 //! \name task queue control block
 DEF_STRUCTURE(task_queue_t)
-    task_ctrl_block_t   *pHead;         //!< queue head
-    task_ctrl_block_t   *pTail;         //!< queue tail
+    fsm_tcb_t   *pHead;         //!< queue head
+    fsm_tcb_t   *pTail;         //!< queue tail
 #if TASK_QUEUE_POOL_SIZE > 1
     task_queue_t        *ptNext;
     uint8_t             chID;
@@ -51,7 +51,7 @@ END_DEF_STRUCTURE(task_queue_t)
 
 //! \name scheduler
 DEF_STRUCTURE(scheduler_t)
-    task_ctrl_block_t   *ptCurrentTask;
+    fsm_tcb_t   *ptCurrentTask;
 #if TASK_QUEUE_POOL_SIZE > 1
     //! \brief free task queue list
     task_queue_t        *ptQHead;
@@ -120,7 +120,7 @@ static void init_task_queue(void)
  *  \retval false failed to add task to queue
  *  \retval true succeeded in adding task to queue
  */
-static bool add_task_to_queue(task_queue_t *pTaskQueue, task_ctrl_block_t *pTask)
+static bool add_task_to_queue(task_queue_t *pTaskQueue, fsm_tcb_t *pTask)
 {
     pTask->pNext = NULL;
     SAFE_ATOM_CODE(
@@ -144,9 +144,9 @@ static bool add_task_to_queue(task_queue_t *pTaskQueue, task_ctrl_block_t *pTask
  *  \retval NULL failed to get a task from queue
  *  \retval true succeeded to get a task from queue
  */
-static task_ctrl_block_t *remove_task_from_queue(task_queue_t *pTaskQueue)
+static fsm_tcb_t *remove_task_from_queue(task_queue_t *pTaskQueue)
 {
-    task_ctrl_block_t *pTask = NULL;
+    fsm_tcb_t *pTask = NULL;
 
     SAFE_ATOM_CODE(
         pTask = pTaskQueue->pHead;
@@ -170,7 +170,7 @@ static task_ctrl_block_t *remove_task_from_queue(task_queue_t *pTaskQueue)
  *  \retval false failed to add a task control block
  *  \retval true succeeded in add a task
  */
-bool scheduler_register_task(task_ctrl_block_t *pTask)
+bool scheduler_register_task(fsm_tcb_t *pTask)
 {
 #if TASK_QUEUE_POOL_SIZE > 1
     task_queue_t *ptTaskQueue = NULL;
@@ -200,7 +200,7 @@ bool scheduler(void)
 #if TASK_QUEUE_POOL_SIZE > 1
     task_queue_t *ptQueue = NULL;
 #endif
-    task_ctrl_block_t *pTask        = NULL;
+    fsm_tcb_t *pTask        = NULL;
     task_stack_item_t *ptRoutine    = NULL;
 
     /* get a task from queue */
@@ -270,7 +270,7 @@ bool scheduler(void)
 bool scheduler_wait_for_single_object(event_t *pObject)
 {
     bool bResult;
-    task_ctrl_block_t *pTask = g_tScheduler.ptCurrentTask;
+    fsm_tcb_t *pTask = g_tScheduler.ptCurrentTask;
 
     if (NULL == pTask) {            //!< fatal error!
         return false;
