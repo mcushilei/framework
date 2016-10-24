@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2016 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -27,7 +27,7 @@
 #define FSM_START_STATE         0
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#define FSM_SCHEDULER()         scheduler()
+#define FSM_SCHEDULER()         fsm_scheduler()
 #define FSM_INIT()              fsm_init()
 
 //! \brief start define a FSM state
@@ -54,52 +54,59 @@
 
 #if SAFE_TASK_THREAD_SYNC == ENABLED
 #define FSM_WAIT_SINGLE_OBJECT(__EVENT)                  \
-            scheduler_wait_for_single_object((__EVENT))
+            fsm_wait_for_single_object((__EVENT))
 #endif      //! #if SAFE_TASK_THREAD_SYNC == ENABLED
 
 
 //! \brief initialize a task event item
-#define FSM_INIT_EVENT(__EVENT, __MANUAL_RESET, __INITIAL_STATE)    \
-            create_event((__EVENT),(__MANUAL_RESET), (__INITIAL_STATE))
+#define FSM_CREATE_EVENT(__PEVENT, __MANUAL_RESET, __INITIAL_STATE)    \
+            fsm_event_create(&(__PEVENT),(__MANUAL_RESET), (__INITIAL_STATE))
 
 //! \brief set task event to active state
 #define FSM_SET_EVENT(__EVENT)                   \
-            set_event((__EVENT))
+            fsm_event_set((__EVENT))
 
 //! \brief reset task event to inactive state
 #define FSM_RESET_EVENT(__EVENT)                 \
-            reset_event((__EVENT))
+            fsm_event_reset((__EVENT))
 
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool fsm_init(void);
-extern fsm_tcb_t *fsm_create_task(
-                state_func_t *      fnState,
-                void *              pArg,
-                task_stack_item_t * pStack,
-                uint_fast8_t        chStackSize);
-extern bool fsm_state_transfer(
-                state_func_t *      fnState,
-                void *              pArg);
-extern bool fsm_call_sub_ex(
-                state_func_t *      fnState,
-                void *              pArg,
-                state_func_t *      fnReturnRoutine,
-                void *              pReturnArg);
-extern bool fsm_call_sub(
-                state_func_t *      fnState,
-                void *              pArg);
+extern void         fsm_init            (void);
+extern void         fsm_deinit          (void);
+extern uint_fast8_t fsm_task_create(
+                                        fsm_tcb_t **        ptTask,
+                                        state_func_t *      fnState,
+                                        void *              pArg,
+                                        task_stack_item_t * pStack,
+                                        uint_fast8_t        chStackSize);
+extern bool         fsm_state_transfer  (
+                                        state_func_t *      fnState,
+                                        void *              pArg);
+extern bool         fsm_call_sub_ex     (
+                                        state_func_t *      fnState,
+                                        void *              pArg,
+                                        state_func_t *      fnReturnRoutine,
+                                        void *              pReturnArg);
+extern bool         fsm_call_sub        (
+                                        state_func_t *      fnState,
+                                        void *              pArg);
 
-extern bool scheduler(void);
+extern bool         fsm_set_task_ready  (fsm_tcb_t *pTask);
+extern bool         fsm_scheduler       (void);
 
 #if SAFE_TASK_THREAD_SYNC == ENABLED
-extern bool scheduler_wait_for_single_object(event_t *pObject);
+extern bool             fsm_wait_for_single_object  (void *ptObject);
 #endif      //! #if SAFE_TASK_THREAD_SYNC == ENABLED
 
-extern event_t *create_event(event_t *ptEvent, bool bManualReset, bool bInitialState);
-extern void set_event(event_t *ptEvent);
-extern void reset_event(event_t *ptEvent);
+extern uint_fast8_t     fsm_event_create    (
+                                            fsm_event_t **      pptEvent,
+                                            bool                bManualReset,
+                                            bool                bInitialState);
+extern void             fsm_event_set      (fsm_event_t *       ptEvent);
+extern void             fsm_event_reset    (fsm_event_t *       ptEvent);
+
 
 #endif  //! #ifndef __FSM_H__
 /* EOF */

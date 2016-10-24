@@ -138,10 +138,9 @@ typedef enum {
     fsm_rt_wait_for_obj,        //!< fsm wait for object
     fsm_rt_unhandle,            //!< event unhandle
     fsm_rt_err,
-} em_fsm_rt_t;
+} fsm_rt_em_t;
 typedef uint_fast8_t fsm_rt_t;
 
-typedef uint_fast8_t error_t;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
