@@ -296,23 +296,28 @@ static void fsm_tcb_free(fsm_tcb_t *pTCB)
  *  \return task handle
  */
 uint_fast8_t fsm_task_create(
-        fsm_tcb_t **        ptTask,
+        fsm_tcb_t **        pptTask,
         state_func_t *      fnState,
         void *              pArg,
         task_stack_item_t * pStack,
         uint_fast8_t        chStackSize)
 {
-    if ((NULL == ptTask) || (NULL == fnState)) {
+    fsm_tcb_t *ptTask;
+    
+    if (NULL == fnState) {
         return FSM_ERR_NULL_PTR;
     }
     
     /*! try to get a TCB */
-    *ptTask = fsm_tcb_new(fnState, pArg, pStack, chStackSize);
+    ptTask = fsm_tcb_new(fnState, pArg, pStack, chStackSize);
     if (NULL == ptTask) {
         return FSM_ERR_TASK_NO_MORE_TCB;
     }
     
     if (fsm_set_task_ready(ptTask)) {
+        if (pptTask != NULL) {
+            *pptTask = ptTask;
+        }
         return FSM_ERR_NONE;
     } else {
         fsm_tcb_free(ptTask);

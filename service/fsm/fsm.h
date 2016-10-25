@@ -76,7 +76,7 @@
 extern void         fsm_init            (void);
 extern void         fsm_deinit          (void);
 extern uint_fast8_t fsm_task_create(
-                                        fsm_tcb_t **        ptTask,
+                                        fsm_tcb_t **        pptTask,
                                         state_func_t *      fnState,
                                         void *              pArg,
                                         task_stack_item_t * pStack,
