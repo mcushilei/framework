@@ -97,7 +97,7 @@ extern bool         fsm_set_task_ready  (fsm_tcb_t *pTask);
 extern bool         fsm_scheduler       (void);
 
 #if SAFE_TASK_THREAD_SYNC == ENABLED
-extern bool             fsm_wait_for_single_object  (void *ptObject);
+extern uint_fast8_t     fsm_wait_for_single_object(void *ptObject);
 #endif      //! #if SAFE_TASK_THREAD_SYNC == ENABLED
 
 extern uint_fast8_t     fsm_event_create    (

@@ -31,7 +31,25 @@
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef volatile struct _task   fsm_tcb_t;
+typedef enum {
+    FSM_ERR_NONE = 0,
+    FSM_ERR_NULL_PTR,
+    FSM_ERR_OBJ_NO_MORE_OCB,
+    FSM_ERR_OBJ_NOT_SINGLED,
+    FSM_ERR_OBJ_NOT_WAITABLE,
+    FSM_ERR_TASK_NO_MORE_TCB,
+    FSM_ERR_TASK_FULL,
+    FSM_ERR_TASK_ONLY_WAIT_SINGLE_OBJ,
+} fsm_err_em_t;
+
+typedef enum {
+    FSM_OBJ_TYPE_INVALID = 0,
+    FSM_OBJ_TYPE_EVENT = 0x80,
+    FSM_OBJ_TYPE_MUTEX = 0x81,
+    FSM_OBJ_TYPE_SEM   = 0x82,
+} fsm_obj_type_em_t;
+
+typedef struct _task   fsm_tcb_t;
 typedef void state_func_t(void *pArg);
 
 DEF_STRUCTURE(task_stack_item_t)
@@ -39,31 +57,26 @@ DEF_STRUCTURE(task_stack_item_t)
     void                *pArg;          //!< argument
 END_DEF_STRUCTURE(task_stack_item_t);
 
-typedef enum {
-    FSM_OBJ_TYPE_INVALID = 0,
-    FSM_OBJ_TYPE_EVENT,
-    FSM_OBJ_TYPE_MUTEX,
-    FSM_OBJ_TYPE_SEM,
-} fsm_obj_type_em_t;
-
-typedef enum {
-    FSM_ERR_NONE = 0,
-    FSM_ERR_NULL_PTR,
-    FSM_ERR_OBJ_POOL_EMPTY,
-    FSM_ERR_TASK_NO_MORE_TCB,
-    FSM_ERR_TASK_FULL,
-} fsm_err_em_t;
-
 DEF_STRUCTURE(fsm_obj_t)
     uint8_t             chObjType;
     uint8_t             chObjFlag;
+    
     fsm_obj_t           *ptObjNext;
-    fsm_tcb_t           *ptTCBHead;
-    fsm_tcb_t           *ptTCBTail;
 END_DEF_STRUCTURE(fsm_obj_t)
 
-DEF_STRUCTURE(fsm_event_t)
+//! \name task queue control block
+DEF_STRUCTURE(task_queue_t)
+    fsm_tcb_t           *ptTCBHead;         //!< queue head
+    fsm_tcb_t           *ptTCBTail;         //!< queue tail
+END_DEF_STRUCTURE(task_queue_t)
+
+DEF_STRUCTURE(fsm_waitable_obj_header_t)
     fsm_obj_t;
+    task_queue_t;
+END_DEF_STRUCTURE(fsm_waitable_obj_header_t)
+
+DEF_STRUCTURE(fsm_event_t)
+    fsm_waitable_obj_header_t;
     uint8_t             chSignal;        //!< signal
 END_DEF_STRUCTURE(fsm_event_t)
 

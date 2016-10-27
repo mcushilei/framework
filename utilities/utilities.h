@@ -53,6 +53,7 @@
 #define IS_POWER_OF_2(__N)  (   ((__N) == 0)                                \
                              || (((__N) != 1u) && !(((__N) - 1u) & (__N))))
 
+//!< local FSM
 #define LFSM_BEGIN(__M)     do {
     
 #define LFSM_END(__M)       __##__M##:\
@@ -68,7 +69,30 @@
                                     goto __##__S##;
 
 #define LFSM_STATE_TRANS_TO(__S)    goto __##__S##;
-                                    
+
+/* LFSM example:
+void test_fun(void)
+{
+    LFSM_BEGIN(test_fsm)
+        uint8_t c = 4;
+        LFSM_STATE_BEGIN(state_1)
+            printf("\r\nc = %u", c);
+            LFSM_STATE_TRANS_TO(state_2)
+        LFSM_STATE_END(state_1)
+
+        LFSM_STATE_BEGIN(state_2)
+            uint8_t d = 4;
+            printf("\r\nd = %u", d);
+            c--;
+            if (c == 0) {
+                LFSM_CPL(test_fsm)
+            } else {
+                LFSM_STATE_TRANS_TO(state_1)
+            }
+        LFSM_STATE_END(state_2)
+    LFSM_END(test_fsm)
+}
+*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/

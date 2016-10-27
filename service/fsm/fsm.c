@@ -32,12 +32,6 @@
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 //! \name task queue control block
-DEF_STRUCTURE(task_queue_t)
-    fsm_tcb_t           *pHead;         //!< queue head
-    fsm_tcb_t           *pTail;         //!< queue tail
-END_DEF_STRUCTURE(task_queue_t)
-
-//! \name task queue control block
 DEF_STRUCTURE(obj_queue_t)
     fsm_obj_t           *ptHead;         //!< queue head
     fsm_obj_t           *ptTail;         //!< queue tail
@@ -69,9 +63,10 @@ static void         fsm_scheduler_deinit        (void);
 extern void         fsm_event_init(void);
 
 /*============================ LOCAL VARIABLES ===============================*/
-static fsm_tcb_t *  sptTCBList = NULL;              //! Head of task control block pool
-static fsm_tcb_t    stTCBPool[FSM_MAX_TASKS];       //! task control block pool
+static fsm_tcb_t *  sptTCBFreeList;             //! TCB
+static fsm_tcb_t    stTCBs[FSM_MAX_TASKS];      //! TCB pool
 static scheduler_t  stScheduler;
+static fsm_obj_t *  sptObjRegistedList;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
@@ -248,9 +243,9 @@ static fsm_tcb_t *fsm_tcb_new(
         return NULL;
     }
     
-    if (NULL != sptTCBList) {
-        pTCB = sptTCBList;
-        sptTCBList = sptTCBList->pNext;
+    if (NULL != sptTCBFreeList) {
+        pTCB = sptTCBFreeList;
+        sptTCBFreeList = sptTCBFreeList->pNext;
     }
 
     if (NULL != pTCB) {                         //!< find a task control block ?
@@ -282,8 +277,8 @@ static void fsm_tcb_free(fsm_tcb_t *pTCB)
 
     MEM_SET_ZERO((void *)pTCB, sizeof(fsm_tcb_t));
 
-    pTCB->pNext  = sptTCBList;        //! add task item to freelist
-    sptTCBList   = pTCB;
+    pTCB->pNext  = sptTCBFreeList;        //! add task item to freelist
+    sptTCBFreeList   = pTCB;
 }
 
 /*! \brief  create a new task control block
@@ -335,12 +330,12 @@ static bool fsm_task_enqueue(task_queue_t *pTaskQueue, fsm_tcb_t *pTask)
 {
     pTask->pNext = NULL;
     SAFE_ATOM_CODE(
-        if (NULL == pTaskQueue->pTail) {        //!< is this queue empty?
-            pTaskQueue->pHead = pTask;          //!< update task head
+        if (NULL == pTaskQueue->ptTCBTail) {        //!< is this queue empty?
+            pTaskQueue->ptTCBHead = pTask;          //!< update task head
         } else {                                //!< queue is not empty
-            pTaskQueue->pTail->pNext = pTask;   //!< add a new task to tail
+            pTaskQueue->ptTCBTail->pNext = pTask;   //!< add a new task to tail
         }
-        pTaskQueue->pTail = pTask;              //!< move tail
+        pTaskQueue->ptTCBTail = pTask;              //!< move tail
     )
 
     return true;
@@ -357,17 +352,42 @@ static fsm_tcb_t *fsm_task_dequeue(task_queue_t *pTaskQueue)
     fsm_tcb_t *pTask = NULL;
 
     SAFE_ATOM_CODE(
-        pTask = pTaskQueue->pHead;
+        pTask = pTaskQueue->ptTCBHead;
         if (NULL != pTask) {                    //!< is this queue empty?
-            pTaskQueue->pHead = pTask->pNext;   //!< update head
+            pTaskQueue->ptTCBHead = pTask->pNext;   //!< update head
 
-            if (NULL == pTaskQueue->pHead) {    //!< queue is empty
-                pTaskQueue->pTail = NULL;       //!< update tail
+            if (NULL == pTaskQueue->ptTCBHead) {    //!< queue is empty
+                pTaskQueue->ptTCBTail = NULL;       //!< update tail
             }
         }
     )
 
     return pTask;
+}
+
+static bool fsm_remove_task_from_queue(task_queue_t *pTaskQueue, fsm_tcb_t *pTask)
+{
+    fsm_tcb_t **ppTCB;
+    
+    for (ppTCB = &pTaskQueue->ptTCBHead; 
+         *ppTCB;
+         ppTCB = &((*ppTCB)->pNext)) {
+        if (*ppTCB == pTask) {
+            if (pTask == pTaskQueue->ptTCBHead) {
+                if (pTask == pTaskQueue->ptTCBTail) {
+                    pTaskQueue->ptTCBTail = NULL;
+                }
+                pTaskQueue->ptTCBHead = pTask->pNext;
+            } else if (pTask == pTaskQueue->ptTCBTail) {
+                *ppTCB = NULL;
+                for (pTask = pTaskQueue->ptTCBHead; pTask->pNext != NULL; pTask = pTask->pNext);
+                pTaskQueue->ptTCBTail = pTask;
+            }
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 /*! \brief  add a task to ready table(list queue).
@@ -428,6 +448,56 @@ bool fsm_scheduler(void)
     return true;
 }
 
+bool fsm_register_object(void *pObj)
+{
+    fsm_obj_t *ptObject = pObj;
+    
+    ptObject->ptObjNext = sptObjRegistedList;
+    sptObjRegistedList = ptObject;
+
+    return true;
+}
+
+bool fsm_deregister_object(void *pObj)
+{
+    fsm_obj_t **pptObject;
+    fsm_obj_t *ptObject = pObj;
+
+    for (pptObject = &sptObjRegistedList; *pptObject != NULL; pptObject = &((*pptObject)->ptObjNext)) {
+        if (*pptObject == ptObject) {
+            *pptObject = (*pptObject)->ptObjNext;
+            ptObject->ptObjNext = NULL;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void fsm_time_tick(void)
+{
+    fsm_obj_t *ptObject;
+
+    for (ptObject = sptObjRegistedList; ptObject != NULL; ptObject = ptObject->ptObjNext) {
+        if (ptObject->chObjType & 0x80) {   //!< only watiable object can be wait.
+            fsm_waitable_obj_header_t *ptWatiableObj = (fsm_waitable_obj_header_t *)ptObject;
+            if (ptWatiableObj->ptTCBHead) { //!< if there is task wait for this obj.
+                fsm_tcb_t *pTCBs;
+                for (pTCBs = ptWatiableObj->ptTCBHead; pTCBs; pTCBs = pTCBs->pNext) {
+                    if (pTCBs->hwDelay != 0) {
+                        pTCBs->hwDelay--;
+                        if (pTCBs->hwDelay == 0) {
+                            //! 1. remove this task from this obj's wait queue.
+                            //! 2. set tcb.ptObject NULL
+                            //! 3. set tcb.chStatus for reasion OBJ_WAIT_TIMEOUT.
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 #if SAFE_TASK_THREAD_SYNC == ENABLED
 /*! \brief  wait for a specified task event
  *! \param  pObject target event item
@@ -435,27 +505,26 @@ bool fsm_scheduler(void)
  *! \retval true event raised
  *! \retval false event haven't raised yet.
  */
-bool fsm_wait_for_single_object(void *ptObject)
+uint_fast8_t fsm_wait_for_single_object(void *ptObject)
 {
-    bool bResult;
-    uint8_t chObjType;
-    fsm_tcb_t *pTask = stScheduler.ptCurrentTask;
+    uint_fast8_t    bResult;
+    uint8_t         chObjType;
+    fsm_tcb_t *     pTask = stScheduler.ptCurrentTask;
 
-    if (NULL == pTask) {            //!< fatal error!
-        return false;
-    }
-    
     if (NULL != pTask->ptObject) {   //!< fatal error!
-        return false;
+        return FSM_ERR_TASK_ONLY_WAIT_SINGLE_OBJ;
     }
     
     if (NULL == ptObject) {          //!< fatal error!
-        return true;
+        return FSM_ERR_NULL_PTR;
     }
     
-    bResult = false;
     chObjType = ((fsm_obj_t *)ptObject)->chObjType;
+    if (!(chObjType & 0x80)) {
+        return FSM_ERR_OBJ_NOT_WAITABLE;
+    }
     
+    bResult = FSM_ERR_OBJ_NOT_SINGLED;
     switch (chObjType) {
     case FSM_OBJ_TYPE_EVENT:
         SAFE_ATOM_CODE(
@@ -463,12 +532,12 @@ bool fsm_wait_for_single_object(void *ptObject)
                 fsm_event_t *ptEvent = (fsm_event_t *)ptObject;
                 bResult = ptEvent->chSignal;
                 if (ptEvent->chSignal & FSM_SIGNAL_FLAG_BIT) {                 //!< obj's signal raised.
-                    bResult = true;
+                    bResult = FSM_ERR_NONE;
                     if (!(ptEvent->chSignal & FSM_SIGNAL_MANUAL_RESET_BIT)) {
                         ptEvent->chSignal &= ~FSM_SIGNAL_FLAG_BIT;             //!< clear obj's signal.
                     }
                 } else {                            //!< obj's signal not raised.
-                    //! add task to the wait list of object
+                    //! add task to the object's wait queue.
                     pTask->pNext = NULL;
                     if (NULL == ptEvent->ptTCBTail) {
                         ptEvent->ptTCBHead = pTask;
@@ -511,14 +580,14 @@ END
 static void fsm_tcb_pool_init(void)
 {
     uint_fast8_t n = 0;
-    fsm_tcb_t *p = stTCBPool;
+    fsm_tcb_t *p = stTCBs;
 
-    MEM_SET_ZERO((void *)stTCBPool, sizeof(stTCBPool));
+    MEM_SET_ZERO((void *)stTCBs, sizeof(stTCBs));
 
     //! add tasks to the free list
-    for (n = UBOUND(stTCBPool); n; n--) {
-        p->pNext    = sptTCBList;    //! add task item to freelist
-        sptTCBList  = p;
+    for (n = UBOUND(stTCBs); n; n--) {
+        p->pNext    = sptTCBFreeList;    //! add task item to freelist
+        sptTCBFreeList  = p;
         p++;
     }
 }
@@ -529,8 +598,8 @@ static void fsm_tcb_pool_init(void)
  */
 static void fsm_tcb_pool_deinit(void)
 {
-    sptTCBList = NULL;
-    MEM_SET_ZERO((void *)stTCBPool, sizeof(stTCBPool));
+    sptTCBFreeList = NULL;
+    MEM_SET_ZERO((void *)stTCBs, sizeof(stTCBs));
 }
 
 /*! \brief initialize fsm_scheduler

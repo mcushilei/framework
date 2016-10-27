@@ -75,7 +75,7 @@ uint_fast8_t fsm_event_create(fsm_event_t **pptEvent, bool bManualReset, bool bI
     //!< get OCB from pool.
     if (NULL == sptEventList) {
         *pptEvent = NULL;
-        return FSM_ERR_OBJ_POOL_EMPTY;
+        return FSM_ERR_OBJ_NO_MORE_OCB;
     } else {
         //! register object here.
         *pptEvent = sptEventList;
@@ -97,7 +97,7 @@ uint_fast8_t fsm_event_create(fsm_event_t **pptEvent, bool bManualReset, bool bI
         ptEvent->ptObjNext     = NULL;
         ptEvent->ptTCBHead     = NULL;           
         ptEvent->ptTCBTail     = NULL;
-        ptEvent->chSignal       = chSignal;  //!< set initial state
+        ptEvent->chSignal      = chSignal;  //!< set initial state
     )
 
     return FSM_ERR_NONE;
