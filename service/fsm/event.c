@@ -63,7 +63,10 @@ void fsm_event_init(void)
  *! \param bInitialState event initial state, either set or not.
  *! \return pointer for event object
  */
-uint_fast8_t fsm_event_create(fsm_event_t **pptEvent, bool bManualReset, bool bInitialState)
+uint_fast8_t fsm_event_create(
+          fsm_event_t **pptEvent,
+          bool bManualReset,
+          bool bInitialState)
 {
     uint8_t chSignal;
     fsm_event_t *ptEvent;
@@ -76,13 +79,10 @@ uint_fast8_t fsm_event_create(fsm_event_t **pptEvent, bool bManualReset, bool bI
     if (NULL == sptEventList) {
         *pptEvent = NULL;
         return FSM_ERR_OBJ_NO_MORE_OCB;
-    } else {
-        //! register object here.
-        *pptEvent = sptEventList;
-
-        ptEvent = sptEventList;
-        sptEventList = (fsm_event_t *)ptEvent->ptObjNext;
     }
+    
+    ptEvent      = sptEventList;
+    sptEventList = (fsm_event_t *)ptEvent->ptObjNext;
     
     chSignal = 0;
     if (bManualReset) {
@@ -98,7 +98,9 @@ uint_fast8_t fsm_event_create(fsm_event_t **pptEvent, bool bManualReset, bool bI
         ptEvent->ptTCBHead     = NULL;           
         ptEvent->ptTCBTail     = NULL;
         ptEvent->chSignal      = chSignal;  //!< set initial state
+        fsm_register_object(ptEvent);       //!< register object.
     )
+    *pptEvent = ptEvent;
 
     return FSM_ERR_NONE;
 }
@@ -113,17 +115,21 @@ void fsm_event_set(fsm_event_t *ptEvent)
         return;
     }
     
+    if (ptEvent->chObjType != FSM_OBJ_TYPE_EVENT) {
+        return;
+    }
+    
     SAFE_ATOM_CODE(
-        fsm_tcb_t *pTask;
+        fsm_tcb_t *pTask, *pNextTask;
         
-        ptEvent->chSignal |= FSM_SIGNAL_FLAG_BIT;
-        
-        //! wake up blocked tasks
-        for (pTask = ptEvent->ptTCBHead; NULL != pTask; pTask = pTask->pNext) {
-            pTask->ptObject = NULL;
+        //! wake up all blocked tasks.
+        for (pTask = ptEvent->ptTCBHead; NULL != pTask; pTask = pNextTask) {
+            pNextTask = pTask->pNext;
             fsm_set_task_ready(pTask);    //!< move task to ready table.
+            pTask->ptObject = NULL;
+            pTask->chStatus = FSM_TASK_STATUS_PEND_OK;
         }
-        ptEvent->ptTCBHead = NULL;    //!< clear waiting tasks list
+        ptEvent->ptTCBHead = NULL;
         ptEvent->ptTCBTail = NULL;
     )
 }
@@ -135,6 +141,10 @@ void fsm_event_set(fsm_event_t *ptEvent)
 void fsm_event_reset(fsm_event_t *ptEvent)
 {
     if (NULL == ptEvent) {
+        return;
+    }
+    
+    if (ptEvent->chObjType != FSM_OBJ_TYPE_EVENT) {
         return;
     }
 

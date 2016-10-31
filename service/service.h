@@ -23,7 +23,6 @@
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 //#include ".\lock\lock.h"
-//#include ".\pipe\pipe.h"
 #include ".\string\string.h"
 #include ".\debug\debug.h"
 #include ".\event_fsm\event_fsm.h"

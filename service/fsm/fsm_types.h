@@ -39,7 +39,7 @@ typedef enum {
     FSM_ERR_OBJ_NOT_WAITABLE,
     FSM_ERR_TASK_NO_MORE_TCB,
     FSM_ERR_TASK_FULL,
-    FSM_ERR_TASK_ONLY_WAIT_SINGLE_OBJ,
+    FSM_ERR_TASK_PEND_TIMEOUT,
 } fsm_err_em_t;
 
 typedef enum {
@@ -48,6 +48,14 @@ typedef enum {
     FSM_OBJ_TYPE_MUTEX = 0x81,
     FSM_OBJ_TYPE_SEM   = 0x82,
 } fsm_obj_type_em_t;
+
+typedef enum {
+    FSM_TASK_STATUS_INVALID = 0,
+    FSM_TASK_STATUS_READY,
+    FSM_TASK_STATUS_PEND,
+    FSM_TASK_STATUS_PEND_OK,
+    FSM_TASK_STATUS_PEND_TIMEOUT,
+} fsm_task_status_em_t;
 
 typedef struct _task   fsm_tcb_t;
 typedef void state_func_t(void *pArg);
@@ -72,7 +80,10 @@ END_DEF_STRUCTURE(task_queue_t)
 
 DEF_STRUCTURE(fsm_waitable_obj_header_t)
     fsm_obj_t;
-    task_queue_t;
+    union {
+        task_queue_t;
+        task_queue_t tTaskQueue;
+    };
 END_DEF_STRUCTURE(fsm_waitable_obj_header_t)
 
 DEF_STRUCTURE(fsm_event_t)
@@ -87,7 +98,7 @@ struct _task
     uint8_t             chFlag;
     uint8_t             chStatus;
     
-    uint16_t            hwDelay;
+    uint16_t            wDelay;
 
     uint8_t             chStackSize;    //!< stack size
     uint8_t             chStackLevel;   //!< stack pointer

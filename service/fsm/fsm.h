@@ -54,7 +54,7 @@
 
 #if SAFE_TASK_THREAD_SYNC == ENABLED
 #define FSM_WAIT_SINGLE_OBJECT(__EVENT)                  \
-            fsm_wait_for_single_object((__EVENT))
+            fsm_wait_for_single_object(__EVENT, 0)
 #endif      //! #if SAFE_TASK_THREAD_SYNC == ENABLED
 
 
@@ -69,7 +69,10 @@
 //! \brief reset task event to inactive state
 #define FSM_RESET_EVENT(__EVENT)                 \
             fsm_event_reset((__EVENT))
-
+                
+#define FSM_EVENT_OBJ   fsm_event_t *
+#define FSM_TASK_STACK  task_stack_item_t
+                
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
@@ -95,9 +98,13 @@ extern bool         fsm_call_sub        (
 
 extern bool         fsm_set_task_ready  (fsm_tcb_t *pTask);
 extern bool         fsm_scheduler       (void);
+extern void         fsm_time_tick(void);
+
+extern bool fsm_register_object(void *pObj);
+extern bool fsm_deregister_object(void *pObj);
 
 #if SAFE_TASK_THREAD_SYNC == ENABLED
-extern uint_fast8_t     fsm_wait_for_single_object(void *ptObject);
+extern uint_fast8_t     fsm_wait_for_single_object(void *ptObject, uint32_t wTimeout);
 #endif      //! #if SAFE_TASK_THREAD_SYNC == ENABLED
 
 extern uint_fast8_t     fsm_event_create    (

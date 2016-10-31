@@ -25,8 +25,8 @@
 #include "..\string\string.h"
 
 /*============================ MACROS ========================================*/
-#define FSM_MAX_TASKS      (16u)
-#define FSM_MAX_EVENTS          (4u)
+#define FSM_MAX_TASKS           (8u)
+#define FSM_MAX_EVENTS          (16u)
 #define SAFE_TASK_THREAD_SYNC   ENABLED
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
