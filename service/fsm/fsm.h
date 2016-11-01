@@ -70,7 +70,7 @@
 #define FSM_RESET_EVENT(__EVENT)                 \
             fsm_event_reset((__EVENT))
                 
-#define FSM_EVENT_OBJ   fsm_event_t *
+#define FSM_OBJ_EVENT   fsm_event_t *
 #define FSM_TASK_STACK  task_stack_item_t
                 
 /*============================ TYPES =========================================*/

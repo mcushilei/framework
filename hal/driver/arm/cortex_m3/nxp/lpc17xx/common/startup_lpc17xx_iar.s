@@ -61,7 +61,7 @@ NVIC_VECTTBL    EQU     0xE000ED08
 
     SECTION .intvec:CODE:NOROOT (2)               
     DATA
-;Mast be named Vector_Table
+;Vector Table
 Vector_Table  
         DCD     SFE(CSTACK)               ; Top of Stack
         DCD     Reset_Handler             ; Reset Handler
@@ -121,12 +121,13 @@ Vector_Table_0x1c
 
     IF      ReWrite_CRP
     SECTION .crp :CODE:ROOT(2)
-    DCD     CRP_Value
+    DATA
+        DCD     CRP_Value
     ENDIF
     
     
 
-    SECTION .text:CODE:NOROOT (2)
+    SECTION .text:CODE:NOROOT(2)
     THUMB
     PRESERVE8
 
@@ -165,28 +166,28 @@ HardFault_Handler
         LDR     R1, [R0, #28]               ;XPSR
         STR     R1, [R3, #28]
         
-        LDR     R1, =0xE000ED28             ;XPSR
+        LDR     R1, =0xE000ED28             ;MFSR
         LDRB    R1, [R1, #0]
         STRB    R1, [R3, #32]
-        LDR     R1, =0xE000ED29             ;XPSR
+        LDR     R1, =0xE000ED29             ;BFSR
         LDRB    R1, [R1, #0]
         STRB    R1, [R3, #33]
-        LDR     R1, =0xE000ED2A             ;XPSR
+        LDR     R1, =0xE000ED2A             ;UFSR
         LDRH    R1, [R1, #0]
         STRH    R1, [R3, #34]
-        LDR     R1, =0xE000ED2C             ;XPSR
+        LDR     R1, =0xE000ED2C             ;HFSR
         LDR     R1, [R1, #0]
         STR     R1, [R3, #36]
-        LDR     R1, =0xE000ED30             ;XPSR
+        LDR     R1, =0xE000ED30             ;DFSR
         LDR     R1, [R1, #0]
         STR     R1, [R3, #40]
-        LDR     R1, =0xE000ED3C             ;XPSR
+        LDR     R1, =0xE000ED3C             ;AFSR
         LDR     R1, [R1, #0]
         STR     R1, [R3, #44]
-        LDR     R1, =0xE000ED34             ;
+        LDR     R1, =0xE000ED34             ;MMAR
         LDR     R1, [R1, #0]
         STR     R1, [R3, #48]
-        LDR     R1, =0xE000ED38             ;
+        LDR     R1, =0xE000ED38             ;BFAR
         LDR     R1, [R1, #0]
         STR     R1, [R3, #52]
         B       .

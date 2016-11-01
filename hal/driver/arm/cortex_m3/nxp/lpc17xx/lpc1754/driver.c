@@ -25,7 +25,7 @@
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
-AT_ADDR(0x10007F10) NO_INIT ROOT struct {    //
+AT_ADDR(0x10003F10) NO_INIT ROOT struct {
     unsigned int R0;
     unsigned int R1;
     unsigned int R2;
