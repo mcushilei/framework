@@ -68,7 +68,7 @@ uint_fast8_t fsm_event_create(
           bool bManualReset,
           bool bInitialState)
 {
-    uint8_t chSignal;
+    uint8_t chFlag;
     fsm_event_t *ptEvent;
     
     if (NULL == pptEvent) {
@@ -84,20 +84,20 @@ uint_fast8_t fsm_event_create(
     ptEvent      = sptEventList;
     sptEventList = (fsm_event_t *)ptEvent->ptObjNext;
     
-    chSignal = 0;
+    chFlag = 0;
     if (bManualReset) {
-        chSignal |= FSM_SIGNAL_MANUAL_RESET_BIT;
+        chFlag |= FSM_EVENT_MANUAL_RESET_BIT;
     }
     if (bInitialState) {
-        chSignal |= FSM_SIGNAL_FLAG_BIT;
+        chFlag |= FSM_EVENT_SINGNAL_BIT;
     }
     
     SAFE_ATOM_CODE(
-        ptEvent->chObjType     = FSM_OBJ_TYPE_EVENT;
-        ptEvent->ptObjNext     = NULL;
-        ptEvent->ptTCBHead     = NULL;           
-        ptEvent->ptTCBTail     = NULL;
-        ptEvent->chSignal      = chSignal;  //!< set initial state
+        ptEvent->chObjType      = FSM_OBJ_TYPE_EVENT;
+        ptEvent->ptObjNext      = NULL;
+        ptEvent->ptTCBHead      = NULL;           
+        ptEvent->ptTCBTail      = NULL;
+        ptEvent->chEventFlag    = chFlag;  //!< set initial state
         fsm_register_object(ptEvent);       //!< register object.
     )
     *pptEvent = ptEvent;
@@ -109,48 +109,61 @@ uint_fast8_t fsm_event_create(
  *! \param ptEvent pointer for task event
  *! \return none
  */
-void fsm_event_set(fsm_event_t *ptEvent) 
+uint_fast8_t fsm_event_set(fsm_event_t *ptEvent) 
 {
     if (NULL == ptEvent) {
-        return;
+        return FSM_ERR_NULL_PTR;
     }
     
     if (ptEvent->chObjType != FSM_OBJ_TYPE_EVENT) {
-        return;
+        return FSM_ERR_OBJ_TYPE_MISMATCHED;
     }
     
     SAFE_ATOM_CODE(
         fsm_tcb_t *pTask, *pNextTask;
         
-        //! wake up all blocked tasks.
-        for (pTask = ptEvent->ptTCBHead; NULL != pTask; pTask = pNextTask) {
-            pNextTask = pTask->pNext;
-            fsm_set_task_ready(pTask);    //!< move task to ready table.
-            pTask->ptObject = NULL;
-            pTask->chStatus = FSM_TASK_STATUS_PEND_OK;
+        if (ptEvent->ptTCBHead != NULL) {
+            //! wake up all blocked tasks.
+            for (pTask = ptEvent->ptTCBHead; NULL != pTask; pTask = pNextTask) {
+                pNextTask = pTask->pNext;
+                fsm_set_task_ready(pTask);    //!< move task to ready table.
+                pTask->ptObject = NULL;
+                pTask->chStatus = FSM_TASK_STATUS_PEND_OK;
+            }
+            ptEvent->ptTCBHead = NULL;
+            ptEvent->ptTCBTail = NULL;
         }
-        ptEvent->ptTCBHead = NULL;
-        ptEvent->ptTCBTail = NULL;
+        if (ptEvent->chEventFlag & FSM_EVENT_MANUAL_RESET_BIT) {
+            ptEvent->chEventFlag |= FSM_EVENT_SINGNAL_BIT;
+        }
     )
+        
+    return FSM_ERR_NONE;
 }
 
 /*! \brief reset specified task event
  *! \param ptEvent task event pointer
  *! \return none
  */
-void fsm_event_reset(fsm_event_t *ptEvent)
+uint_fast8_t fsm_event_reset(fsm_event_t *ptEvent)
 {
     if (NULL == ptEvent) {
-        return;
+        return FSM_ERR_NULL_PTR;
     }
     
     if (ptEvent->chObjType != FSM_OBJ_TYPE_EVENT) {
-        return;
+        return FSM_ERR_OBJ_TYPE_MISMATCHED;
+    }
+    
+    if (!(ptEvent->chEventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
+        return FSM_ERR_OPT_NOT_SUPPORT;
     }
 
     SAFE_ATOM_CODE(
-        ptEvent->chSignal &= ~FSM_SIGNAL_FLAG_BIT;
+        ptEvent->chEventFlag &= ~FSM_EVENT_SINGNAL_BIT;
     )
+        
+    return FSM_ERR_NONE;
 }
 #endif
 

@@ -78,9 +78,9 @@ static fsm_obj_t *  sptObjRegistedList;
  *  \retval false failed to push task routine into common return stack
  */
 static bool fsm_task_stack_push(
-        fsm_tcb_t   *pTask,
+        fsm_tcb_t           *pTask,
         state_func_t        *fnState,
-        void                *pArg) 
+        void                *pArg)
 {
     //! if stack full
     if (pTask->chStackLevel >= pTask->chStackSize) {
@@ -138,9 +138,8 @@ bool fsm_state_transfer(
 }
 
 /*! \brief call a sub task routine.
- *  \param pTask a pointer of task control block
  *  \param fnState target routine
- *  \param pArg a pointer of argument control block
+ *  \param pArg a pointer of argument
  *  \param fnReturnRoutine return to this routine when sub FSM completed
  *  \param pReturnArg argument for return routine
  *  \retval false invalid param or stack overflow
@@ -154,15 +153,12 @@ bool fsm_call_sub_ex(
 {
     fsm_tcb_t *pTask = stScheduler.ptCurrentTask;
 
-    if ((NULL == pTask)
-    ||  (NULL == fnState)
+    if ((NULL == fnState)
     ||  (NULL == fnReturnRoutine)) {
         return false;
     }
 
-    if (!fsm_task_stack_push(pTask, fnReturnRoutine, pReturnArg)) {
-        //!< fatal error! stack is overflow.
-        while (fsm_task_stack_pop(pTask));  //!< Terminate this task!
+    if (!fsm_task_stack_push(pTask, fnReturnRoutine, pReturnArg)) {//!< fatal error! stack is overflow.
         return false;
     }
 
@@ -231,11 +227,11 @@ static fsm_tcb_t *fsm_tcb_new(
         pTCB->pStack            = pStack;        //!< set stack buffer
         pTCB->chStackSize       = chStackSize;   //!< set stack size
         pTCB->chStackLevel      = 0;             //!< set stack point
-        pTCB->pStack[0].fnState = fnState;       //!< set task routine    
+        pTCB->pStack[0].fnState = fnState;       //!< set task routine
         pTCB->pStack[0].pArg    = pArg;          //!< set argument
 
 #if SAFE_TASK_THREAD_SYNC == ENABLED
-        pTCB->ptObject         = NULL;
+        pTCB->ptObject          = NULL;
 #endif
     }
 
@@ -396,8 +392,8 @@ bool fsm_scheduler(void)
     if (NULL == pTask) {
         return false;
     }
-
     stScheduler.ptCurrentTask = pTask;
+
     ptRoutine = pTask->pStack;
 
     /* run task routine */
@@ -413,11 +409,11 @@ bool fsm_scheduler(void)
         
         /* check whether this fsm is complete. */
         if (ptRoutine->fnState != NULL) {       
-            fsm_set_task_ready(pTask);     //!< re-add this task to queue
+            fsm_set_task_ready(pTask);          //!< re-add this task to queue
             break;
         } else {                                //!< it has returned from a sub-fsm.
-            if (fsm_task_stack_pop(pTask)) {        //!< has parent fsm?
-                fsm_set_task_ready(pTask); //!< re-add this task to queue
+            if (fsm_task_stack_pop(pTask)) {    //!< has parent fsm?
+                fsm_set_task_ready(pTask);      //!< re-add this task to queue
                 break;
             }
         }
@@ -519,11 +515,20 @@ uint_fast8_t fsm_wait_for_single_object(void *ptObject, uint32_t wTimeout)
         switch (chObjType) {
         case FSM_OBJ_TYPE_EVENT: {
             fsm_event_t *ptEvent = (fsm_event_t *)ptObject;
-            //! add task to the object's wait queue.
-            pTask->ptObject = (fsm_obj_t *)ptEvent;
-            pTask->wDelay   = wTimeout;
-            pTask->chStatus = FSM_TASK_STATUS_PEND;
-            fsm_task_enqueue(&(ptEvent->tTaskQueue), pTask);
+            SAFE_ATOM_CODE(
+                if (ptEvent->chEventFlag & FSM_EVENT_SINGNAL_BIT) {
+                    if (!(ptEvent->chEventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
+                        ptEvent->chEventFlag &= ~FSM_EVENT_SINGNAL_BIT;
+                    }
+                    bResult = FSM_ERR_NONE;
+                } else {
+                    //! add task to the object's wait queue.
+                    pTask->ptObject = (fsm_obj_t *)ptEvent;
+                    pTask->wDelay   = wTimeout;
+                    pTask->chStatus = FSM_TASK_STATUS_PEND;
+                    fsm_task_enqueue(&(ptEvent->tTaskQueue), pTask);
+                }
+            )
             break;
         }
         case FSM_OBJ_TYPE_INVALID:

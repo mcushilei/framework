@@ -111,8 +111,8 @@ extern uint_fast8_t     fsm_event_create    (
                                             fsm_event_t **      pptEvent,
                                             bool                bManualReset,
                                             bool                bInitialState);
-extern void             fsm_event_set      (fsm_event_t *       ptEvent);
-extern void             fsm_event_reset    (fsm_event_t *       ptEvent);
+extern uint_fast8_t     fsm_event_set      (fsm_event_t *       ptEvent);
+extern uint_fast8_t     fsm_event_reset    (fsm_event_t *       ptEvent);
 
 
 #endif  //! #ifndef __FSM_H__

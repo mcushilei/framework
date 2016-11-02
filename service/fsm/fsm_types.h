@@ -24,8 +24,8 @@
 
 
 /*============================ MACROS ========================================*/
-#define FSM_SIGNAL_FLAG_BIT         (1u << 0)
-#define FSM_SIGNAL_MANUAL_RESET_BIT (1u << 1)
+#define FSM_EVENT_SINGNAL_BIT       (1u << 0)
+#define FSM_EVENT_MANUAL_RESET_BIT  (1u << 1)
 
 #define FSM_OBJ_FLAG_REG_BIT        (1u << 0)
 
@@ -37,6 +37,8 @@ typedef enum {
     FSM_ERR_OBJ_NO_MORE_OCB,
     FSM_ERR_OBJ_NOT_SINGLED,
     FSM_ERR_OBJ_NOT_WAITABLE,
+    FSM_ERR_OBJ_TYPE_MISMATCHED,
+    FSM_ERR_OPT_NOT_SUPPORT,
     FSM_ERR_TASK_NO_MORE_TCB,
     FSM_ERR_TASK_FULL,
     FSM_ERR_TASK_PEND_TIMEOUT,
@@ -88,7 +90,7 @@ END_DEF_STRUCTURE(fsm_waitable_obj_header_t)
 
 DEF_STRUCTURE(fsm_event_t)
     fsm_waitable_obj_header_t;
-    uint8_t             chSignal;        //!< signal
+    uint8_t             chEventFlag;        //!< signal
 END_DEF_STRUCTURE(fsm_event_t)
 
 struct _task
