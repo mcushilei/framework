@@ -226,7 +226,7 @@ static fsm_tcb_t *fsm_tcb_new(
 
         pTCB->pStack            = pStack;        //!< set stack buffer
         pTCB->chStackSize       = chStackSize;   //!< set stack size
-        pTCB->chStackLevel      = 0;             //!< set stack point
+        pTCB->chStackLevel      = 1;             //!< set stack point
         pTCB->pStack[0].fnState = fnState;       //!< set task routine
         pTCB->pStack[0].pArg    = pArg;          //!< set argument
 

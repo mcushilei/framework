@@ -122,6 +122,7 @@ uint_fast8_t fsm_event_set(fsm_event_t *ptEvent)
     SAFE_ATOM_CODE(
         fsm_tcb_t *pTask, *pNextTask;
         
+        ptEvent->chEventFlag |= FSM_EVENT_SINGNAL_BIT;
         if (ptEvent->ptTCBHead != NULL) {
             //! wake up all blocked tasks.
             for (pTask = ptEvent->ptTCBHead; NULL != pTask; pTask = pNextTask) {
@@ -132,9 +133,9 @@ uint_fast8_t fsm_event_set(fsm_event_t *ptEvent)
             }
             ptEvent->ptTCBHead = NULL;
             ptEvent->ptTCBTail = NULL;
-        }
-        if (ptEvent->chEventFlag & FSM_EVENT_MANUAL_RESET_BIT) {
-            ptEvent->chEventFlag |= FSM_EVENT_SINGNAL_BIT;
+            if (!(ptEvent->chEventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
+                ptEvent->chEventFlag &= ~FSM_EVENT_SINGNAL_BIT;
+            }
         }
     )
         
