@@ -40,8 +40,8 @@ typedef enum {
     FSM_ERR_OBJ_TYPE_MISMATCHED,
     FSM_ERR_OPT_NOT_SUPPORT,
     FSM_ERR_TASK_NO_MORE_TCB,
-    FSM_ERR_TASK_FULL,
     FSM_ERR_TASK_PEND_TIMEOUT,
+    FSM_ERR_TASK_STACK_FULL,
 } fsm_err_em_t;
 
 typedef enum {
@@ -103,7 +103,7 @@ struct _task
     uint16_t            wDelay;
 
     uint8_t             chStackSize;    //!< stack size
-    uint8_t             chStackLevel;   //!< stack pointer
+    uint8_t             chStackPoint;   //!< stack pointer
     task_stack_item_t   *pStack;        //!< task call stack
     
 #if SAFE_TASK_THREAD_SYNC == ENABLED

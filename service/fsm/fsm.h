@@ -87,12 +87,12 @@ extern uint_fast8_t fsm_task_create(
 extern bool         fsm_state_transfer  (
                                         state_func_t *      fnState,
                                         void *              pArg);
-extern bool         fsm_call_sub_ex     (
+extern uint_fast8_t fsm_call_sub_ex     (
                                         state_func_t *      fnState,
                                         void *              pArg,
-                                        state_func_t *      fnReturnRoutine,
+                                        state_func_t *      fnReturnState,
                                         void *              pReturnArg);
-extern bool         fsm_call_sub        (
+extern uint_fast8_t fsm_call_sub        (
                                         state_func_t *      fnState,
                                         void *              pArg);
 
@@ -104,15 +104,15 @@ extern bool fsm_register_object(void *pObj);
 extern bool fsm_deregister_object(void *pObj);
 
 #if SAFE_TASK_THREAD_SYNC == ENABLED
-extern uint_fast8_t     fsm_wait_for_single_object(void *ptObject, uint32_t wTimeout);
+extern uint_fast8_t fsm_wait_for_single_object(void *ptObject, uint32_t wTimeout);
 #endif      //! #if SAFE_TASK_THREAD_SYNC == ENABLED
 
-extern uint_fast8_t     fsm_event_create    (
-                                            fsm_event_t **      pptEvent,
-                                            bool                bManualReset,
-                                            bool                bInitialState);
-extern uint_fast8_t     fsm_event_set      (fsm_event_t *       ptEvent);
-extern uint_fast8_t     fsm_event_reset    (fsm_event_t *       ptEvent);
+extern uint_fast8_t fsm_event_create    (
+                                        fsm_event_t **      pptEvent,
+                                        bool                bManualReset,
+                                        bool                bInitialState);
+extern uint_fast8_t fsm_event_set       (fsm_event_t *      ptEvent);
+extern uint_fast8_t fsm_event_reset     (fsm_event_t *      ptEvent);
 
 
 #endif  //! #ifndef __FSM_H__
