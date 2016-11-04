@@ -591,7 +591,7 @@ static uint32_t i2c_bus_get_status(__i2c_t *ptThis)
 //static bool i2c_task(__i2c_t *ptThis)
 //{
 //    static enum {
-//        I2C_BUS_CHECK_FLAG   = FSM_START_STATE,
+//        I2C_BUS_CHECK_FLAG   = 0,
 //        I2C_BUS_CHECK_STATUS,
 //    } s_tStatus;
 //    

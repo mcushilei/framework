@@ -27,7 +27,7 @@
 /*============================ MACROS ========================================*/
 #if ((!defined(FSM_MAX_EVENTS)) || (FSM_MAX_EVENTS < 1))
 #   define FSM_MAX_EVENTS           (1u)
-#   warning "FSM_MAX_EVENTS is invalid, use default value 1u."
+#   warning "FSM_MAX_EVENTS is invalid, use default value 1."
 #endif
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
@@ -42,17 +42,15 @@ static fsm_event_t    stEventPool[FSM_MAX_EVENTS];       //! event ocb pool
 void fsm_event_init(void)
 {
     uint_fast8_t n;
-    fsm_event_t *p = stEventPool;
+    fsm_event_t **p;
 
     MEM_SET_ZERO((void *)stEventPool, sizeof(stEventPool));
-    sptEventList = NULL;
+    p = &sptEventList;
     
-    //! add events ocb to the free list
-    for (n = UBOUND(stEventPool); n; n--) {
-        p->ptObjNext = (fsm_obj_t *)sptEventList;    //! add task item to freelist
-        p->chObjType = FSM_OBJ_TYPE_EVENT;
-        sptEventList = p;
-        p++;
+    //! add event OCBs to the free list
+    for (n = 0; n < UBOUND(stEventPool); n++) {
+        *p = &stEventPool[n];
+        p = (fsm_event_t **)&((*p)->ptObjNext);
     }
 }
 
@@ -72,7 +70,7 @@ uint_fast8_t fsm_event_create(
     fsm_event_t *ptEvent;
     
     if (NULL == pptEvent) {
-        return FSM_ERR_NULL_PTR;
+        return FSM_ERR_INVALID_PARAM;
     }
 
     //!< get OCB from pool.
@@ -97,7 +95,7 @@ uint_fast8_t fsm_event_create(
         ptEvent->ptObjNext      = NULL;
         ptEvent->ptTCBHead      = NULL;           
         ptEvent->ptTCBTail      = NULL;
-        ptEvent->chEventFlag    = chFlag;  //!< set initial state
+        ptEvent->chEventFlag    = chFlag;   //!< set initial state
         fsm_register_object(ptEvent);       //!< register object.
     )
     *pptEvent = ptEvent;
@@ -112,7 +110,7 @@ uint_fast8_t fsm_event_create(
 uint_fast8_t fsm_event_set(fsm_event_t *ptEvent) 
 {
     if (NULL == ptEvent) {
-        return FSM_ERR_NULL_PTR;
+        return FSM_ERR_INVALID_PARAM;
     }
     
     if (ptEvent->chObjType != FSM_OBJ_TYPE_EVENT) {
@@ -127,7 +125,7 @@ uint_fast8_t fsm_event_set(fsm_event_t *ptEvent)
             //! wake up all blocked tasks.
             for (pTask = ptEvent->ptTCBHead; NULL != pTask; pTask = pNextTask) {
                 pNextTask = pTask->pNext;
-                fsm_set_task_ready(pTask);    //!< move task to ready table.
+                fsm_set_task_ready(pTask);    //!< move task to ready list.
                 pTask->ptObject = NULL;
                 pTask->chStatus = FSM_TASK_STATUS_PEND_OK;
             }
@@ -149,7 +147,7 @@ uint_fast8_t fsm_event_set(fsm_event_t *ptEvent)
 uint_fast8_t fsm_event_reset(fsm_event_t *ptEvent)
 {
     if (NULL == ptEvent) {
-        return FSM_ERR_NULL_PTR;
+        return FSM_ERR_INVALID_PARAM;
     }
     
     if (ptEvent->chObjType != FSM_OBJ_TYPE_EVENT) {

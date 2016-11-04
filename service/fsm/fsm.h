@@ -24,8 +24,11 @@
 #include ".\fsm_types.h"
 
 /*============================ MACROS ========================================*/
-#define FSM_START_STATE         0
-
+#define FSM_OBJ_EVENT       fsm_event_t *
+#define FSM_OBJ_MUTEX       fsm_mutex_t *
+#define FSM_OBJ_SEMAPHORE   fsm_semaphore_t *
+#define FSM_TASK_STACK      task_stack_item_t
+                
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define FSM_SCHEDULER()         fsm_scheduler()
 #define FSM_INIT()              fsm_init()
@@ -43,15 +46,30 @@
 #define FSM_COMPLETE()                                                          \
             fsm_state_transfer(NULL, NULL)
 
-//! \brief call sub state machine and return to current state when sub state machine run complete
+//! \brief call sub sfm and return to current state when sub sfm run complete
 #define FSM_CALL(__ROUTINE, __ARG_ADDR)                                         \
             fsm_call_sub(__ROUTINE, __ARG_ADDR)
 
-//! \brief call sub state machine and return to specified state when sub state machine run complete
+//! \brief call sub sfm and return to specified state when sub sfm run complete
 #define FSM_CALL_EX(__ROUTINE, __ARG_ADDR, __RET_ROUTINE, __RET_ARG_ADDR)       \
             fsm_call_sub_ex(__ROUTINE, __ARG_ADDR,                \
                             __RET_ROUTINE, __RET_ARG_ADDR)
 
+                
+#define FSM_INT_ENTER()     do {\
+                if (gchFSMIntNesting < 255u) {\
+                    gchFSMIntNesting++;\
+                }\
+            while (0)
+                
+#define FSM_INT_EXIT()     do {\
+                if (gchFSMIntNesting) {\
+                    gchFSMIntNesting--;\
+                }\
+            while (0)
+                
+#define FSM_IN_INT()    (0 != gchFSMIntNesting)
+                
 #if SAFE_TASK_THREAD_SYNC == ENABLED
 #define FSM_WAIT_SINGLE_OBJECT(__EVENT)                  \
             fsm_wait_for_single_object(__EVENT, 0)
@@ -69,16 +87,27 @@
 //! \brief reset task event to inactive state
 #define FSM_RESET_EVENT(__EVENT)                 \
             fsm_event_reset((__EVENT))
+
+#define FSM_CREATE_MUTEX(__PMUTEX, __INITIAL_OWN)\
+            fsm_mutex_create(&(__PMUTEX), __INITIAL_OWN)
                 
-#define FSM_OBJ_EVENT   fsm_event_t *
-#define FSM_TASK_STACK  task_stack_item_t
+#define FSM_RELEASE_MUTEX(__PMUTEX)                \
+            fsm_mutex_release(__PMUTEX)
+                
+#define FSM_CREATE_SEM(__PSEM, __INIT_COUNT, __MAX_COUNT)        \
+            fsm_semaphore_create(&(__PSEM), __INIT_COUNT, __MAX_COUNT)
+
+#define FSM_RELEASE_SEM(__PSEM, __RELEASE_COUNT)                \
+            fsm_semaphore_release(__PSEM, __RELEASE_COUNT)
                 
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
+extern volatile uint8_t gchFSMIntNesting;
+
 /*============================ PROTOTYPES ====================================*/
 extern void         fsm_init            (void);
-extern void         fsm_deinit          (void);
-extern uint_fast8_t fsm_task_create(
+
+extern uint_fast8_t fsm_task_create     (
                                         fsm_tcb_t **        pptTask,
                                         state_func_t *      fnState,
                                         void *              pArg,
@@ -96,23 +125,41 @@ extern uint_fast8_t fsm_call_sub        (
                                         state_func_t *      fnState,
                                         void *              pArg);
 
-extern bool         fsm_set_task_ready  (fsm_tcb_t *pTask);
 extern bool         fsm_scheduler       (void);
-extern void         fsm_time_tick(void);
-
-extern bool fsm_register_object(void *pObj);
-extern bool fsm_deregister_object(void *pObj);
+extern void         fsm_time_tick       (void);
 
 #if SAFE_TASK_THREAD_SYNC == ENABLED
 extern uint_fast8_t fsm_wait_for_single_object(void *ptObject, uint32_t wTimeout);
+
+extern uint_fast8_t fsm_event_create        (
+                                            fsm_event_t **      pptEvent,
+                                            bool                bManualReset,
+                                            bool                bInitialState);
+extern uint_fast8_t fsm_event_set           (fsm_event_t *      ptEvent);
+extern uint_fast8_t fsm_event_reset         (fsm_event_t *      ptEvent);
+extern uint_fast8_t fsm_mutex_create        (
+                                            fsm_mutex_t **      pptMutex,
+                                            bool                bInitialOwner);
+extern uint_fast8_t fsm_mutex_release       (fsm_mutex_t *      ptMutex);
+extern uint_fast8_t fsm_semaphore_create    (
+                                            fsm_semaphore_t **  pptSem,
+                                            uint16_t            hwInitialCount,
+                                            uint16_t            hwMaximumCount);
+extern uint_fast8_t fsm_semaphore_release   (fsm_semaphore_t *  ptSem,
+                                            uint16_t            hwReleaseCount);
 #endif      //! #if SAFE_TASK_THREAD_SYNC == ENABLED
 
-extern uint_fast8_t fsm_event_create    (
-                                        fsm_event_t **      pptEvent,
-                                        bool                bManualReset,
-                                        bool                bInitialState);
-extern uint_fast8_t fsm_event_set       (fsm_event_t *      ptEvent);
-extern uint_fast8_t fsm_event_reset     (fsm_event_t *      ptEvent);
+/*--------------------------- Internal use only ------------------------------*/
+extern bool         fsm_task_enqueue            (
+                                                task_queue_t *      pTaskQueue,
+                                                fsm_tcb_t *         pTask);
+extern fsm_tcb_t *  fsm_task_dequeue            (task_queue_t *     pTaskQueue);
+extern bool         fsm_remove_task_from_queue  (
+                                                task_queue_t *      pTaskQueue,
+                                                fsm_tcb_t *         pTask);
+extern bool         fsm_set_task_ready          (fsm_tcb_t *        pTask);
+extern bool         fsm_register_object     (void *         pObj);
+extern bool         fsm_deregister_object   (void *         pObj);
 
 
 #endif  //! #ifndef __FSM_H__

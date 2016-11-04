@@ -26,6 +26,10 @@
 
 /*============================ MACROS ========================================*/
 #define SAFE_TASK_THREAD_SYNC   ENABLED
+#define FSM_MAX_TASKS           (4u)
+#define FSM_MAX_EVENTS          (4u)
+#define FSM_MAX_MUTEXES         (4u)
+#define FSM_MAX_SEMS            (4u)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define MEM_SET_ZERO(__P, __S)  mem_set(__P, 0, __S)
