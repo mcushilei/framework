@@ -24,10 +24,11 @@
 #include ".\fsm_types.h"
 
 /*============================ MACROS ========================================*/
+#define FSM_TASK            fsm_tcb_t *
+#define FSM_TASK_STACK      task_stack_item_t
 #define FSM_OBJ_EVENT       fsm_event_t *
 #define FSM_OBJ_MUTEX       fsm_mutex_t *
 #define FSM_OBJ_SEMAPHORE   fsm_semaphore_t *
-#define FSM_TASK_STACK      task_stack_item_t
                 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define FSM_SCHEDULER()         fsm_scheduler()
