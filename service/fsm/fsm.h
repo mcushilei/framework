@@ -15,7 +15,6 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-
 #ifndef __FSM_H__
 #define __FSM_H__
 

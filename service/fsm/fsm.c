@@ -440,22 +440,20 @@ void fsm_time_tick(void)
     for (pOCB = sptObjRegistedList; pOCB != NULL; pOCB = pOCB->ptObjNext) {
         if (pOCB->chObjType & FSM_OBJ_TYPE_WAITABLE) {   //!< only watiable object can be wait.
             fsm_waitable_obj_header_t *ptWatiableObj = (fsm_waitable_obj_header_t *)pOCB;
-            if (ptWatiableObj->ptTCBHead) { //!< if there is task wait for this obj.
-                fsm_tcb_t *pTask;
-                fsm_tcb_t *pNextTCB;
-                for (pTask = ptWatiableObj->ptTCBHead; pTask; pTask = pNextTCB) {
-                    pNextTCB = pTask->pNext;
-                    if (pTask->wDelay != 0) {
-                        pTask->wDelay--;
-                        if (pTask->wDelay == 0) {
-                            //! 1. move this task from this object's wait queue to ready list.
-                            fsm_remove_task_from_queue(&(ptWatiableObj->tTaskQueue), pTask);
-                            //! 2. set tcb.ptObject NULL
-                            pTask->ptObject = NULL;
-                            fsm_set_task_ready(pTask);
-                            //! 3. set tcb.chStatus for reasion OBJ_WAIT_TIMEOUT.
-                            pTask->chStatus = FSM_TASK_STATUS_PEND_TIMEOUT;
-                        }
+            fsm_tcb_t *pTask;
+            fsm_tcb_t *pNextTCB;
+            for (pTask = ptWatiableObj->ptTCBHead; pTask; pTask = pNextTCB) {
+                pNextTCB = pTask->pNext;
+                if (pTask->wDelay != 0) {
+                    pTask->wDelay--;
+                    if (pTask->wDelay == 0) {
+                        //! 1. Remove this task from this object's wait queue.
+                        fsm_remove_task_from_queue(&(ptWatiableObj->tTaskQueue), pTask);
+                        //! 2. set tcb.ptObject NULL
+                        pTask->ptObject = NULL;
+                        //! 3. Let this task to ruan and chang it's status.
+                        fsm_set_task_ready(pTask);
+                        pTask->chStatus = FSM_TASK_STATUS_PEND_TIMEOUT;
                     }
                 }
             }
