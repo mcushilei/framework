@@ -325,18 +325,13 @@ bool fsm_remove_task_from_queue(task_queue_t *pTaskQueue, fsm_tcb_t *pTask)
     SAFE_ATOM_CODE(
         for (ppTCB = &pTaskQueue->ptTCBHead; *ppTCB; ppTCB = &((*ppTCB)->pNext)) {
             if (*ppTCB == pTask) {
-                if (pTask == pTaskQueue->ptTCBHead) {
-                    if (pTask == pTaskQueue->ptTCBTail) {
-                        pTaskQueue->ptTCBTail = NULL;
-                    }
-                    pTaskQueue->ptTCBHead = pTask->pNext;
-                } else if (pTask == pTaskQueue->ptTCBTail) {
-                    *ppTCB = NULL;
+                *ppTCB = pTask->pNext;
+                pTask->pNext = NULL;
+                if (pTaskQueue->ptTCBHead == NULL) {
+                    pTaskQueue->ptTCBTail = NULL;
+                } else {
                     for (pTask = pTaskQueue->ptTCBHead; pTask->pNext != NULL; pTask = pTask->pNext);
                     pTaskQueue->ptTCBTail = pTask;
-                } else {
-                    *ppTCB = pTask->pNext;
-                    pTask->pNext = NULL;
                 }
                 bRes = true;
                 break;
@@ -447,11 +442,12 @@ void fsm_time_tick(void)
             fsm_waitable_obj_header_t *ptWatiableObj = (fsm_waitable_obj_header_t *)pOCB;
             if (ptWatiableObj->ptTCBHead) { //!< if there is task wait for this obj.
                 fsm_tcb_t *pTask;
-                for (pTask = ptWatiableObj->ptTCBHead; pTask; pTask = pTask->pNext) {
+                fsm_tcb_t *pNextTCB;
+                for (pTask = ptWatiableObj->ptTCBHead; pTask; pTask = pNextTCB) {
+                    pNextTCB = pTask->pNext;
                     if (pTask->wDelay != 0) {
                         pTask->wDelay--;
                         if (pTask->wDelay == 0) {
-                            fsm_tcb_t *pNextTCB = pTask->pNext;
                             //! 1. move this task from this object's wait queue to ready list.
                             fsm_remove_task_from_queue(&(ptWatiableObj->tTaskQueue), pTask);
                             //! 2. set tcb.ptObject NULL
@@ -459,9 +455,6 @@ void fsm_time_tick(void)
                             fsm_set_task_ready(pTask);
                             //! 3. set tcb.chStatus for reasion OBJ_WAIT_TIMEOUT.
                             pTask->chStatus = FSM_TASK_STATUS_PEND_TIMEOUT;
-                            
-                            pTask = pNextTCB;
-                            continue;
                         }
                     }
                 }
