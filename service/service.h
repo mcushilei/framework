@@ -25,14 +25,15 @@
 //#include ".\lock\lock.h"
 #include ".\string\string.h"
 #include ".\debug\debug.h"
-#include ".\event_fsm\event_fsm.h"
-#include ".\fsm\fsm.h"
 #include ".\checksum\checksum.h"
 #include ".\communication\communication.h"
 #include ".\queue\queue.h"
 #include ".\fifo\fifo.h"
 #include ".\pool\pool.h"
 #include ".\list\list.h"
+#include ".\softtimer\softtimer.h"
+#include ".\event_fsm\event_fsm.h"
+#include ".\fsm\fsm.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
