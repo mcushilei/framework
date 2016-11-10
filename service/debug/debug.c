@@ -44,8 +44,8 @@
 }
 
 #define DEBUG_PRINT_LOCATION(__FILE, __LINE) {       \
+    DEBUG_OUTPUT_CHAR('<');                          \
     DEBUG_PRINT(__FILE);                             \
-    DEBUG_OUTPUT_CHAR('-');                          \
     DEBUG_OUTPUT_CHAR('>');                          \
     debug_print_number_unsigned(__LINE);             \
     DEBUG_OUTPUT_CHAR(':');                          \
@@ -70,8 +70,8 @@ static void debug_print_number_hex(const _U_UINT number, const _U_UINT nibbles_t
 static void debug_print_mask(const _U_UINT mask, const _U_UINT number);
 
 /*============================ LOCAL VARIABLES ===============================*/
-static DEBUG_ROM_VAR_TYPE const char DebugStrFail[]      = "Failure: ";
-static DEBUG_ROM_VAR_TYPE const char DebugStrMessage[]   = "Message: ";
+static DEBUG_ROM_VAR_TYPE const char DebugStrFail[]      = "[Err]";
+static DEBUG_ROM_VAR_TYPE const char DebugStrMessage[]   = "[Msg]";
 static DEBUG_ROM_VAR_TYPE const char DebugStrNull[]      = "NULL";
 static DEBUG_ROM_VAR_TYPE const char DebugStrExpected[]  = "Expected ";
 static DEBUG_ROM_VAR_TYPE const char DebugStrWas[]       = " Was ";
@@ -252,6 +252,7 @@ static void debug_print_mask(const _U_UINT mask, const _U_UINT number)
 void debug_print_null_point(void)
 {
     DEBUG_PRINT(DebugStrNullPointer);
+    DEBUG_PRINT_EOL
 }
 
 //-----------------------------------------------
@@ -274,6 +275,7 @@ void debug_print_expected_actual_string(const char *expected, const char *actual
     } else {
       DEBUG_PRINT(DebugStrNull);          
     }
+    DEBUG_PRINT_EOL
 }
 
 //-----------------------------------------------
@@ -286,6 +288,7 @@ void debug_print_equal_bits(
     debug_print_mask(mask, expected);
     DEBUG_PRINT(DebugStrWas);
     debug_print_mask(mask, actual);
+    DEBUG_PRINT_EOL
 }
 
 //-----------------------------------------------
@@ -327,6 +330,7 @@ void debug_print_equal_number(
             debug_print_number_hex(actual, 2 * sizeof(_U_UINT));
             break;
     }
+    DEBUG_PRINT_EOL
 }
 
 //-----------------------------------------------
@@ -335,15 +339,15 @@ void debug_print_equal_number(
 void debug_failure_captured(const char *file, const _U_UINT line)
 {
     DEBUG_PRINT_EOL
-    DEBUG_PRINT_LOCATION(file, line)
     DEBUG_PRINT(DebugStrFail);
+    DEBUG_PRINT_LOCATION(file, line)
 }
 
 void debug_msg_output(const char *file, const _U_UINT line)
 {
     DEBUG_PRINT_EOL
-    DEBUG_PRINT_LOCATION(file, line)
     DEBUG_PRINT(DebugStrMessage);
+    DEBUG_PRINT_LOCATION(file, line)
 }
 
 #endif      /* #ifdef __DEBUG__ */

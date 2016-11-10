@@ -133,11 +133,10 @@ typedef volatile uint16_t   reg16_t;
 typedef volatile uint32_t   reg32_t;
 
 typedef enum {
-    fsm_rt_cpl = 0,    //!< fsm complete
-    fsm_rt_ongoing,
-    fsm_rt_wait_for_obj,        //!< fsm wait for object
-    fsm_rt_unhandle,            //!< event unhandle
-    fsm_rt_err,
+    FSM_RT_CPL = 0,     //!< fsm complete
+    FSM_RT_ONGOING,
+    FSM_RT_UNHANDLE,    //!< event unhandle
+    FSM_RT_ERR,
 } fsm_rt_em_t;
 typedef uint_fast8_t fsm_rt_t;
 

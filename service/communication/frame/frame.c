@@ -171,7 +171,7 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t **ppchDate, uint
             if (chEvent) {  //!< timeout
                 FRAME_DEQUEUE(&chByte);
                 s_tState1 = WAIT_FOR_HEAD_0;
-                return fsm_rt_ongoing;
+                return FSM_RT_ONGOING;
             } else {        //!< byte received
                 if (!FRAME_ENQUEUE(chByte)) {
                     FRAME_DEQUEUE(&chByte);
@@ -186,7 +186,7 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t **ppchDate, uint
             do {
                 if (!FRAME_PEEK_QUEUE(&chByte)) {
                     s_tState0 = RCV_ENQUEUE;
-                    return fsm_rt_ongoing;
+                    return FSM_RT_ONGOING;
                 }
 
                 switch (s_tState1) {
@@ -287,10 +287,10 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t **ppchDate, uint
             *ppchDate = s_chFrame;
             *phwLength = s_WritePoint;
             s_tState0 = RCV_ENQUEUE;
-            return fsm_rt_cpl;
+            return FSM_RT_CPL;
     }
 
-    return fsm_rt_ongoing;
+    return FSM_RT_ONGOING;
 }
 
 extern bool frame_output_byte(uint8_t chByte);
@@ -329,7 +329,7 @@ fsm_rt_t frame_snd_fsm(const uint8_t *pchData, uint16_t hwLength)
     switch (s_tState) {
         case SND_HEAD_0:
             if (0 == hwLength) {
-                return fsm_rt_cpl;
+                return FSM_RT_CPL;
             }
             DEBUG_MSG(FRAME_DEBUG, "Snd start:");
             s_Checksum = 0;
@@ -401,12 +401,12 @@ fsm_rt_t frame_snd_fsm(const uint8_t *pchData, uint16_t hwLength)
             if (frame_output_byte((uint8_t)s_Checksum)) {
                 DEBUG_MSG(FRAME_DEBUG, "Snd cpl.");
                 s_tState = SND_HEAD_0;
-                return fsm_rt_cpl;
+                return FSM_RT_CPL;
             }
             break;
     }
     
-    return fsm_rt_ongoing;
+    return FSM_RT_ONGOING;
 }
 
 /* EOF */

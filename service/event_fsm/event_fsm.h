@@ -40,17 +40,13 @@ typedef struct {
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool event_fsm_init(event_fsm_tcb_t *ptTCB, event_fsm_stack_t *pStack, uint8_t chStackSize, fn_event_state_t *pInitState);
+extern bool     event_fsm_init(event_fsm_tcb_t *ptTCB, event_fsm_stack_t *pStack, uint8_t chStackSize, fn_event_state_t *pInitState);
+extern fsm_rt_t event_fsm_dispatch_event(event_fsm_tcb_t *ptTCB, void *ptEvent);
+
 extern bool event_fsm_transfer_to(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState);
-extern bool event_fsm_transfer_to_end(event_fsm_tcb_t *ptTCB);
 extern bool event_fsm_transfer_to_uper(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState);
 extern bool event_fsm_transfer_to_lower(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState);
 extern bool event_fsm_to_current_Level(event_fsm_tcb_t *ptTCB);
-extern bool event_fsm_current_level_decrease(event_fsm_tcb_t *ptTCB);
-
-extern fn_event_state_t *event_fsm_get_current_state(event_fsm_tcb_t *ptTCB);
-extern fn_event_state_t *event_fsm_get_state(event_fsm_tcb_t *ptTCB);
-extern fsm_rt_t event_fsm_handle_event(event_fsm_tcb_t *ptFSM, void *ptEvent);
 
 
 #endif  //! #ifndef __EVENT_FSM_H__
