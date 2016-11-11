@@ -46,7 +46,7 @@ extern fsm_rt_t event_fsm_dispatch_event(event_fsm_tcb_t *ptTCB, void *ptEvent);
 extern bool event_fsm_transfer_to(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState);
 extern bool event_fsm_transfer_to_uper(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState);
 extern bool event_fsm_transfer_to_lower(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState);
-extern bool event_fsm_to_current_Level(event_fsm_tcb_t *ptTCB);
+extern bool event_fsm_transfer_to_current(event_fsm_tcb_t *ptTCB);
 
 
 #endif  //! #ifndef __EVENT_FSM_H__

@@ -73,7 +73,7 @@ static fn_event_state_t *event_fsm_get_current_state(event_fsm_tcb_t *ptTCB)
     return ptTCB->pStack[ptTCB->chCurrentSP];
 }
 
-bool event_fsm_to_current_Level(event_fsm_tcb_t *ptTCB)
+bool event_fsm_transfer_to_current(event_fsm_tcb_t *ptTCB)
 {
     ptTCB->chSP = ptTCB->chCurrentSP;
     return true;
@@ -95,6 +95,10 @@ bool event_fsm_transfer_to_uper(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState
         return false;
     }
 
+    if (pState == NULL) {
+        return false;
+    }
+    
     ptTCB->chCurrentSP++;
     ptTCB->chSP = ptTCB->chCurrentSP;
     ptTCB->pStack[ptTCB->chSP] = pState;
@@ -110,9 +114,10 @@ bool event_fsm_transfer_to_lower(event_fsm_tcb_t *ptTCB, fn_event_state_t *pStat
     }
     
     ptTCB->chCurrentSP--;
-
     ptTCB->chSP = ptTCB->chCurrentSP;
-    ptTCB->pStack[ptTCB->chSP] = pState;
+    if (pState != NULL) {
+        ptTCB->pStack[ptTCB->chSP] = pState;
+    }
     
     return true;
 }
@@ -123,22 +128,24 @@ fsm_rt_t event_fsm_dispatch_event(event_fsm_tcb_t *ptTCB, void *ptEvent)
     fn_event_state_t *fnCurrentState;
     uint8_t chRes;
     
-    fnCurrentState = event_fsm_get_current_state(ptTCB);
-    if (NULL == fnCurrentState) {
-        return FSM_RT_ERR;
-    }
-    chRes = (*fnCurrentState)(ptEvent);
-    if (FSM_RT_UNHANDLE == chRes) {
-        if (!event_fsm_current_level_decrease(ptTCB)) {
+    do {
+        fnCurrentState = event_fsm_get_current_state(ptTCB);
+        if (NULL == fnCurrentState) {
+            return FSM_RT_ERR;
+        }
+        chRes = (*fnCurrentState)(ptEvent);
+        if (FSM_RT_UNHANDLE == chRes) {
+            if (!event_fsm_current_level_decrease(ptTCB)) {
+                event_fsm_reset_current(ptTCB);
+                return FSM_RT_CPL;
+            }
+        } else if (FSM_RT_ONGOING == chRes) {
+            return FSM_RT_ONGOING;
+        } else {
+            event_fsm_reset_current(ptTCB);
             return FSM_RT_CPL;
         }
-    } else if (FSM_RT_ONGOING == chRes) {
-    } else {
-        event_fsm_reset_current(ptTCB);
-        return FSM_RT_CPL;
-    }
-    
-    return FSM_RT_ONGOING;
+    } while (1);
 }
 
 
