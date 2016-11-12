@@ -82,6 +82,10 @@ bool event_fsm_transfer_to_current(event_fsm_tcb_t *ptTCB)
 //! transfer to specified state that locate in the same level(This is called in current level obviously).
 bool event_fsm_transfer_to(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState)
 {
+    if (pState == NULL) {
+        return false;
+    }
+    
     ptTCB->chSP = ptTCB->chCurrentSP;
     ptTCB->pStack[ptTCB->chSP] = pState;
     
