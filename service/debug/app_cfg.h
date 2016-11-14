@@ -61,6 +61,11 @@
 
 /*============================ TYPES =========================================*/
 //-------------------------------------------------------
+// Char Support
+//-------------------------------------------------------
+#define _CHAR       uint8_t
+
+//-------------------------------------------------------
 // Int Support
 //-------------------------------------------------------
 typedef uint8_t     _UU8;
@@ -72,33 +77,33 @@ typedef int16_t     _US16;
 typedef int32_t     _US32;
 typedef int64_t     _US64;
 
-#if (DEBUG_INT_WIDTH == 64)
-    typedef _UU32 _U_UINT;
-    typedef _US32 _U_SINT;
+#if   (DEBUG_INT_WIDTH == 64)
+    typedef uint64_t _UINT;
+    typedef int64_t _SINT;
 #elif (DEBUG_INT_WIDTH == 32)
-    typedef _UU32 _U_UINT;
-    typedef _US32 _U_SINT;
+    typedef uint32_t _UINT;
+    typedef int32_t _SINT;
 #elif (DEBUG_INT_WIDTH == 16)
-    typedef _UU16 _U_UINT;
-    typedef _US16 _U_SINT;
+    typedef uint16_t _UINT;
+    typedef int16_t _SINT;
 #elif (DEBUG_INT_WIDTH == 8)
-    typedef _UU8 _U_UINT;
-    typedef _US8 _U_SINT;
+    typedef uint8_t _UINT;
+    typedef int8_t _SINT;
 #else
-    #error "Invalid DEBUG_INT_WIDTH specified! (16, 32 or 8 are supported)"
+    #error "Invalid DEBUG_INT_WIDTH specified! (64, 16, 32 or 8 are supported)"
 #endif
 
 //-------------------------------------------------------
 // Pointer Support
 //-------------------------------------------------------
-#if (DEBUG_POINTER_WIDTH == 64)
-    typedef _UU64 _UP;
+#if   (DEBUG_POINTER_WIDTH == 64)
+    typedef uint64_t _UP;
 #elif (DEBUG_POINTER_WIDTH == 32)
-    typedef _UU32 _UP;
+    typedef uint32_t _UP;
 #elif (DEBUG_POINTER_WIDTH == 16)
-    typedef _UU16 _UP;
+    typedef uint8_t _UP;
 #else
-    #error "Invalid DEBUG_POINTER_WIDTH specified! (16, 32 or 64 are supported)"
+    #error "Invalid DEBUG_POINTER_WIDTH specified! (64, 16, 32 or 64 are supported)"
 #endif
 
 //-------------------------------------------------------
@@ -110,7 +115,7 @@ typedef int64_t     _US64;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern int DEBUG_OUTPUT_CHAR(char);
+extern uint8_t DEBUG_OUTPUT_CHAR(uint8_t);
 
 #endif
 /* EOF */

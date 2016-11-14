@@ -64,20 +64,20 @@ typedef enum {
 } em_DebugDisplayStyle_t;
 
 /*============================ PROTOTYPES ====================================*/
-static void debug_print_number_signed(const _U_SINT number);
-static void debug_print_number_unsigned(const _U_UINT number);
-static void debug_print_number_hex(const _U_UINT number, const _U_UINT nibbles_to_print);
-static void debug_print_mask(const _U_UINT mask, const _U_UINT number);
+static void debug_print_number_signed(const _SINT number);
+static void debug_print_number_unsigned(const _UINT number);
+static void debug_print_number_hex(const _UINT number, const _UINT nibbles_to_print);
+static void debug_print_mask(const _UINT mask, const _UINT number);
 
 /*============================ LOCAL VARIABLES ===============================*/
-static DEBUG_ROM_VAR_TYPE const char DebugStrFail[]      = "[Err]";
-static DEBUG_ROM_VAR_TYPE const char DebugStrMessage[]   = "[Msg]";
-static DEBUG_ROM_VAR_TYPE const char DebugStrNull[]      = "NULL";
-static DEBUG_ROM_VAR_TYPE const char DebugStrExpected[]  = "Expected ";
-static DEBUG_ROM_VAR_TYPE const char DebugStrWas[]       = " Was ";
-static DEBUG_ROM_VAR_TYPE const char DebugStrNullPointer[]   = "Pointer was NULL.";
+static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrFail[]      = "[Err]";
+static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrMessage[]   = "[Msg]";
+static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrNull[]      = "NULL";
+static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrExpected[]  = "Expected ";
+static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrWas[]       = " Was ";
+static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrNullPointer[]   = "Pointer was NULL.";
 
-static volatile unsigned char s_chExitTrap = 0; 
+static volatile _CHAR s_chExitTrap = 0; 
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
@@ -95,7 +95,7 @@ void debug_exit_trap(void)
     s_chExitTrap = 1;
 }
 
-int debug_string_compare(const char *expected, const char *actual)
+int debug_string_compare(const _CHAR *expected, const _CHAR *actual)
 {
     if (expected && actual) {
         for (; *expected || *actual;) {
@@ -121,7 +121,7 @@ int putchar(int ch)
     return ch;
 }
 #else
-void debug_print_string(const char *string)
+void debug_print_string(const _CHAR *string)
 {
     if (string != NULL) {
         for (; *string; string++) {
@@ -133,11 +133,11 @@ void debug_print_string(const char *string)
 
 //-----------------------------------------------
 //! basically do an itoa using as little ram as possible
-static void debug_print_number_signed(const _U_SINT number_to_print)
+static void debug_print_number_signed(const _SINT number_to_print)
 {
-    _U_SINT divisor = 1;
-    _U_SINT next_divisor;
-    _U_SINT number = number_to_print;
+    _SINT divisor = 1;
+    _SINT next_divisor;
+    _SINT number = number_to_print;
 
     if (number < 0) {
         DEBUG_OUTPUT_CHAR('-');
@@ -156,17 +156,17 @@ static void debug_print_number_signed(const _U_SINT number_to_print)
 
     // now mod and print, then divide divisor
     do {
-        DEBUG_OUTPUT_CHAR((char)('0' + (number / divisor % 10)));
+        DEBUG_OUTPUT_CHAR('0' + (number / divisor % 10));
         divisor /= 10;
     } while (divisor > 0);
 }
 
 //-----------------------------------------------
 //! basically do an itoa using as little ram as possible
-static void debug_print_number_unsigned(const _U_UINT number)
+static void debug_print_number_unsigned(const _UINT number)
 {
-    _U_UINT divisor = 1;
-    _U_UINT next_divisor;
+    _UINT divisor = 1;
+    _UINT next_divisor;
 
     // figure out initial divisor
     while (number / divisor > 9) {
@@ -180,56 +180,56 @@ static void debug_print_number_unsigned(const _U_UINT number)
 
     // now mod and print, then divide divisor
     do {
-        DEBUG_OUTPUT_CHAR((char)('0' + (number / divisor % 10)));
+        DEBUG_OUTPUT_CHAR('0' + (number / divisor % 10));
         divisor /= 10;
     } while (divisor > 0);
 }
 
 //-----------------------------------------------
-static void debug_print_number_hex(const _U_UINT number, const _U_UINT nibbles_to_print)
+static void debug_print_number_hex(const _UINT number, const _UINT nibbles_to_print)
 {
-    _U_UINT nibble;
-    _U_UINT nibbles = nibbles_to_print;
+    _UINT nibble;
+    _UINT nibbles = nibbles_to_print;
 
-    if (nibbles > (sizeof(_U_UINT) << 1)) {
-        nibbles = sizeof(_U_UINT) << 1;
+    if (nibbles > (sizeof(_UINT) << 1)) {
+        nibbles = sizeof(_UINT) << 1;
     }
 
     for (; nibbles; --nibbles) {
         nibble = (number >> ((nibbles - 1) << 2)) & 0x0Fu;
         if (nibble <= 9) {
-            DEBUG_OUTPUT_CHAR((char)('0' + nibble));
+            DEBUG_OUTPUT_CHAR('0' + nibble);
         } else {
-            DEBUG_OUTPUT_CHAR((char)('A' - 10 + nibble));
+            DEBUG_OUTPUT_CHAR('A' - 10 + nibble);
         }
     }
 }
 
 //-----------------------------------------------
-static void debug_print_number_by_style(const _U_SINT number, const em_DebugDisplayStyle_t style)
+static void debug_print_number_by_style(const _SINT number, const em_DebugDisplayStyle_t style)
 {
     switch (style) {
         case DEBUG_DISPLAY_STYLE_INT:
-            debug_print_number_signed((_U_SINT)number);
+            debug_print_number_signed((_SINT)number);
             break;
 
         case DEBUG_DISPLAY_STYLE_UINT:
-            debug_print_number_unsigned((_U_UINT)number);
+            debug_print_number_unsigned((_UINT)number);
             break;
 
         case DEBUG_DISPLAY_STYLE_HEX:
         case DEBUG_DISPLAY_STYLE_POINTER:
         default:
-            debug_print_number_hex((_U_UINT)number, 2 * sizeof(_U_UINT));
+            debug_print_number_hex((_UINT)number, 2 * sizeof(_UINT));
             break;
     }
 }
 
 //-----------------------------------------------
-static void debug_print_mask(const _U_UINT mask, const _U_UINT number)
+static void debug_print_mask(const _UINT mask, const _UINT number)
 {
-    _U_UINT current_bit = (_U_UINT)1 << (DEBUG_INT_WIDTH - 1);
-    _U_UINT i;
+    _UINT current_bit = (_UINT)1 << (DEBUG_INT_WIDTH - 1);
+    _UINT i;
 
     for (i = 0; i < DEBUG_INT_WIDTH; i++) {
         if (current_bit & mask) {
@@ -256,7 +256,7 @@ void debug_print_null_point(void)
 }
 
 //-----------------------------------------------
-void debug_print_expected_actual_string(const char *expected, const char *actual)
+void debug_print_expected_actual_string(const _CHAR *expected, const _CHAR *actual)
 {
     DEBUG_PRINT(DebugStrExpected);
     if (expected != NULL) {
@@ -280,9 +280,9 @@ void debug_print_expected_actual_string(const char *expected, const char *actual
 
 //-----------------------------------------------
 void debug_print_equal_bits(
-    const _U_UINT mask,
-    const _U_UINT expected,
-    const _U_UINT actual)
+    const _UINT mask,
+    const _UINT expected,
+    const _UINT actual)
 {
     DEBUG_PRINT(DebugStrExpected);
     debug_print_mask(mask, expected);
@@ -293,8 +293,8 @@ void debug_print_equal_bits(
 
 //-----------------------------------------------
 void debug_print_equal_number(
-    const _U_SINT expected, 
-    const _U_SINT actual, 
+    const _SINT expected, 
+    const _SINT actual, 
     const em_DebugDisplayStyle_t style)
 {
     DEBUG_PRINT(DebugStrExpected);
@@ -310,7 +310,7 @@ void debug_print_equal_number(
         case DEBUG_DISPLAY_STYLE_HEX:
         case DEBUG_DISPLAY_STYLE_POINTER:
         default:
-            debug_print_number_hex(expected, 2 * sizeof(_U_UINT));
+            debug_print_number_hex(expected, 2 * sizeof(_UINT));
             break;
     }
 
@@ -327,7 +327,7 @@ void debug_print_equal_number(
         case DEBUG_DISPLAY_STYLE_HEX:
         case DEBUG_DISPLAY_STYLE_POINTER:
         default:
-            debug_print_number_hex(actual, 2 * sizeof(_U_UINT));
+            debug_print_number_hex(actual, 2 * sizeof(_UINT));
             break;
     }
     DEBUG_PRINT_EOL
@@ -336,14 +336,14 @@ void debug_print_equal_number(
 //-----------------------------------------------
 // Control Functions
 //-----------------------------------------------
-void debug_failure_captured(const char *file, const _U_UINT line)
+void debug_failure_captured(const _CHAR *file, const _UINT line)
 {
     DEBUG_PRINT_EOL
     DEBUG_PRINT(DebugStrFail);
     DEBUG_PRINT_LOCATION(file, line)
 }
 
-void debug_msg_output(const char *file, const _U_UINT line)
+void debug_msg_output(const _CHAR *file, const _UINT line)
 {
     DEBUG_PRINT_EOL
     DEBUG_PRINT(DebugStrMessage);

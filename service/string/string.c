@@ -305,7 +305,7 @@ uint8_t *string_string(const uint8_t *s1, const uint8_t *s2)
 
 /*! \brief paser string to token, replace delim to '\0' and return point to token.
  *! \param ppstring address of point varible point to string that to paser.
- *! \param pdelim pont to delim string, every char in this sting represent as a delim.
+ *! \param pdelim point to delim string, every char in this sting represent as a delim.
  *! \retval address of token, this token may be empty string:"\0".
  *! \retval NULL there is no token in specify string.
  */
@@ -316,18 +316,18 @@ uint8_t *strsep(uint8_t **ppstring, const uint8_t *pdelim)
 	uint8_t c, sc;
 
     if (ppstring == NULL) {
-		return (NULL);
+		return NULL;
     }
 
     s = *ppstring;
     if (s == NULL) {
-		return (NULL);
+		return NULL;
     }
 
     tok = s;
 	for (;;) {
 		c = *s++;
-		for (spanp = pdelim; ;spanp++) {
+		for (spanp = pdelim; *spanp != '\0'; spanp++) {
             sc = *spanp;
 			if (sc == c) {
                 if (sc == '\0') {
@@ -336,9 +336,9 @@ uint8_t *strsep(uint8_t **ppstring, const uint8_t *pdelim)
 					s[-1] = '\0';
                 }
 				*ppstring = s;
-				return (tok);
+				return tok;
 			}
-		} while (sc != '\0');
+		}
 	}
 }
 

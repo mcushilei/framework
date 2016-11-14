@@ -32,31 +32,31 @@
  * - 1 warning
  * - 2 serious
  */
-#define DEBUG_LEVEL_ALL     0x00U
-#define DEBUG_LEVEL_WARNING 0x01U /* eg: bad checksums, dropped packets, ... */
-#define DEBUG_LEVEL_SERIOUS 0x02U /* eg: memory allocation failures, ... */
-#define DEBUG_LEVEL_MASK    0x03U
+#define DEBUG_LEVEL_ALL     0x0000U
+#define DEBUG_LEVEL_WARNING 0x0001U /* eg: bad checksums, dropped packets, ... */
+#define DEBUG_LEVEL_SERIOUS 0x0002U /* eg: memory allocation failures, ... */
+#define DEBUG_LEVEL_MASK    0x0007U
 
 /** flag for DEBUGF to enable that debug message */
-#define DEBUG_ON            0x80U
+#define DEBUG_ON            0x8000U
 /** flag for DEBUGF to disable that debug message */
-#define DEBUG_OFF           0x00U
+#define DEBUG_OFF           0x0000U
 
 /** flag for DEBUGF indicating a tracing message (to follow program flow) */
-#define DEBUG_TRACE         0x40U
+#define DEBUG_TRACE         0x0800U
 /** flag for DEBUGF indicating a state debug message (to follow module states) */
-#define DEBUG_STATE         0x20U
+#define DEBUG_STATE         0x0400U
 /** flag for DEBUGF indicating newly added code, not thoroughly debuged yet */
-#define DEBUG_FRESH         0x10U
+#define DEBUG_FRESH         0x0200U
 /** flag for DEBUGF to halt after printing this debug message */
-#define DEBUG_HALT          0x08U
+#define DEBUG_HALT          0x0100U
 
 #define DEBUG_ANY           DEBUG_ON
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #if (((DEBUG_MSG_ENABLE == ENABLED) || (DEBUG_ASSERT_ENABLE != DISABLED)) && defined(__DEBUG__))
     #define DEBUG_DEFINE_THIS_FILE(string)                  \
-        static DEBUG_ROM_VAR_TYPE const char __ThisFileName[] = string
+        static DEBUG_ROM_VAR_TYPE const _CHAR __ThisFileName[] = string
 #else
     #define DEBUG_DEFINE_THIS_FILE(string)
 #endif
@@ -69,15 +69,15 @@
 //-------------------------------------------------------
 // Debug Asserts
 //-------------------------------------------------------
+/** print debug message only if debug message type is enabled...
+ *  AND is of correct type AND is at least DEBUG_LEVEL
+ */
 #if DEBUG_FOMART_STRING == ENABLED
     #define __DEBUG_PRINT(...)          printf(__VA_ARGS__);
-    /** print debug message only if debug message type is enabled...
-     *  AND is of correct type AND is at least DEBUG_LEVEL
-     */
     #define __DEBUG_MSG(ctrl, line, ...)    do {            \
-                    if (((ctrl) & DEBUG_ON) &&              \
-                        ((ctrl) & (DEBUG_TYPES_ON)) &&      \
-                        (((ctrl) & DEBUG_LEVEL_MASK) >= DEBUG_MIN_LEVEL)) {\
+                    if (( (ctrl) & (DEBUG_ON)) &&           \
+                        ( (ctrl) & (DEBUG_TYPES_ON)) &&     \
+                        (((ctrl) & (DEBUG_LEVEL_MASK)) >= DEBUG_MIN_LEVEL)) {\
                             debug_msg_output(__ThisFileName, line);\
                             printf(__VA_ARGS__);            \
                             if ((ctrl) & DEBUG_HALT) {      \
@@ -87,13 +87,10 @@
                 } while(0)
 #else
     #define __DEBUG_PRINT(string, ...)      debug_print_string(string);
-    /** print debug message only if debug message type is enabled...
-     *  AND is of correct type AND is at least DEBUG_LEVEL
-     */
     #define __DEBUG_MSG(ctrl, line, string, ...)    do {    \
-                    if (((ctrl) & DEBUG_ON) &&              \
-                        ((ctrl) & (DEBUG_TYPES_ON)) &&      \
-                        (((ctrl) & DEBUG_LEVEL_MASK) >= DEBUG_MIN_LEVEL)) {\
+                    if (( (ctrl) & (DEBUG_ON)) &&           \
+                        ( (ctrl) & (DEBUG_TYPES_ON)) &&     \
+                        (((ctrl) & (DEBUG_LEVEL_MASK)) >= DEBUG_MIN_LEVEL)) {\
                             debug_msg_output(__ThisFileName, line);\
                             debug_print_string(string);            \
                             if ((ctrl) & DEBUG_HALT) {      \
@@ -103,8 +100,7 @@
                 } while(0)
 #endif  //!< #if DEBUG_FOMART_STRING == ENABLED
 
-#define __DEBUG_ASSERT(condition, line, ...)                        \
-            do {                                                    \
+#define __DEBUG_ASSERT(condition, line, ...)        do {            \
                 if (!(condition)) {                                 \
                     debug_failure_captured(__ThisFileName, line);   \
                     __VA_ARGS__                                     \
@@ -136,23 +132,23 @@
 
 #define DEBUG_ASSERT_EQUAL_HEX(expected, actual, ...)                   \
             DEBUG_ASSERT(                                               \
-                ((_U_UINT)(expected) == (_U_UINT)(actual)),             \
-                debug_print_equal_number((_U_SINT)(expected), (_U_SINT)(actual), DEBUG_DISPLAY_STYLE_POINTER);\
+                ((_UINT)(expected) == (_UINT)(actual)),             \
+                debug_print_equal_number((_SINT)(expected), (_SINT)(actual), DEBUG_DISPLAY_STYLE_POINTER);\
                 __VA_ARGS__                                             \
             )
 #define DEBUG_ASSERT_EQUAL_PTR DEBUG_ASSERT_EQUAL_HEX
 
 #define DEBUG_ASSERT_EQUAL_UINT(expected, actual, ...)                  \
             DEBUG_ASSERT(                                               \
-                ((_U_UINT)(expected) == (_U_UINT)(actual)),             \
-                debug_print_equal_number((_U_SINT)(expected), (_U_SINT)(actual), DEBUG_DISPLAY_STYLE_UINT);\
+                ((_UINT)(expected) == (_UINT)(actual)),             \
+                debug_print_equal_number((_SINT)(expected), (_SINT)(actual), DEBUG_DISPLAY_STYLE_UINT);\
                 __VA_ARGS__                                             \
             )
 
 #define DEBUG_ASSERT_EQUAL_INT(expected, actual, ...)                   \
             DEBUG_ASSERT(                                               \
-                ((_U_SINT)(expected) == (_U_SINT)(actual)),             \
-                debug_print_equal_number((_U_SINT)(expected), (_U_SINT)(actual), DEBUG_DISPLAY_STYLE_INT);\
+                ((_SINT)(expected) == (_SINT)(actual)),             \
+                debug_print_equal_number((_SINT)(expected), (_SINT)(actual), DEBUG_DISPLAY_STYLE_INT);\
                 __VA_ARGS__                                             \
             )
 
@@ -165,8 +161,8 @@
 
 #define DEBUG_ASSERT_BITS(mask, expected, actual, ...)                  \
             DEBUG_ASSERT(                                               \
-                (((_U_UINT)mask & (_U_UINT)expected) == ((_U_UINT)mask & (_U_UINT)actual)),\
-                debug_print_equal_bits((_U_UINT)mask, (_U_UINT)expected, (_U_UINT)actual);\
+                (((_UINT)mask & (_UINT)expected) == ((_UINT)mask & (_UINT)actual)),\
+                debug_print_equal_bits((_UINT)mask, (_UINT)expected, (_UINT)actual);\
                 __VA_ARGS__                                             \
             )
 
@@ -206,15 +202,15 @@ typedef enum {
 extern void debug_trap(void);
 extern void debug_exit_trap(void);
 #if DEBUG_FOMART_STRING != ENABLED
-extern void debug_print_string(const char *string);
+extern void debug_print_string(const _CHAR *string);
 #endif
-extern void debug_failure_captured(const char *file, const _U_UINT line);
-extern void debug_msg_output(const char *file, const _U_UINT line);
-extern void debug_print_equal_number(const _U_SINT expected, const _U_SINT actual, const em_DebugDisplayStyle_t style);
-extern void debug_print_equal_bits(const _U_UINT mask, const _U_UINT expected, const _U_UINT actual);
-extern void debug_print_expected_actual_string(const char *expected, const char *actual);
-extern void debug_print_null_point(void);
-extern int  debug_string_compare(const char *expected, const char *actual);
+extern void debug_failure_captured  (const _CHAR *file, const _UINT line);
+extern void debug_msg_output        (const _CHAR *file, const _UINT line);
+extern void debug_print_equal_number(const _SINT expected, const _SINT actual, const em_DebugDisplayStyle_t style);
+extern void debug_print_equal_bits  (const _UINT mask, const _UINT expected, const _UINT actual);
+extern void debug_print_expected_actual_string(const _CHAR *expected, const _CHAR *actual);
+extern void debug_print_null_point  (void);
+extern int  debug_string_compare    (const _CHAR *expected, const _CHAR *actual);
 #endif      /* #ifdef __DEBUG__ */
 
 #endif
