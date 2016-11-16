@@ -1,6 +1,23 @@
+/*******************************************************************************
+ *  Copyright(C)2016 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *                                                                            *
+ *  This program is free software; you can redistribute it and/or modify it   *
+ *  under the terms of the GNU Lesser General Public License as published     *
+ *  by the Free Software Foundation; either version 3 of the License, or      *
+ *  (at your option) any later version.                                       *
+ *                                                                            *
+ *  This program is distributed in the hope that it will be useful, but       *
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of                *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU          *
+ *  General Public License for more details.                                  *
+ *                                                                            *
+ *  You should have received a copy of the GNU Lesser General Public License  *
+ *  along with this program; if not, see http://www.gnu.org/licenses/.        *
+*******************************************************************************/
+
+
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include ".\spi_sd_flash_port.h"
 
 /*============================ MACROS ========================================*/
 #define SD_FLASH_BLOCK_SIZE         (512u)   /* Block Size in Bytes */
@@ -160,8 +177,6 @@
 #define __SD_CMD_ITEM(__N, __VALUE)     SD_CMD_CMD##__N = __N,
 #define __SD_ACMD_ITEM(__N, __VALUE)    SD_CMD_ACMD##__N = __N,
 
-#define SD_CRC7_CALCULATOR(__C, __D)    sd_crc7_calculator(__C, __D)
-#define SD_CRC16_CALCULATOR(__C, __D)   sd_crc16_calculator(__C, __D)
       
       
 /*============================ TYPES =========================================*/
@@ -359,7 +374,7 @@ bool spi_sd_card_detect(void)
         //! get card operate valtage if need.
 
         //! Check if it is SD card
-        SD_TIME_SET(500);
+        SD_TIME_SET(1000);
         do {
             wR1 = spi_sd_send_acmd (SD_CMD_ACMD41, 0, NULL, 0);
             if (wR1 == 0x00) {
@@ -380,7 +395,7 @@ bool spi_sd_card_detect(void)
         GET_U32_BE(wOCR, chRes);
         //! get card operate valtage if need.
         
-        SD_TIME_SET(500);
+        SD_TIME_SET(1000);
         //! The card is SD V2 and can work at voltage range of 2.7 to 3.6V
         do {
             wR1 = spi_sd_send_acmd (SD_CMD_ACMD41, SD_ACMD41_ARGUMENT, NULL, 0);
@@ -611,7 +626,7 @@ bool spi_sd_write_block(uint32_t block, const uint8_t *buf, uint32_t cnt)
             if (spi_sd_write_data(buf, 0xFE, SD_FLASH_BLOCK_SIZE)) {
                 
                 /* Wait for wirte complete. */
-                SD_TIME_SET(2000);
+                SD_TIME_SET(4000);
                 do {
                     recv = SD_SPI_READ_BYTE();
                     if (recv == 0xFF) {
@@ -620,6 +635,8 @@ bool spi_sd_write_block(uint32_t block, const uint8_t *buf, uint32_t cnt)
                 } while (!SD_TIME_IS_OVERFLOW());
                 if (recv == 0xFF) {
                     bRetVal = true;
+                } else {
+                    bRetVal = false;
                 }
             }
         }

@@ -86,7 +86,7 @@
                     }                                       \
                 } while(0)
 #else
-    #define __DEBUG_PRINT(string, ...)      debug_print_string(string);
+    #define __DEBUG_PRINT(string, arg, ...)      string_printf(string, arg);
     #define __DEBUG_MSG(ctrl, line, string, ...)    do {    \
                     if (( (ctrl) & (DEBUG_ON)) &&           \
                         ( (ctrl) & (DEBUG_TYPES_ON)) &&     \

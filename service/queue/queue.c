@@ -53,7 +53,7 @@ bool queue_init(queue_t *pQUEUE, void *pBuffer, __queue_uint_t tSize, __queue_ui
     
     DEBUG_ASSERT_NOT_NULL(pQUEUE);
     DEBUG_ASSERT_NOT_NULL(pBuffer);
-    DEBUG_ASSERT(tSize != 0, DEBUG_PRINT("Queue buffer size must not be ZERO!"));
+    DEBUG_ASSERT_EQUAL_UINT(0, tSize);
     if (NULL == pQUEUE || NULL == pBuffer || 0 == tSize) {
         return false;
     }

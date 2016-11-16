@@ -63,8 +63,8 @@ bool pool_init(pool_t *pPOOL, void *pMem, __pool_uint_t tPoolSize, __pool_uint_t
     }
 
     DEBUG_ASSERT_NOT_NULL(pMem);
-    DEBUG_ASSERT(0 != tPoolSize, DEBUG_PRINT("Pool size must not be 0."));
-    DEBUG_ASSERT((sizeof(void *) <= tBlockSize), DEBUG_PRINT("tBlockSize < sizeof(void *)!"));
+    DEBUG_ASSERT_EQUAL_UINT(0, tPoolSize);
+    DEBUG_ASSERT((sizeof(void *) <= tBlockSize), DEBUG_PRINT("tBlockSize < sizeof(void *)!", 0));
     if ((NULL == pMem) || (0 == tPoolSize) || (sizeof(void *) > tBlockSize)) {
         return false;
     }
@@ -109,10 +109,10 @@ bool pool_free(pool_t *pPOOL, void *pBLOCK)
         return false;
     }
 
+    DEBUG_ASSERT(ptPOOL->tCounter < ptPOOL->tSize,
+                 DEBUG_PRINT("Terrible error: pool has been full!", 0));
     __POOL_ATOM_ACCESS(
         do {
-            DEBUG_ASSERT(ptPOOL->tCounter < ptPOOL->tSize,
-                         DEBUG_PRINT("Terrible error: pool has been full!"));
             if (ptPOOL->tCounter
             >=  ptPOOL->tSize) {
                 break;

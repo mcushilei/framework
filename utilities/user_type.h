@@ -46,9 +46,12 @@
 //! @}
 
 #define __HZ_MACRO__
-#define MHz                 *1000000u
-#define KHz                 *1000u
 #define Hz                  *1u
+#define KHz                 *1000u
+#define MHz                 *1000000u
+
+#define KB                  *1024u
+#define MB                  *1024u*1024u
 
 #define ENABLED             1
 #define DISABLED            0
