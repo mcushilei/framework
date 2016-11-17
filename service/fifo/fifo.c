@@ -47,13 +47,13 @@ bool fifo_init(fifo_t *pFIFO, void *pBuffer, __fifo_uint_t tSize, __fifo_uint_t 
     
     DEBUG_ASSERT_NOT_NULL(pFIFO);
     DEBUG_ASSERT_NOT_NULL(pBuffer);
-    DEBUG_ASSERT(tSize >= 2, DEBUG_PRINT("FIFO Buffer size must not less than 2.", 0));
+    DEBUG_ASSERT(tSize >= 2);
     if (NULL == pFIFO || NULL == pBuffer || tSize < 2) {
         return false;
     }
 
 #if FIFO_TYPE_SIZE_ALIGNED == ENABLED
-    DEBUG_ASSERT(IS_POWER_OF_2(tSize), DEBUG_PRINT("ERROR: FIFO Buffer size is not aligned."));
+    DEBUG_ASSERT(IS_POWER_OF_2(tSize));
     if (!IS_POWER_OF_2(tSize)) {
         return false;
     }

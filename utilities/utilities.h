@@ -27,6 +27,22 @@
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
+#define COUNT_LEADING_ZEROS(__N, __V)       do {\
+            uint32_t x = __N;                   \
+            x |= x >> 1;                        \
+            x |= x >> 2;                        \
+            x |= x >> 4;                        \
+            x |= x >> 8;                        \
+            x |= x >> 16;                       \
+            x = ~x;                             \
+            x = (x & 0x55555555U) + ((x >> 1)  & 0x55555555U);\
+            x = (x & 0x33333333U) + ((x >> 2)  & 0x33333333U);\
+            x = (x & 0x0f0f0f0fU) + ((x >> 4)  & 0x0f0f0f0fU);\
+            x = (x & 0x00ff00ffU) + ((x >> 8)  & 0x00ff00ffU);\
+            x = (x & 0x0000ffffU) + ((x >> 16) & 0x0000ffffU);\
+            __V = x;                            \
+        } while (0)
+
 #define COUNT_TRAILING_ZEROS(__N, __V)      do {\
             uint32_t x = __N;                   \
             x = ((x - 1) | x) ^ x;              \
@@ -37,6 +53,27 @@
             x = (x & 0x0000ffffU) + ((x >> 16) & 0x0000ffffU);\
             __V = x;                            \
         } while (0)
+
+#define IS_POWER_OF_2(__N)  (((__N) != 0u) && (!(((unsigned int)(__N) - 1u) & (unsigned int)(__N))))
+
+#define NEXT_POEWER_OF_2(__N, __V)          do {\
+            uint32_t x = __N;                   \
+            if (IS_POWER_OF_2(x)) {             \
+                __V = x;                        \
+                break;                          \
+            }                                   \
+            x |= x >> 1;                        \
+            x |= x >> 2;                        \
+            x |= x >> 4;                        \
+            x |= x >> 8;                        \
+            x |= x >> 16;                       \
+            __V = x + 1;                        \
+        } while (0)
+
+//! \brief math macros
+#define MAX(__A,__B)        (((__A) > (__B)) ? (__A) : (__B))
+#define MIN(__A,__B)        (((__A) < (__B)) ? (__A) : (__B))
+#define ABS(__N)            (((__N) < 0)? (-(__N)) : (__N))
             
 //! \brief initialize large object
 # define OBJECT_INIT_ZERO(__OBJECT)         do {\
@@ -45,13 +82,6 @@
             } NULL_OBJECT = {{0}};\
             (*((struct OBJECT_INIT *)&(__OBJECT))) = NULL_OBJECT;\
         } while (false)
-
-//! \brief math macros
-#define MAX(__A,__B)        (((__A) > (__B)) ? (__A) : (__B))
-#define MIN(__A,__B)        (((__A) < (__B)) ? (__A) : (__B))
-#define ABS(__N)            (((__N) < 0)? (-(__N)) : (__N))
-#define IS_POWER_OF_2(__N)  (   ((__N) == 0)                                \
-                             || (((__N) != 1u) && !(((__N) - 1u) & (__N))))
 
 //!< local FSM
 #define LFSM_BEGIN(__M)     do {

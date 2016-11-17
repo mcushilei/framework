@@ -86,7 +86,7 @@
                     }                                       \
                 } while(0)
 #else
-    #define __DEBUG_PRINT(string, arg, ...)      string_printf(string, arg);
+    #define __DEBUG_PRINT(string, arg, ...)      string_printf(string, (uint32_t)(arg));
     #define __DEBUG_MSG(ctrl, line, string, ...)    do {    \
                     if (( (ctrl) & (DEBUG_ON)) &&           \
                         ( (ctrl) & (DEBUG_TYPES_ON)) &&     \
@@ -109,9 +109,9 @@
 
 
 #if (((DEBUG_MSG_ENABLE == ENABLED) || (DEBUG_ASSERT_ENABLE != DISABLED)) && defined(__DEBUG__))
-#define DEBUG_PRINT(...)                __DEBUG_PRINT(__VA_ARGS__)
+#define DEBUG_PRINT(string, ...)        __DEBUG_PRINT(string, __VA_ARGS__)
 #else
-#define DEBUG_PRINT(...)
+#define DEBUG_PRINT(string, ...)
 #endif
 
 #if ((DEBUG_MSG_ENABLE == ENABLED) && defined(__DEBUG__))

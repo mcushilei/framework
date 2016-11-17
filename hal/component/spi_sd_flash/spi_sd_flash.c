@@ -171,7 +171,7 @@
 #define SD_CMD_FORMAT_END_BIT_MSK                   (0x01u)
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define SD_TIME_SET(__N)            s_wTimer = __N
-#define SD_TIME_IS_OVERFLOW()       (!(--s_wTimer))
+#define SD_TIME_IS_OVERFLOW()       (0 == (--s_wTimer))
 
 	
 #define __SD_CMD_ITEM(__N, __VALUE)     SD_CMD_CMD##__N = __N,
