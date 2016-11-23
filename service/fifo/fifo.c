@@ -16,177 +16,178 @@
 *******************************************************************************/
 
 
-//! \note do not move this pre-processor statement to other places
-#define __FIFO_C__
-
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include "..\string\string.h"
-#include "..\debug\debug.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-DEF_CLASS(fifo_t)
-    void *              pBuffer;
-    __fifo_uint_t       tObjSize;
-    __fifo_uint_t       tSize;
-    __fifo_uint_t       tHead;
-    __fifo_uint_t       tTail;
-END_DEF_CLASS(fifo_t)
+DEF_CLASS(fifo8_t)
+    uint8_t *   Buffer;
+    uint32_t    Size;
+    uint32_t    Out;
+    uint32_t    In;
+END_DEF_CLASS(fifo8_t)
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
-DEBUG_DEFINE_THIS_FILE("FIFO");
-
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-bool fifo_init(fifo_t *pFIFO, void *pBuffer, __fifo_uint_t tSize, __fifo_uint_t tObjSize)
+#if 0
+bool fifo8_init(fifo8_t *pFIFO, uint8_t *Buffer, uint32_t Size)
 {
-    CLASS(fifo_t) *ptFIFO = (CLASS(fifo_t) *)pFIFO;
+    CLASS(fifo8_t) *ptFIFO = (CLASS(fifo8_t) *)pFIFO;
     
-    DEBUG_ASSERT_NOT_NULL(pFIFO);
-    DEBUG_ASSERT_NOT_NULL(pBuffer);
-    DEBUG_ASSERT(tSize >= 2);
-    if (NULL == pFIFO || NULL == pBuffer || tSize < 2) {
+    if (NULL == pFIFO || NULL == Buffer || Size < 2) {
         return false;
     }
 
-#if FIFO_TYPE_SIZE_ALIGNED == ENABLED
-    DEBUG_ASSERT(IS_POWER_OF_2(tSize));
-    if (!IS_POWER_OF_2(tSize)) {
+    ptFIFO->Buffer  = Buffer;
+    ptFIFO->Size    = Size;
+    ptFIFO->Out    = 0;
+    ptFIFO->In    = 0;
+
+    return true;
+}
+
+bool fifo8_in(fifo8_t *pFIFO, const uint8_t *Buffer)
+{
+    CLASS(fifo8_t) *ptFIFO = (CLASS(fifo8_t) *)pFIFO;
+    uint32_t l1, l2;
+
+    if (NULL == pFIFO || NULL == Buffer) {
         return false;
     }
+
+    //! l1: all those without data.
+    //! l2: those can be access at once.
+    if (ptFIFO->Out > ptFIFO->In) {     //!< counter return.
+        l2 = ptFIFO->Out - ptFIFO->In;
+        l1 = l2;
+    } else {
+        l2 = ptFIFO->Size - ptFIFO->In;
+        l1 = l2 + ptFIFO->Out;
+    }
+    if (l1 < 2) {   //!< fifo is full.
+        return false;
+    }
+
+    l1 = MIN(1, l1);
+    l2 = MIN(l1, l2);
+
+    ptFIFO->Buffer[ptFIFO->In] = *Buffer;
+    ptFIFO->In += l1;
+    if (ptFIFO->In >= ptFIFO->Size) {
+        ptFIFO->In = ptFIFO->Size - ptFIFO->In;
+    }
+
+    return true;
+}
+
+bool fifo8_out(fifo8_t *pFIFO, uint8_t *Buffer)
+{
+    CLASS(fifo8_t) *ptFIFO = (CLASS(fifo8_t) *)pFIFO;
+    uint32_t l1, l2;
+
+    if (NULL == pFIFO) {
+        return false;
+    }
+
+    //! l1: all those with data.
+    //! l2: those can be access at once.
+    if (ptFIFO->Out > ptFIFO->In) {    //!< counter return.
+        l2 = ptFIFO->Size - ptFIFO->Out;
+        l1 = l2 + ptFIFO->In;
+    } else {
+        l2 = ptFIFO->In - ptFIFO->Out;
+        l1 = l2;
+    }
+    if (l1 == 0) {      //!< fifo is empty.
+        return false;
+    }
+
+    l1 = MIN(1, l1);
+    l2 = MIN(l1, l2);
+
+    if (NULL != Buffer) {
+        *Buffer = ptFIFO->Buffer[ptFIFO->Out];
+    }
+    ptFIFO->Out += l1;
+    if (ptFIFO->Out >= ptFIFO->Size) {
+        ptFIFO->Out = ptFIFO->Size - ptFIFO->Out;
+    }
+
+    return true;
+}
+
+#else
+
+bool fifo8_init(fifo8_t *pFIFO, uint8_t *Buffer, uint32_t Size)
+{
+    CLASS(fifo8_t) *ptFIFO = (CLASS(fifo8_t) *)pFIFO;
+    
+    if (NULL == pFIFO || NULL == Buffer || (!IS_POWER_OF_2(Size))) {
+        return false;
+    }
+
+    ptFIFO->Buffer  = Buffer;
+    ptFIFO->Size    = Size;
+    ptFIFO->Out    = 0;
+    ptFIFO->In    = 0;
+
+    return true;
+}
+
+
+bool fifo8_in(fifo8_t *pFIFO, const uint8_t *Buffer)
+{
+    CLASS(fifo8_t) *ptFIFO = (CLASS(fifo8_t) *)pFIFO;
+    uint32_t l1, l2;
+
+    if (NULL == pFIFO || NULL == Buffer) {
+        return false;
+    }
+
+    l1 = ptFIFO->Size - (ptFIFO->In - ptFIFO->Out);
+    l2 = ptFIFO->Size - (ptFIFO->In & (ptFIFO->Size - 1));
+    if (l1 == 0) {      //!< fifo is full.
+        return false;
+    }
+
+    l1 = MIN(1, l1);
+    l2 = MIN(l1, l2);
+
+    ptFIFO->Buffer[ptFIFO->In & (ptFIFO->Size - 1)] = *Buffer;
+    ptFIFO->In += l1;
+
+    return true;
+}
+
+bool fifo8_out(fifo8_t *pFIFO, uint8_t *Buffer)
+{
+    CLASS(fifo8_t) *ptFIFO = (CLASS(fifo8_t) *)pFIFO;
+    uint32_t l1, l2;
+
+    if (NULL == pFIFO) {
+        return false;
+    }
+
+    l1 = ptFIFO->In - ptFIFO->Out;
+    l2 = ptFIFO->Size - (ptFIFO->Out & (ptFIFO->Size - 1));
+    if (l1 == 0) {      //!< fifo is empty.
+        return false;
+    }
+
+    l1 = MIN(1, l1);
+    l2 = MIN(l1, l2);
+
+    if (NULL != Buffer) {
+        *Buffer = ptFIFO->Buffer[ptFIFO->Out & (ptFIFO->Size - 1)];
+    }
+    ptFIFO->Out += l1;
+
+    return true;
+}
+
 #endif
-
-    ptFIFO->pBuffer  = pBuffer;
-    ptFIFO->tObjSize = tObjSize;
-    ptFIFO->tSize    = tSize;
-    ptFIFO->tHead    = 0;
-    ptFIFO->tTail    = 0;
-
-    return true;
-}
-
-bool fifo_deinit(fifo_t *pFIFO)
-{
-    CLASS(fifo_t) *ptFIFO = (CLASS(fifo_t) *)pFIFO;
-    
-    DEBUG_ASSERT_NOT_NULL(pFIFO);
-    if (NULL == pFIFO) {
-        return false;
-    }
-
-    ptFIFO->pBuffer  = NULL;
-    ptFIFO->tObjSize = 0;
-    ptFIFO->tSize    = 0;
-    ptFIFO->tHead    = 0;
-    ptFIFO->tTail    = 0;
-
-    return true;
-}
-
-bool fifo_import(fifo_t *pFIFO, void *ptObj)
-{
-    CLASS(fifo_t) *ptFIFO = (CLASS(fifo_t) *)pFIFO;
-    bool bResult = false;
-
-    DEBUG_ASSERT_NOT_NULL(pFIFO);
-    if (NULL == pFIFO) {
-        return false;
-    }
-
-    DEBUG_ASSERT_NOT_NULL(ptFIFO->pBuffer);
-    if (NULL == ptFIFO->pBuffer) {
-        return false;
-    }
-
-    do {
-        if (((ptFIFO->tTail + 1 >= ptFIFO->tSize)?
-	      0 : ptFIFO->tTail + 1)
-          ==  ptFIFO->tHead) {
-            DEBUG_MSG(FIFO_DEBUG, "FIFO is full.");
-            break;
-        }
-
-        switch (ptFIFO->tObjSize) {
-            case 1:
-                ((uint8_t *)(ptFIFO->pBuffer))[
-                             ptFIFO->tTail] = *(uint8_t *)ptObj;
-                break;
-            case 2:
-                ((uint16_t *)(ptFIFO->pBuffer))[
-                              ptFIFO->tTail] = *(uint16_t *)ptObj;
-                break;
-            case 4:
-                ((uint32_t *)(ptFIFO->pBuffer))[
-                              ptFIFO->tTail] = *(uint32_t *)ptObj;
-                break;
-            default:
-                mem_copy((uint8_t *)ptFIFO->pBuffer + (ptFIFO->tObjSize) * (ptFIFO->tTail),
-                         ptObj,
-                         ptFIFO->tObjSize);
-                break;
-        }
-        ptFIFO->tTail++;
-        if (ptFIFO->tTail >= ptFIFO->tSize) {
-            ptFIFO->tTail = 0;
-        }
-        bResult = true;
-    } while (false);
-
-    return bResult;
-}
-
-bool fifo_export(fifo_t *pFIFO, void *ptObj)
-{
-    CLASS(fifo_t) *ptFIFO = (CLASS(fifo_t) *)pFIFO;
-    bool bResult = false;
-
-    DEBUG_ASSERT_NOT_NULL(pFIFO);
-    if (NULL == pFIFO) {
-        return false;
-    }
-
-    DEBUG_ASSERT_NOT_NULL(ptFIFO->pBuffer);
-    if (NULL == ptFIFO->pBuffer) {
-        return false;
-    }
-
-    do {
-        if (ptFIFO->tHead == ptFIFO->tTail) {
-            DEBUG_MSG(FIFO_DEBUG, "FIFO is empty.");
-            break;
-        }
-
-        if (NULL != ptObj) {
-            switch (ptFIFO->tObjSize) {
-                case 1:
-                    *(uint8_t *)ptObj = ((uint8_t *)(ptFIFO->pBuffer))[
-                                                     ptFIFO->tHead];
-                    break;
-                case 2:
-                    *(uint16_t *)ptObj = ((uint16_t *)(ptFIFO->pBuffer))[
-                                                       ptFIFO->tHead];
-                    break;
-                case 4:
-                    *(uint32_t *)ptObj = ((uint32_t *)(ptFIFO->pBuffer))[
-                                                       ptFIFO->tHead];
-                    break;
-                default:
-                    mem_copy(ptObj,
-                             (uint8_t *)ptFIFO->pBuffer + (ptFIFO->tObjSize) * (ptFIFO->tHead),
-                             ptFIFO->tObjSize);
-                    break;
-            }
-        }
-        ptFIFO->tHead++;
-        if (ptFIFO->tHead >= ptFIFO->tSize) {
-            ptFIFO->tHead = 0;
-        }
-        bResult = true;
-    } while (false);
-
-    return bResult;
-}
 

@@ -15,7 +15,6 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-
 #ifndef __FIFO_H__
 #define __FIFO_H__
 
@@ -24,37 +23,24 @@
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#define FIFO_INIT(__PFIFO, __PBUF, __BUF_SIZE, __OBJ_SIZE)              \
-    fifo_init(__PFIFO, __PBUF, __BUF_SIZE, __OBJ_SIZE)
+#define FIFO8_INIT(__PFIFO, __PBUF, __BUF_SIZE)                         \
+    fifo8_init(__PFIFO, __PBUF, __BUF_SIZE)
+#define FIFO8_IN(__PFIFO, __OBJ)        fifo8_in(__PFIFO, (const uint8_t *)&(__OBJ))
+#define FIFO8_OUT(__PFIFO, __POBJ)      fifo8_out(__PFIFO, (uint8_t *)(__POBJ))
 
-#define FIFO_DEINIT(__PFIFO)            fifo_deinit(__PFIFO)
-
-#define FIFO_UINT8_INIT(__PFIFO, __PBUF, __BUF_SIZE)                    \
-    FIFO_INIT(__PFIFO, __PBUF, __BUF_SIZE, sizeof(uint8_t))
-
-#define FIFO_UINT16_INIT(__PFIFO, __PBUF, __BUF_SIZE)                   \
-    FIFO_INIT(__PFIFO, __PBUF, __BUF_SIZE, sizeof(uint16_t))
-
-#define FIFO_UINT32_INIT(__PFIFO, __PBUF, __BUF_SIZE)                   \
-    FIFO_INIT(__PFIFO, __PBUF, __BUF_SIZE, sizeof(uint32_t))
-
-#define FIFO_IMPORT(__PFIFO, __OBJ)     fifo_import(__PFIFO, (void *)&(__OBJ))
-#define FIFO_EXPORT(__PFIFO, __POBJ)    fifo_export(__PFIFO, (void *)(__POBJ))
 
 /*============================ TYPES =========================================*/
-EXTERN_CLASS(fifo_t)
-    void *              pBuffer;
-    __fifo_uint_t       tObjSize;   //!< in bytes
-    __fifo_uint_t       tSize;
-    __fifo_uint_t       tHead;
-    __fifo_uint_t       tTail;
-END_EXTERN_CLASS(fifo_t)
+EXTERN_CLASS(fifo8_t)
+    uint8_t *   Buffer;
+    uint32_t    Size;
+    uint32_t    Out;
+    uint32_t    In;
+END_EXTERN_CLASS(fifo8_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool fifo_init(fifo_t *pFIFO, void *pBuffer, __fifo_uint_t tSize, __fifo_uint_t tObjSize);
-extern bool fifo_deinit(fifo_t *pFIFO);
-extern bool fifo_import(fifo_t *pFIFO, void *ptObj);
-extern bool fifo_export(fifo_t *pFIFO, void *ptObj);
+extern bool fifo8_init  (fifo8_t *pFIFO, uint8_t *pBuffer, uint32_t Size);
+extern bool fifo8_in    (fifo8_t *pFIFO, const uint8_t *pBuffer);
+extern bool fifo8_out   (fifo8_t *pFIFO, uint8_t *pBuffer);
 
 #endif
