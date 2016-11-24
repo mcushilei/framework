@@ -22,12 +22,9 @@
 #include ".\app_cfg.h"
 
 /*============================ MACROS ========================================*/
-#define LOCKED          true            //!< locked
-#define UNLOCKED        false           //!< unlocked
-
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef volatile bool locker_t;
+typedef volatile unsigned int lock_t;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
@@ -35,21 +32,21 @@ typedef volatile bool locker_t;
 /*============================ IMPLEMENTATION ================================*/
 
 /*! \brief try to enter a section
- *! \param ptLock locker object
+ *! \param Lock locker object
  *! \retval lock section is entered
  *! \retval The section is locked
  */
-bool enter_lock(locker_t *ptLock)
+bool enter_lock(lock_t *Lock)
 {
     bool bResult = false;
 
-    if (NULL == ptLock) {
+    if (NULL == Lock) {
         return true;
     }
 
     SAFE_ATOM_CODE(
-        if (!(*ptLock)) {
-            (*ptLock) = LOCKED;
+        if (*Lock == 0) {
+            *Lock = 1;
             bResult = true;
         }
     )
@@ -59,17 +56,17 @@ bool enter_lock(locker_t *ptLock)
 
 
 /*! \brief leave a section
- *! \param ptLock locker object
+ *! \param Lock locker object
  *! \return none
  */
-void leave_lock(locker_t *ptLock)
+void leave_lock(lock_t *Lock)
 {
-    if (NULL == ptLock) {
+    if (NULL == Lock) {
         return;
     }
 
     SAFE_ATOM_CODE(
-        (*ptLock) = UNLOCKED;
+        *Lock = 0;
     )
 }
 

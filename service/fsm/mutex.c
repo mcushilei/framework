@@ -50,7 +50,7 @@ void fsm_mutex_init(void)
     //! add mutex OCBs to the free list
     for (n = 0; n < UBOUND(stMutexPool); n++) {
         *p = &stMutexPool[n];
-        p = (fsm_mutex_t **)&((*p)->ptObjNext);
+        p = (fsm_mutex_t **)&((*p)->ObjNext);
     }
 }
 
@@ -58,7 +58,7 @@ uint_fast8_t fsm_mutex_create(
           fsm_mutex_t **pptMutex,
           bool bInitialOwner)
 {
-    uint8_t chFlag;
+    uint8_t Flag;
     fsm_mutex_t *ptMutex;
     
     if (NULL == pptMutex) {
@@ -72,19 +72,19 @@ uint_fast8_t fsm_mutex_create(
     }
     
     ptMutex      = sptMutexList;
-    sptMutexList = (fsm_mutex_t *)ptMutex->ptObjNext;
+    sptMutexList = (fsm_mutex_t *)ptMutex->ObjNext;
     
-    chFlag = 0;
+    Flag = 0;
     if (bInitialOwner) {
-        chFlag |= FSM_MUTEX_OWNED_BIT;
+        Flag |= FSM_MUTEX_OWNED_BIT;
     }
     
     SAFE_ATOM_CODE(
-        ptMutex->chObjType      = FSM_OBJ_TYPE_MUTEX;
-        ptMutex->ptObjNext      = NULL;
-        ptMutex->ptTCBHead      = NULL;           
-        ptMutex->ptTCBTail      = NULL;
-        ptMutex->chMutexFlag    = chFlag;  //!< set initial state
+        ptMutex->ObjType      = FSM_OBJ_TYPE_MUTEX;
+        ptMutex->ObjNext      = NULL;
+        ptMutex->Head      = NULL;           
+        ptMutex->Tail      = NULL;
+        ptMutex->MutexFlag    = Flag;  //!< set initial state
         fsm_register_object(ptMutex);       //!< register object.
     )
     *pptMutex = ptMutex;
@@ -98,20 +98,20 @@ uint_fast8_t fsm_mutex_release(fsm_mutex_t *ptMutex)
         return FSM_ERR_INVALID_PARAM;
     }
     
-    if (ptMutex->chObjType != FSM_OBJ_TYPE_MUTEX) {
+    if (ptMutex->ObjType != FSM_OBJ_TYPE_MUTEX) {
         return FSM_ERR_OBJ_TYPE_MISMATCHED;
     }
     
     SAFE_ATOM_CODE(
         fsm_tcb_t *pTask;
-        ptMutex->chMutexFlag &= ~FSM_MUTEX_OWNED_BIT;
+        ptMutex->MutexFlag &= ~FSM_MUTEX_OWNED_BIT;
         //! wake up the first blocked task.
-        pTask = fsm_task_dequeue(&ptMutex->tTaskQueue);
+        pTask = fsm_task_dequeue(&ptMutex->TaskQueue);
         if (pTask != NULL) {
-            ptMutex->chMutexFlag |= FSM_MUTEX_OWNED_BIT;
+            ptMutex->MutexFlag |= FSM_MUTEX_OWNED_BIT;
             fsm_set_task_ready(pTask);    //!< move task to ready list.
-            pTask->ptObject = NULL;
-            pTask->chStatus = FSM_TASK_STATUS_PEND_OK;
+            pTask->Object = NULL;
+            pTask->Status = FSM_TASK_STATUS_PEND_OK;
         }
     )
         

@@ -177,54 +177,54 @@ int32_t int_str2int(const uint8_t *str)
     return val;
 }
 
-float dec_str2float(const uint8_t *pchStr)
+float dec_str2float(const uint8_t *DecimalString)
 { 
-    bool bNegative = false; 
-    bool bIsDec = false;
-    uint8_t chByte = '0'; 
-    float fInteger = 0.0f; 
-    float fDecimal = 0.0f; 
-    float fDecPower = 0.1f; 
+    bool IsNegative = false; 
+    bool IsDecimal = false;
+    uint8_t ByteChar = '0'; 
+    float Integer = 0.0f; 
+    float Decimal = 0.0f; 
+    float DecPower = 0.1f; 
 
-    if (NULL == pchStr) { 
+    if (NULL == DecimalString) { 
         return 0.0; 
     } 
 
-    if (pchStr[0] == '-') { 
-        bNegative = true; 
-        pchStr++; 
+    if (DecimalString[0] == '-') { 
+        IsNegative = true; 
+        DecimalString++; 
     } else { 
-        bNegative = false; 
+        IsNegative = false; 
     } 
  
-    for (; *pchStr != '\0'; ++pchStr) {
-        chByte = *pchStr;
+    for (; *DecimalString != '\0'; ++DecimalString) {
+        ByteChar = *DecimalString;
 
-        if (CHAR_IS_NOT_INT(chByte)) { 
-            if (chByte == '.') { 
-                bIsDec = true;
-                ++pchStr;
+        if (CHAR_IS_NOT_INT(ByteChar)) { 
+            if (ByteChar == '.') { 
+                IsDecimal = true;
+                ++DecimalString;
             }
             break; 
         } else {
-            fInteger = fInteger * 10.0f + CHAR_TO_INT(chByte);
+            Integer = Integer * 10.0f + CHAR_TO_INT(ByteChar);
         }
     } 
 
-    if (bIsDec) {
-        for (; *pchStr != '\0'; ++pchStr) {
-            chByte = *pchStr;
+    if (IsDecimal) {
+        for (; *DecimalString != '\0'; ++DecimalString) {
+            ByteChar = *DecimalString;
 
-            if (CHAR_IS_NOT_INT(chByte)) {
+            if (CHAR_IS_NOT_INT(ByteChar)) {
                 break;
             } else {
-                fDecimal += CHAR_TO_INT(chByte) * fDecPower; 
-                fDecPower = fDecPower * 0.1f; 
+                Decimal += CHAR_TO_INT(ByteChar) * DecPower; 
+                DecPower = DecPower * 0.1f; 
             }
         } 
     }
 
-    return (bNegative? -(fInteger + fDecimal) : fInteger + fDecimal); 
+    return (IsNegative? -(Integer + Decimal) : Integer + Decimal); 
 } 
 
 uint32_t string_len(const uint8_t *s)
@@ -304,22 +304,22 @@ uint8_t *string_string(const uint8_t *s1, const uint8_t *s2)
 }
 
 /*! \brief paser string to token, replace delim to '\0' and return point to token.
- *! \param ppstring address of point varible point to string that to paser.
- *! \param pdelim point to delim string, every char in this sting represent as a delim.
+ *! \param StringRef address of point varible point to string that to paser.
+ *! \param Delim point to delim string, every char in this sting represent as a delim.
  *! \retval address of token, this token may be empty string:"\0".
  *! \retval NULL there is no token in specify string.
  */
-uint8_t *strsep(uint8_t **ppstring, const uint8_t *pdelim)
+uint8_t *strsep(uint8_t **StringRef, const uint8_t *Delim)
 {
 	uint8_t *s, *tok;
 	const uint8_t *spanp;
 	uint8_t c, sc;
 
-    if (ppstring == NULL) {
+    if (StringRef == NULL) {
 		return NULL;
     }
 
-    s = *ppstring;
+    s = *StringRef;
     if (s == NULL) {
 		return NULL;
     }
@@ -327,7 +327,7 @@ uint8_t *strsep(uint8_t **ppstring, const uint8_t *pdelim)
     tok = s;
 	for (;;) {
 		c = *s++;
-		for (spanp = pdelim; *spanp != '\0'; spanp++) {
+		for (spanp = Delim; *spanp != '\0'; spanp++) {
             sc = *spanp;
 			if (sc == c) {
                 if (sc == '\0') {
@@ -335,7 +335,7 @@ uint8_t *strsep(uint8_t **ppstring, const uint8_t *pdelim)
                 } else {
 					s[-1] = '\0';
                 }
-				*ppstring = s;
+				*StringRef = s;
 				return tok;
 			}
 		}
@@ -343,29 +343,30 @@ uint8_t *strsep(uint8_t **ppstring, const uint8_t *pdelim)
 }
 
 
-uint8_t *itostr(int32_t nValue, uint8_t *pchStr, int32_t nRadix)
+uint8_t *itostr(int32_t Value, uint8_t *IntegerString, int32_t Radix)
 {
     const static unsigned char c[16] = "0123456789ABCDEF";
-    uint32_t wValue = nValue;
+    uint32_t wValue = Value;
 
-    if (nRadix < 0) {
-        nRadix = -nRadix;
+    if (Radix < 0) {
+        Radix = -Radix;
 
-        if (nValue < 0) {
-            wValue = -nValue;
+        if (Value < 0) {
+            wValue = -Value;
         }
     }
 
-    if ((NULL == pchStr) || ((10 != nRadix) && (16 != nRadix))) {
+    if ((NULL == IntegerString)
+    || ((10 != Radix) && (16 != Radix))) {
         return NULL;
     }
 
     if (0 == wValue) {
-        *pchStr++ = c[0];
-        *pchStr = '\0';
+        *IntegerString++ = c[0];
+        *IntegerString = '\0';
     } else {
         uint32_t i = 0;
-        if (10 == nRadix) {         // decimal
+        if (10 == Radix) {         // decimal
             uint32_t tmp;
             const static uint32_t muntable[10] = {1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1};
             for (i = 0; i < 10; ++i) {
@@ -376,7 +377,7 @@ uint8_t *itostr(int32_t nValue, uint8_t *pchStr, int32_t nRadix)
             }
             for (; i < 10; ++i) {
                 tmp = wValue / muntable[i];
-                *pchStr++ = c[tmp];
+                *IntegerString++ = c[tmp];
                 wValue -= tmp * muntable[i];
             }
         } else {                    // hex
@@ -386,14 +387,14 @@ uint8_t *itostr(int32_t nValue, uint8_t *pchStr, int32_t nRadix)
                 }
             }
             for (; i; --i) {
-                *pchStr++ = c[(wValue >> (i << 2)) & 0x0000000Fu];
+                *IntegerString++ = c[(wValue >> (i << 2)) & 0x0000000Fu];
             }
-            *pchStr++ = c[wValue & 0x0000000Fu];
+            *IntegerString++ = c[wValue & 0x0000000Fu];
         }
-        *pchStr = '\0';
+        *IntegerString = '\0';
     }
 
-    return pchStr;
+    return IntegerString;
 }
 
 
@@ -576,35 +577,35 @@ uint8_t *itostr(int32_t nValue, uint8_t *pchStr, int32_t nRadix)
 
 extern int user_printf_output_char(char cChar);
 #define USER_PRINTF_OUT(__C)        user_printf_output_char(__C)
-#define USER_PRINTF_ARG(__T)        (__T)wArg
+#define USER_PRINTF_ARG(__T)        (__T)Argument
 
-void string_printf(const uint8_t *pchFormat, uint32_t wArg)
+void string_printf(const uint8_t *FormatString, uint32_t Argument)
 {
-    PRINT(pchFormat, USER_PRINTF_OUT, USER_PRINTF_ARG)
+    PRINT(FormatString, USER_PRINTF_OUT, USER_PRINTF_ARG)
 }
 
 #define USER_SPRINTFN_OUT(__C)                                                  \
     do {                                                                        \
-        if (wCnt >= wLen) {                                                     \
-            pchStr[wCnt] = '\0';                                                \
+        if (wCnt >= BufferLength) {                                                     \
+            Buffer[wCnt] = '\0';                                         \
             return wCnt;                                                        \
         }                                                                       \
                                                                                 \
-        pchStr[wCnt] = __C;                                                     \
+        Buffer[wCnt] = __C;                                              \
         wCnt++;                                                                 \
     } while (0)
 
-uint32_t string_snprintf(uint8_t *pchStr, uint32_t wLen, const uint8_t *pchFormat, uint32_t wArg)
+uint32_t string_snprintf(uint8_t *Buffer, uint32_t BufferLength, const uint8_t *FormatString, uint32_t Argument)
 {
     uint32_t wCnt = 0;
 
-    if ((NULL == pchStr) || (0 == wLen)) {
+    if ((NULL == Buffer) || (0 == BufferLength)) {
         return 0;
     }
 
-    wLen--;
-    PRINT(pchFormat, USER_SPRINTFN_OUT, USER_PRINTF_ARG)
-    pchStr[wCnt] = '\0';
+    BufferLength--;
+    PRINT(FormatString, USER_SPRINTFN_OUT, USER_PRINTF_ARG)
+    Buffer[wCnt] = '\0';
 
     return wCnt;
 }

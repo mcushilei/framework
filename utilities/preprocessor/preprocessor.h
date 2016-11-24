@@ -27,20 +27,6 @@
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
-//! \name structure definition
-//! @{
-#define DEF_STRUCTURE(__NAME,...)           \
-            typedef struct __NAME __NAME;   \
-            __VA_ARGS__                     \
-            struct __NAME {
-
-#define END_DEF_STRUCTURE(__NAME)           \
-            };
-//! @}
-
-#define UBOUND(__ARRAY)     (sizeof(__ARRAY) / sizeof(__ARRAY[0]))
-
-
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/

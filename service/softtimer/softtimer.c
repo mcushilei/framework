@@ -24,13 +24,13 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef void fn_softtimer_handler_t(uint8_t chTimer);
+typedef void fn_softtimer_handler_t(uint8_t Timer);
 
 DEF_STRUCTURE(softtimer_t)
-    uint32_t        wCount;
-    uint32_t        wReload;
-    uint8_t         chFlag;
-    fn_softtimer_handler_t *fnHandler;
+    uint32_t        Count;
+    uint32_t        Reload;
+    uint8_t         Flag;
+    fn_softtimer_handler_t *Handler;
 END_DEF_STRUCTURE(softtimer_t)
 
 /*============================ PROTOTYPES ====================================*/
@@ -39,18 +39,18 @@ static softtimer_t  stSofttimers[SOFTTIMER_MAX_TIMERS];
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-void softtimer_init(uint8_t     chTimer,
-                    uint32_t    wValue,
-                    uint32_t    wReload,
-                    uint8_t     chFlag,
-                    fn_softtimer_handler_t *fnHandler)
+void softtimer_init(uint8_t     Timer,
+                    uint32_t    Value,
+                    uint32_t    Reload,
+                    uint8_t     Flag,
+                    fn_softtimer_handler_t *Handler)
 {
-    if (chTimer < SOFTTIMER_MAX_TIMERS) {
+    if (Timer < SOFTTIMER_MAX_TIMERS) {
     SAFE_ATOM_CODE(
-        stSofttimers[chTimer].wCount  = wValue;
-        stSofttimers[chTimer].wReload = wReload;
-        stSofttimers[chTimer].chFlag  = 0;
-        stSofttimers[chTimer].fnHandler = fnHandler;
+        stSofttimers[Timer].Count  = Value;
+        stSofttimers[Timer].Reload = Reload;
+        stSofttimers[Timer].Flag  = 0;
+        stSofttimers[Timer].Handler = Handler;
     )
     }
 }
@@ -60,43 +60,43 @@ void softtimer_tick(void)
     uint_fast8_t n;
 
     for (n = 0; n < UBOUND(stSofttimers); n++) {
-        if (stSofttimers[n].wCount) {
-            stSofttimers[n].wCount--;
-            if (stSofttimers[n].wCount == 0) {
-                stSofttimers[n].chFlag = 1;
-                if (stSofttimers[n].fnHandler != NULL) {
-                    stSofttimers[n].fnHandler(n);
+        if (stSofttimers[n].Count) {
+            stSofttimers[n].Count--;
+            if (stSofttimers[n].Count == 0) {
+                stSofttimers[n].Flag = 1;
+                if (stSofttimers[n].Handler != NULL) {
+                    stSofttimers[n].Handler(n);
                 }
             }
         }
     }
 }
 
-void softtimer_start(uint8_t chTimer, uint32_t wValue)
+void softtimer_start(uint8_t Timer, uint32_t Value)
 {
-    if (chTimer < SOFTTIMER_MAX_TIMERS) {
+    if (Timer < SOFTTIMER_MAX_TIMERS) {
     SAFE_ATOM_CODE(
-        stSofttimers[chTimer].wCount = wValue;
-        stSofttimers[chTimer].chFlag = 0;
+        stSofttimers[Timer].Count = Value;
+        stSofttimers[Timer].Flag = 0;
     )
     }
 }
 
-void softtimer_stop(uint8_t chTimer)
+void softtimer_stop(uint8_t Timer)
 {
-    if (chTimer < SOFTTIMER_MAX_TIMERS) {
+    if (Timer < SOFTTIMER_MAX_TIMERS) {
     SAFE_ATOM_CODE(
-        stSofttimers[chTimer].wCount = 0;
+        stSofttimers[Timer].Count = 0;
     )
     }
 }
 
-bool softtimer_is_timeout(uint8_t chTimer)
+bool softtimer_is_timeout(uint8_t Timer)
 {
-    if (chTimer < SOFTTIMER_MAX_TIMERS) {
-        if (stSofttimers[chTimer].chFlag) {
+    if (Timer < SOFTTIMER_MAX_TIMERS) {
+        if (stSofttimers[Timer].Flag) {
             SAFE_ATOM_CODE(
-                stSofttimers[chTimer].chFlag = 0;
+                stSofttimers[Timer].Flag = 0;
             )
             return true;
         }

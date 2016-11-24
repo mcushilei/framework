@@ -15,7 +15,6 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-
 #ifndef __LIST_H__
 #define __LIST_H__
 
@@ -25,22 +24,16 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-EXTERN_CLASS(list_item_t)
-    list_item_t            *ptNext;
-END_EXTERN_CLASS(list_item_t)
+DEF_STRUCTURE(list_node_t)
+    void *      Next;
+END_DEF_STRUCTURE(list_node_t)
 
-EXTERN_CLASS(list_t)
-    list_item_t            *ptHead;
-    uint32_t                wCounter;
-END_EXTERN_CLASS(list_t)
+DEF_STRUCTURE(dlist_node_t)
+    void *      Next;
+    void *      Prev;
+END_DEF_STRUCTURE(dlist_node_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool         list_init(list_t *pLIST);
-extern bool         list_add_head(list_t *pLIST, list_item_t *pITEM);
-extern list_item_t *list_delete_head(list_t *pLIST);
-extern bool         list_insert_next(list_t *pLIST, list_item_t *pPOSITION, list_item_t *pITEM);
-extern list_item_t *list_remove_next(list_t *pLIST, list_item_t *pPOSITION);
-extern uint32_t     list_get_length(list_t *pLIST);
 
 #endif

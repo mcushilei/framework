@@ -46,31 +46,31 @@
 
 /*============================ TYPES =========================================*/
 EXTERN_CLASS(queue_t)
-    void *              pBuffer;
-    __queue_uint_t      tObjSize;
-    __queue_uint_t      tSize;
-    __queue_uint_t      tHead;
-    __queue_uint_t      tTail;
-    __queue_uint_t      tCounter;
-    __queue_uint_t      tPeek;
-    __queue_uint_t      tPeekCounter;
+    void *              Buffer;
+    __queue_uint_t      DataSize;
+    __queue_uint_t      Size;
+    __queue_uint_t      Head;
+    __queue_uint_t      Tail;
+    __queue_uint_t      Counter;
+    __queue_uint_t      Peek;
+    __queue_uint_t      PeekCounter;
 #ifdef __QUEUE_MUTEX_TYPE
-    __QUEUE_MUTEX_TYPE  tMutex;
+    __QUEUE_MUTEX_TYPE  Mutex;
 #endif
 END_EXTERN_CLASS(queue_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool queue_init(queue_t *pQUEUE, void *pBuffer, __queue_uint_t tSize, __queue_uint_t tObjSize);
-extern bool queue_deinit(queue_t *pQUEUE);
-extern bool queue_enqueue(queue_t *pQUEUE, void *ptObj);
-extern bool queue_dequeue(queue_t *pQUEUE, void *ptObj);
-extern bool queue_peek(queue_t *pQUEUE, void *ptObj);
-extern void queue_get_all_peeked(queue_t *pQUEUE);
-extern void queue_reset_peek(queue_t *pQUEUE);
-extern __queue_uint_t queue_get_object_count(queue_t *pQUEUE);
+extern bool queue_init(queue_t *QueueObj, void *Buffer, __queue_uint_t Size, __queue_uint_t DataSize);
+extern bool queue_deinit(queue_t *QueueObj);
+extern bool queue_enqueue(queue_t *QueueObj, void *Data);
+extern bool queue_dequeue(queue_t *QueueObj, void *Data);
+extern bool queue_peek(queue_t *QueueObj, void *Data);
+extern void queue_get_all_peeked(queue_t *QueueObj);
+extern void queue_reset_peek(queue_t *QueueObj);
+extern __queue_uint_t queue_get_object_count(queue_t *QueueObj);
 #ifdef __QUEUE_MUTEX_TYPE
-extern __QUEUE_MUTEX_TYPE *queue_get_mutex(queue_t *pQUEUE);
+extern __QUEUE_MUTEX_TYPE *queue_get_mutex(queue_t *QueueObj);
 #endif
 
 #endif

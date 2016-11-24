@@ -24,19 +24,20 @@
 
 /*============================ MACROS ========================================*/
 #define FSM_TASK            fsm_tcb_t *
-#define FSM_TASK_STACK      task_stack_item_t
+#define FSM_TASK_STACK      task_stack_t
 #define FSM_OBJ_EVENT       fsm_event_t *
 #define FSM_OBJ_MUTEX       fsm_mutex_t *
 #define FSM_OBJ_SEMAPHORE   fsm_semaphore_t *
+#define FSM_OBJ             void *
                 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define FSM_SCHEDULER()         fsm_scheduler()
 #define FSM_INIT()              fsm_init()
 
 //! \brief start define a FSM state
-#define DEF_STATE(__NAME)       void __NAME(void *pArg)
+#define DEF_STATE(__NAME)       void __NAME(void *Arg)
 #define REF_STATE(__NAME)       __NAME
-#define PROTOTYPE_STATE(__NAME) void __NAME(void *pArg)
+#define PROTOTYPE_STATE(__NAME) void __NAME(void *Arg)
 
 //! \brief state transfering
 #define FSM_TRANSFER_TO(__ROUTINE, __ARG_ADDR)                                  \
@@ -109,27 +110,27 @@ extern void         fsm_init            (void);
 
 extern uint_fast8_t fsm_task_create     (
                                         fsm_tcb_t **        pptTask,
-                                        state_func_t *      fnState,
-                                        void *              pArg,
-                                        task_stack_item_t * pStack,
-                                        uint_fast8_t        chStackSize);
+                                        state_func_t *      State,
+                                        void *              Arg,
+                                        task_stack_t *      Stack,
+                                        uint_fast8_t        StackSize);
 extern bool         fsm_state_transfer  (
-                                        state_func_t *      fnState,
-                                        void *              pArg);
+                                        state_func_t *      State,
+                                        void *              Arg);
 extern uint_fast8_t fsm_call_sub_ex     (
-                                        state_func_t *      fnState,
-                                        void *              pArg,
-                                        state_func_t *      fnReturnState,
-                                        void *              pReturnArg);
+                                        state_func_t *      State,
+                                        void *              Arg,
+                                        state_func_t *      ReturnState,
+                                        void *              ReturnArg);
 extern uint_fast8_t fsm_call_sub        (
-                                        state_func_t *      fnState,
-                                        void *              pArg);
+                                        state_func_t *      State,
+                                        void *              Arg);
 
 extern bool         fsm_scheduler       (void);
 extern void         fsm_time_tick       (void);
 
 #if SAFE_TASK_THREAD_SYNC == ENABLED
-extern uint_fast8_t fsm_wait_for_single_object(void *ptObject, uint32_t wTimeout);
+extern uint_fast8_t fsm_wait_for_single_object(void *Object, uint32_t wTimeout);
 
 extern uint_fast8_t fsm_event_create        (
                                             fsm_event_t **      pptEvent,
@@ -158,8 +159,8 @@ extern bool         fsm_remove_task_from_queue  (
                                                 task_queue_t *      pTaskQueue,
                                                 fsm_tcb_t *         pTask);
 extern bool         fsm_set_task_ready          (fsm_tcb_t *        pTask);
-extern bool         fsm_register_object     (void *         pObj);
-extern bool         fsm_deregister_object   (void *         pObj);
+extern bool         fsm_register_object         (void *             Obj);
+extern bool         fsm_deregister_object       (void *             Obj);
 
 
 #endif  //! #ifndef __FSM_H__

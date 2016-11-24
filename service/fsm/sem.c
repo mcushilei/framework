@@ -50,7 +50,7 @@ void fsm_semaphore_init(void)
     //! add semaphore OCBs to the free list
     for (n = 0; n < UBOUND(stSemPool); n++) {
         *p = &stSemPool[n];
-        p = (fsm_semaphore_t **)&((*p)->ptObjNext);
+        p = (fsm_semaphore_t **)&((*p)->ObjNext);
     }
 }
 
@@ -74,15 +74,15 @@ uint_fast8_t fsm_semaphore_create(
     }
     
     ptSem        = sptSemtList;
-    sptSemtList = (fsm_semaphore_t *)ptSem->ptObjNext;
+    sptSemtList = (fsm_semaphore_t *)ptSem->ObjNext;
     
     SAFE_ATOM_CODE(
-        ptSem->chObjType      = FSM_OBJ_TYPE_SEM;
-        ptSem->ptObjNext      = NULL;
-        ptSem->ptTCBHead      = NULL;           
-        ptSem->ptTCBTail      = NULL;
-        ptSem->hwSemCounter   = hwInitialCount; //!< set initial state
-        ptSem->hwSemMaximum   = hwMaximumCount; //!< set initial state
+        ptSem->ObjType      = FSM_OBJ_TYPE_SEM;
+        ptSem->ObjNext      = NULL;
+        ptSem->Head      = NULL;           
+        ptSem->Tail      = NULL;
+        ptSem->SemCounter   = hwInitialCount; //!< set initial state
+        ptSem->SemMaximum   = hwMaximumCount; //!< set initial state
         fsm_register_object(ptSem);             //!< register object.
     )
     *pptSem = ptSem;
@@ -98,7 +98,7 @@ uint_fast8_t fsm_semaphore_release(fsm_semaphore_t *ptSem, uint16_t hwReleaseCou
         return FSM_ERR_INVALID_PARAM;
     }
     
-    if (ptSem->chObjType != FSM_OBJ_TYPE_SEM) {
+    if (ptSem->ObjType != FSM_OBJ_TYPE_SEM) {
         return FSM_ERR_OBJ_TYPE_MISMATCHED;
     }
     
@@ -106,25 +106,25 @@ uint_fast8_t fsm_semaphore_release(fsm_semaphore_t *ptSem, uint16_t hwReleaseCou
     do {
         fsm_tcb_t *pTask, *pNextTask;
         
-        if ((ptSem->hwSemMaximum - ptSem->hwSemCounter) < hwReleaseCount) {
+        if ((ptSem->SemMaximum - ptSem->SemCounter) < hwReleaseCount) {
             chError = FSM_ERR_SEM_EXCEED;
             break;
         }
-        ptSem->hwSemCounter += hwReleaseCount;
+        ptSem->SemCounter += hwReleaseCount;
         
-        if (ptSem->ptTCBHead != NULL) {
+        if (ptSem->Head != NULL) {
             //! wake up blocked tasks.
-            for (pTask = ptSem->ptTCBHead;
-                (NULL != pTask) && (0 != ptSem->hwSemCounter);
-                pTask = pNextTask, ptSem->hwSemCounter--) {
-                pNextTask = pTask->pNext;
+            for (pTask = ptSem->Head;
+                (NULL != pTask) && (0 != ptSem->SemCounter);
+                pTask = pNextTask, ptSem->SemCounter--) {
+                pNextTask = pTask->Next;
                 fsm_set_task_ready(pTask);    //!< move task to ready list.
-                pTask->ptObject = NULL;
-                pTask->chStatus = FSM_TASK_STATUS_PEND_OK;
+                pTask->Object = NULL;
+                pTask->Status = FSM_TASK_STATUS_PEND_OK;
             }
-            ptSem->ptTCBHead = pTask;
-            if (ptSem->ptTCBHead == NULL) {
-                ptSem->ptTCBTail = NULL;
+            ptSem->Head = pTask;
+            if (ptSem->Head == NULL) {
+                ptSem->Tail = NULL;
             }
         }
     } while (0);

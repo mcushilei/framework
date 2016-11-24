@@ -47,28 +47,28 @@
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 EXTERN_CLASS(pool_t)
-    void *              ptFreeList;
-    __pool_uint_t       tBlockSize;
-    __pool_uint_t       tSize;
-    __pool_uint_t       tCounter;       //!< amount of block allocable
+    void *              FreeList;
+    __pool_uint_t       BlockSize;
+    __pool_uint_t       Size;
+    __pool_uint_t       Counter;       //!< amount of block allocable
 #ifdef __POOL_MUTEX_TYPE
-    __POOL_MUTEX_TYPE   tMutex;
+    __POOL_MUTEX_TYPE   Mutex;
 #endif
 END_EXTERN_CLASS(pool_t)
 
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool             pool_init(pool_t *      pPOOL,
-                                  void *        pMem,
-                                  __pool_uint_t tPoolSize,
-                                  __pool_uint_t tBlockSize);
-extern bool             pool_deinit(pool_t *pPOOL);
-extern void *           pool_new(pool_t *pPOOL);
-extern bool             pool_free(pool_t *pPOOL, void *pBLOCK);
-extern __pool_uint_t    pool_get_allocable_count(pool_t *pPOOL);
+extern bool             pool_init(pool_t *      PoolObj,
+                                  void *        Memory,
+                                  __pool_uint_t Size,
+                                  __pool_uint_t BlockSize);
+extern bool             pool_deinit(pool_t *PoolObj);
+extern void *           pool_new(pool_t *PoolObj);
+extern bool             pool_free(pool_t *PoolObj, void *Block);
+extern __pool_uint_t    pool_get_allocable_count(pool_t *PoolObj);
 #ifdef __POOL_MUTEX_TYPE
-extern __POOL_MUTEX_TYPE *pool_get_mutex(pool_t *pPOOL);
+extern __POOL_MUTEX_TYPE *pool_get_mutex(pool_t *PoolObj);
 #endif
 
 #endif

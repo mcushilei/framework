@@ -43,16 +43,16 @@ extern void *   mem_set(void *m, uint32_t v, uint32_t n);
 extern void *   mem_copy(void *d, const volatile void *s, uint32_t n);
 extern uint32_t hex_str2uint(const uint8_t *str);
 extern int32_t  int_str2int(const uint8_t *str);
-extern float    dec_str2float(const uint8_t *pchStr);
+extern float    dec_str2float(const uint8_t *str);
 extern uint32_t string_len(const uint8_t *s);
 extern uint8_t *string_copy(uint8_t *d, const uint8_t *s);
 extern uint8_t *string_string(const uint8_t *s1, const uint8_t *s2);
 extern bool     string_cmp(const uint8_t *s1, const uint8_t *s2);
 extern bool     string_cmpn(const uint8_t *s1, const uint8_t *s2, uint32_t n);
-extern uint8_t *strsep(uint8_t **ppstring, const uint8_t *pdelim);
-extern uint8_t *itostr(int32_t nValue, uint8_t *pchStr, int32_t nRadix);
-extern uint32_t string_snprintf(uint8_t *pchStr, uint32_t wLen, const uint8_t *pchFormat, uint32_t wArg);
-extern void     string_printf(const uint8_t *pchFormat, uint32_t wArg);
+extern uint8_t *strsep(uint8_t **StrngRef, const uint8_t *Delim);
+extern uint8_t *itostr(int32_t Value, uint8_t *IntegerString, int32_t Radix);
+extern void     string_printf(const uint8_t *FormatString, uint32_t Argument);
+extern uint32_t string_snprintf(uint8_t *Buffer, uint32_t BufferLength, const uint8_t *FormatString, uint32_t Argument);
 
 #endif
 /* EOF */

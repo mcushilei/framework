@@ -36,7 +36,7 @@
  */
 bool platform_init( void )
 {
-    bool bResult = false;
+    bool Result = false;
 
     do {
         /*! initialize hardware abstract layer */
@@ -49,10 +49,10 @@ bool platform_init( void )
             break;
         }
 
-        bResult = true;
+        Result = true;
     } while(false);
 
-    return bResult;
+    return Result;
 }
 
 /* EOF */

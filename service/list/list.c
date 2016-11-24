@@ -24,142 +24,16 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-DEF_CLASS(list_item_t)
-    list_item_t            *ptNext;
-END_DEF_CLASS(list_item_t)
+DEF_STRUCTURE(list_node_t)
+    void *      Next;
+END_DEF_STRUCTURE(list_node_t)
 
-DEF_CLASS(list_t)
-    list_item_t            *ptHead;
-    uint32_t                wCounter;
-END_DEF_CLASS(list_t)
+DEF_STRUCTURE(dlist_node_t)
+    void *      Next;
+    void *      Prev;
+END_DEF_STRUCTURE(dlist_node_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 /*============================ IMPLEMENTATION ================================*/
-bool list_init(list_t *pLIST)
-{
-    CLASS(list_t) *ptLIST = (CLASS(list_t) *)pLIST;
-    
-    if (NULL == pLIST) {
-        return false;
-    }
-
-    ptLIST->ptHead   = NULL;
-    ptLIST->wCounter = 0;
-
-    return true;
-}
-
-// add one item to head
-bool list_add_head(list_t *pLIST, list_item_t *pITEM)
-{
-    CLASS(list_t) *ptLIST = (CLASS(list_t) *)pLIST;
-
-    if (NULL == pLIST) {
-        return false;
-    }
-
-    __LIST_ATOM_ACCESS(
-        ((CLASS(list_item_t) *)pITEM)->ptNext =
-            ptLIST->ptHead;
-        ptLIST->ptHead = pITEM;
-        ptLIST->wCounter++;
-    )
-
-    return true;
-}
-
-// delete one item frome head
-list_item_t *list_delete_head(list_t *pLIST)
-{
-    CLASS(list_t) *ptLIST = (CLASS(list_t) *)pLIST;
-    list_item_t *pITEM = NULL;
-
-    if (NULL == pLIST) {
-        return NULL;
-    }
-
-    __LIST_ATOM_ACCESS(
-        do {
-            if (NULL == ptLIST->ptHead) {
-                break;
-            }
-            pITEM = ptLIST->ptHead;
-            ptLIST->ptHead =
-                ((CLASS(list_item_t) *)pITEM)->ptNext;
-            ((CLASS(list_item_t) *)pITEM)->ptNext = NULL;
-            if (ptLIST->wCounter) {
-                ptLIST->wCounter--;
-            }
-        } while (false);
-    )
-
-    return pITEM;
-}
-
-// insert one item after another one
-bool list_insert_next(list_t *pLIST, list_item_t *pPOSITION, list_item_t *pITEM)
-{
-    CLASS(list_t) *ptLIST = (CLASS(list_t) *)pLIST;
-    CLASS(list_item_t) *ptPOSITION = (CLASS(list_item_t) *)pPOSITION;
-
-    if ((NULL == pLIST) || (NULL == pPOSITION) || (NULL == pITEM)) {
-        return false;
-    }
-
-    __LIST_ATOM_ACCESS(
-        ((CLASS(list_item_t) *)pITEM)->ptNext =
-            ptPOSITION->ptNext;
-        ptPOSITION->ptNext = pITEM;
-        ptLIST->wCounter++;
-    )
-
-    return true;
-}
-
-// remove the next from one item
-list_item_t *list_remove_next(list_t *pLIST, list_item_t *pPOSITION)
-{
-    CLASS(list_t) *ptLIST = (CLASS(list_t) *)pLIST;
-    CLASS(list_item_t) *ptPOSITION = (CLASS(list_item_t) *)pPOSITION;
-    
-    list_item_t *pITEM = NULL;
-
-    if ((NULL == pLIST) || (NULL == pPOSITION)) {
-        return NULL;
-    }
-
-    __LIST_ATOM_ACCESS(
-        do {
-            if (NULL == ptPOSITION->ptNext) {
-                break;
-            }
-            pITEM = ptPOSITION->ptNext;
-            ptPOSITION->ptNext =
-                ((CLASS(list_item_t) *)pITEM)->ptNext;
-            ((CLASS(list_item_t) *)pITEM)->ptNext = NULL;
-            if (ptLIST->wCounter) {
-                ptLIST->wCounter--;
-            }
-        } while (false);
-    )
-
-    return pITEM;
-}
-
-uint32_t list_get_length(list_t *pLIST)
-{
-    CLASS(list_t) *ptLIST = (CLASS(list_t) *)pLIST;
-    uint32_t wCount;
-
-    if (NULL == pLIST) {
-        return 0;
-    }
-
-    __LIST_ATOM_ACCESS(
-        wCount = ptLIST->wCounter;
-    )
-
-    return wCount;
-}

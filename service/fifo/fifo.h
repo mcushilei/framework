@@ -39,8 +39,8 @@ END_EXTERN_CLASS(fifo8_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool fifo8_init  (fifo8_t *pFIFO, uint8_t *pBuffer, uint32_t Size);
-extern bool fifo8_in    (fifo8_t *pFIFO, const uint8_t *pBuffer);
-extern bool fifo8_out   (fifo8_t *pFIFO, uint8_t *pBuffer);
+extern bool fifo8_init  (fifo8_t *FIFOObj, uint8_t *pBuffer, uint32_t Size);
+extern bool fifo8_in    (fifo8_t *FIFOObj, const uint8_t *pBuffer);
+extern bool fifo8_out   (fifo8_t *FIFOObj, uint8_t *pBuffer);
 
 #endif

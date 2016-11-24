@@ -52,12 +52,12 @@ bool klist_insert(klist_t *ptList, klist_item_t *ptItem)
         do {
             ptCurrentItem = (CLASS(klist_item_t) *)pLIST->ptHead;
             if (NULL == ptCurrentItem) {
-                bResault = list_add_head((list_t *)ptList, (list_item_t *)ptItem);
+                bResault = list_add_head((list_t *)ptList, (list_node_t *)ptItem);
                 break;
             }
             if (ptCurrentItem->wKey
             >   ((CLASS(klist_item_t) *)ptItem)->wKey) {
-                bResault = list_add_head((list_t *)ptList, (list_item_t *)ptItem);
+                bResault = list_add_head((list_t *)ptList, (list_node_t *)ptItem);
                 break;
             }
 
@@ -73,8 +73,8 @@ bool klist_insert(klist_t *ptList, klist_item_t *ptItem)
                 ptCurrentItem = (CLASS(klist_item_t) *)ptCurrentItem->ptNext;
             }
             bResault = list_insert_next((list_t *)ptList,
-                                        (list_item_t *)ptCurrentItem,
-                                        (list_item_t *)ptItem);
+                                        (list_node_t *)ptCurrentItem,
+                                        (list_node_t *)ptItem);
         } while (false);
     )
 

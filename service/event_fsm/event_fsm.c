@@ -28,125 +28,125 @@ typedef uint8_t (fn_event_state_t)(void *pArg);
 typedef fn_event_state_t *event_fsm_stack_t;
 
 typedef struct {
-    event_fsm_stack_t *pStack;
-    uint8_t     chStackSize;
-    uint8_t     chSP;           //!< stack point.
-    uint8_t     chCurrentSP;    //!< current stack point, it's alwayse less or equal to chSP.
-} event_fsm_tcb_t;
+    event_fsm_stack_t   *Stack;
+    uint8_t             StackSize;
+    uint8_t             SP;           //!< stack point.
+    uint8_t             CurrentSP;    //!< current stack point, it's alwayse less or equal to SP.
+} event_fsm_t;
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-bool event_fsm_init(event_fsm_tcb_t *ptTCB,
-                    event_fsm_stack_t *pStack,
-                    uint8_t chStackSize,
-                    fn_event_state_t *pInitState)
+bool event_fsm_init(event_fsm_t         *EFSM,
+                    event_fsm_stack_t   *Stack,
+                    uint8_t             StackSize,
+                    fn_event_state_t    *InitState)
 {
-    ptTCB->pStack       = pStack;
-    ptTCB->chStackSize  = chStackSize;
-    ptTCB->chSP         = 0;
-    ptTCB->chCurrentSP  = 0;
-    ptTCB->pStack[0]    = pInitState;
+    EFSM->Stack       = Stack;
+    EFSM->StackSize  = StackSize;
+    EFSM->SP         = 0;
+    EFSM->CurrentSP  = 0;
+    EFSM->Stack[0]    = InitState;
 
     return true;
 }
 
 //! internal use only.
-static bool event_fsm_current_level_decrease(event_fsm_tcb_t *ptTCB)
+static bool event_fsm_current_level_decrease(event_fsm_t *EFSM)
 {
-    if (ptTCB->chCurrentSP) {
-        ptTCB->chCurrentSP--;
+    if (EFSM->CurrentSP) {
+        EFSM->CurrentSP--;
         return true;
     } else {
         return false;
     }
 }
 
-static void event_fsm_reset_current(event_fsm_tcb_t *ptTCB)
+static void event_fsm_reset_current(event_fsm_t *EFSM)
 {
-    ptTCB->chCurrentSP = ptTCB->chSP;       //!< reset current SP.
+    EFSM->CurrentSP = EFSM->SP;       //!< reset current SP.
 }
 
-static fn_event_state_t *event_fsm_get_current_state(event_fsm_tcb_t *ptTCB)
+static fn_event_state_t *event_fsm_get_current_state(event_fsm_t *EFSM)
 {
-    return ptTCB->pStack[ptTCB->chCurrentSP];
+    return EFSM->Stack[EFSM->CurrentSP];
 }
 
-bool event_fsm_transfer_to_current(event_fsm_tcb_t *ptTCB)
+bool event_fsm_transfer_to_current(event_fsm_t *EFSM)
 {
-    ptTCB->chSP = ptTCB->chCurrentSP;
+    EFSM->SP = EFSM->CurrentSP;
     return true;
 }
 
 //! transfer to specified state that locate in the same level(This is called in current level obviously).
-bool event_fsm_transfer_to(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState)
+bool event_fsm_transfer_to(event_fsm_t *EFSM, fn_event_state_t *State)
 {
-    if (pState == NULL) {
+    if (State == NULL) {
         return false;
     }
     
-    ptTCB->chSP = ptTCB->chCurrentSP;
-    ptTCB->pStack[ptTCB->chSP] = pState;
+    EFSM->SP = EFSM->CurrentSP;
+    EFSM->Stack[EFSM->SP] = State;
     
     return true;
 }
 
 //! transfer to specified state that locate in a upper level.
-bool event_fsm_transfer_to_uper(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState)
+bool event_fsm_transfer_to_uper(event_fsm_t *EFSM, fn_event_state_t *State)
 {
-    if ((ptTCB->chCurrentSP + 1) == ptTCB->chStackSize) {  //!< avoid overflow.
+    if ((EFSM->CurrentSP + 1) == EFSM->StackSize) {  //!< avoid overflow.
         return false;
     }
 
-    if (pState == NULL) {
+    if (State == NULL) {
         return false;
     }
     
-    ptTCB->chCurrentSP++;
-    ptTCB->chSP = ptTCB->chCurrentSP;
-    ptTCB->pStack[ptTCB->chSP] = pState;
+    EFSM->CurrentSP++;
+    EFSM->SP = EFSM->CurrentSP;
+    EFSM->Stack[EFSM->SP] = State;
     
     return true;
 }
 
 //! transfer to specified state that locate in a lower level.
-bool event_fsm_transfer_to_lower(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState)
+bool event_fsm_transfer_to_lower(event_fsm_t *EFSM, fn_event_state_t *State)
 {
-    if (ptTCB->chCurrentSP == 0) {
+    if (EFSM->CurrentSP == 0) {
         return false;
     }
     
-    ptTCB->chCurrentSP--;
-    ptTCB->chSP = ptTCB->chCurrentSP;
-    if (pState != NULL) {
-        ptTCB->pStack[ptTCB->chSP] = pState;
+    EFSM->CurrentSP--;
+    EFSM->SP = EFSM->CurrentSP;
+    if (State != NULL) {
+        EFSM->Stack[EFSM->SP] = State;
     }
     
     return true;
 }
 
 
-fsm_rt_t event_fsm_dispatch_event(event_fsm_tcb_t *ptTCB, void *ptEvent)
+fsm_rt_t event_fsm_dispatch_event(event_fsm_t *EFSM, void *Event)
 {
     fn_event_state_t *fnCurrentState;
     uint8_t chRes;
     
     do {
-        fnCurrentState = event_fsm_get_current_state(ptTCB);
+        fnCurrentState = event_fsm_get_current_state(EFSM);
         if (NULL == fnCurrentState) {
             return FSM_RT_ERR;
         }
-        chRes = (*fnCurrentState)(ptEvent);
+        chRes = (*fnCurrentState)(Event);
         if (FSM_RT_UNHANDLE == chRes) {
-            if (!event_fsm_current_level_decrease(ptTCB)) {
-                event_fsm_reset_current(ptTCB);
+            if (!event_fsm_current_level_decrease(EFSM)) {
+                event_fsm_reset_current(EFSM);
                 return FSM_RT_CPL;
             }
         } else if (FSM_RT_ONGOING == chRes) {
             return FSM_RT_ONGOING;
         } else {
-            event_fsm_reset_current(ptTCB);
+            event_fsm_reset_current(EFSM);
             return FSM_RT_CPL;
         }
     } while (1);

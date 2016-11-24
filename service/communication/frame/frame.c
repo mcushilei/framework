@@ -101,19 +101,19 @@ DEF_STRUCTURE(frame_tcp_t)
     FRAME_QUEUE tFrameRcvQueue;
     uint16_t    hwPayloadSize;
     
-    uint8_t chRcvState0;
-    uint8_t chRcvState1;
-    uint8_t chSndState;
+    uint8_t     chRcvState0;
+    uint8_t     chRcvState1;
+    uint8_t     chSndState;
     
-    uint8_t chHeadBytes;
-    uint8_t chLengthBytes;
-    uint8_t chChecksumBytes;
+    uint8_t     chHeadBytes;
+    uint8_t     chLengthBytes;
+    uint8_t     chChecksumBytes;
     
-    uint16_t hwRcvDataLength;
-    uint16_t hwRcvDataCnt;
-    uint16_t hwRcvChecksum;
-    uint16_t hwSndDataCnt;
-    uint16_t hwSndChecksum;
+    uint16_t    hwRcvDataLength;
+    uint16_t    hwRcvDataCnt;
+    uint16_t    hwRcvChecksum;
+    uint16_t    hwSndDataCnt;
+    uint16_t    hwSndChecksum;
 END_DEF_STRUCTURE(frame_tcp_t)
 
 /*============================ PROTOTYPES ====================================*/

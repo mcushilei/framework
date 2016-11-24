@@ -32,21 +32,24 @@ typedef uint8_t (fn_event_state_t)(void *pArg);
 typedef fn_event_state_t *event_fsm_stack_t;
 
 typedef struct {
-    event_fsm_stack_t *pStack;
-    uint8_t     chStackSize;
-    uint8_t     chSP;
-    uint8_t     chCurrentSP;
-} event_fsm_tcb_t;
+    event_fsm_stack_t   *Stack;
+    uint8_t             StackSize;
+    uint8_t             SP;           //!< stack point.
+    uint8_t             CurrentSP;    //!< current stack point, it's alwayse less or equal to SP.
+} event_fsm_t;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool     event_fsm_init(event_fsm_tcb_t *ptTCB, event_fsm_stack_t *pStack, uint8_t chStackSize, fn_event_state_t *pInitState);
-extern fsm_rt_t event_fsm_dispatch_event(event_fsm_tcb_t *ptTCB, void *ptEvent);
+extern bool     event_fsm_init(event_fsm_t          *EFSM,
+                               event_fsm_stack_t    *Stack,
+                               uint8_t              StackSize,
+                               fn_event_state_t     *InitState);
+extern fsm_rt_t event_fsm_dispatch_event(event_fsm_t *EFSM, void *Event);
 
-extern bool event_fsm_transfer_to(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState);
-extern bool event_fsm_transfer_to_uper(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState);
-extern bool event_fsm_transfer_to_lower(event_fsm_tcb_t *ptTCB, fn_event_state_t *pState);
-extern bool event_fsm_transfer_to_current(event_fsm_tcb_t *ptTCB);
+extern bool event_fsm_transfer_to(event_fsm_t *EFSM, fn_event_state_t *State);
+extern bool event_fsm_transfer_to_uper(event_fsm_t *EFSM, fn_event_state_t *State);
+extern bool event_fsm_transfer_to_lower(event_fsm_t *EFSM, fn_event_state_t *State);
+extern bool event_fsm_transfer_to_current(event_fsm_t *EFSM);
 
 
 #endif  //! #ifndef __EVENT_FSM_H__

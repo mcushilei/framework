@@ -22,27 +22,24 @@
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define LOCKED          true            //!< locked
-#define UNLOCKED        false           //!< unlocked
-
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef volatile bool locker_t;
+typedef volatile unsigned int lock_t;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 /*! \brief try to enter a section
- *! \param ptLock locker object
+ *! \param Lock locker object
  *! \retval lock section is entered
  *! \retval The section is locked
  */
-extern bool enter_lock(locker_t *ptLock);
+extern bool enter_lock(lock_t *Lock);
 
 /*! \brief leave a section
- *! \param ptLock locker object
+ *! \param Lock locker object
  *! \return none
  */
-extern void leave_lock(locker_t *ptLock);
+extern void leave_lock(lock_t *Lock);
 
 #endif
 /* EOF */

@@ -48,6 +48,7 @@ typedef enum {
 
 typedef enum {
     FSM_OBJ_TYPE_INVALID    = 0,
+    FSM_OBJ_TYPE_TASK       = 0x01,
     FSM_OBJ_TYPE_WAITABLE   = 0x80,
     FSM_OBJ_TYPE_EVENT      = 0x80,
     FSM_OBJ_TYPE_MUTEX      = 0x81,
@@ -63,64 +64,64 @@ typedef enum {
     FSM_TASK_STATUS_PEND_TIMEOUT,
 } fsm_task_status_em_t;
 
-typedef void state_func_t(void *pArg);
+typedef void state_func_t(void *Arg);
 
-DEF_STRUCTURE(task_stack_item_t)
-    state_func_t        *fnState;       //!< routine
-    void                *pArg;          //!< argument
-END_DEF_STRUCTURE(task_stack_item_t);
+DEF_STRUCTURE(task_stack_t)
+    state_func_t        *State;         //!< routine
+    void                *Arg;           //!< argument
+END_DEF_STRUCTURE(task_stack_t);
 
-DEF_STRUCTURE(fsm_obj_t)
-    uint8_t             chObjType;
-    uint8_t             chObjFlag;
+DEF_STRUCTURE(fsm_basis_obj_t)
+    uint8_t             ObjType;
+    uint8_t             ObjFlag;
     
-    fsm_obj_t           *ptObjNext;
-END_DEF_STRUCTURE(fsm_obj_t)
+    fsm_basis_obj_t     *ObjNext;
+END_DEF_STRUCTURE(fsm_basis_obj_t)
 
 DEF_STRUCTURE(fsm_tcb_t)
-    fsm_tcb_t           *pNext;
+    fsm_tcb_t           *Next;
     
-    uint32_t            wDelay;
+    uint32_t            Delay;
     
-    uint8_t             chFlag;
-    uint8_t             chStatus;
+    uint8_t             Flag;
+    uint8_t             Status;
 
-    uint8_t             chStackSize;    //!< stack size
-    uint8_t             chStackPoint;   //!< stack pointer
-    task_stack_item_t   *pStack;        //!< task call stack
+    uint8_t             StackSize;      //!< stack size
+    uint8_t             StackPoint;     //!< stack pointer
+    task_stack_t   *Stack;         //!< task call stack
     
 #if SAFE_TASK_THREAD_SYNC == ENABLED
-    fsm_obj_t           *ptObject;      //!< target event
+    fsm_basis_obj_t     *Object;        //!< target event
 #endif
 END_DEF_STRUCTURE(fsm_tcb_t)
 
 DEF_STRUCTURE(task_queue_t)
-    fsm_tcb_t           *ptTCBHead;     //!< queue head
-    fsm_tcb_t           *ptTCBTail;     //!< queue tail
+    fsm_tcb_t           *Head;          //!< queue head
+    fsm_tcb_t           *Tail;          //!< queue tail
 END_DEF_STRUCTURE(task_queue_t)
 
 DEF_STRUCTURE(fsm_waitable_obj_header_t)
-    fsm_obj_t;
+    fsm_basis_obj_t;
     union {
         task_queue_t;
-        task_queue_t tTaskQueue;
+        task_queue_t    TaskQueue;
     };
 END_DEF_STRUCTURE(fsm_waitable_obj_header_t)
 
 DEF_STRUCTURE(fsm_event_t)
     fsm_waitable_obj_header_t;
-    uint8_t             chEventFlag;    //!< signal
+    uint8_t             EventFlag;      //!< signal
 END_DEF_STRUCTURE(fsm_event_t)
 
 DEF_STRUCTURE(fsm_mutex_t)
     fsm_waitable_obj_header_t;
-    uint8_t             chMutexFlag;    //!< signal
+    uint8_t             MutexFlag;      //!< signal
 END_DEF_STRUCTURE(fsm_mutex_t)
 
 DEF_STRUCTURE(fsm_semaphore_t)
     fsm_waitable_obj_header_t;
-    uint16_t            hwSemCounter;   //!< counter
-    uint16_t            hwSemMaximum;   //!< Maximum counter 
+    uint16_t            SemCounter;     //!< counter
+    uint16_t            SemMaximum;     //!< Maximum counter 
 END_DEF_STRUCTURE(fsm_semaphore_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
