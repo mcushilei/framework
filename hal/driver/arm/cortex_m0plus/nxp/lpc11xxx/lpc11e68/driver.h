@@ -16,26 +16,31 @@
 *******************************************************************************/
 
 
-#ifndef __DRIVER_ARM_M0PLUS_NXP_DRIVER_H__
-#define __DRIVER_ARM_M0PLUS_NXP_DRIVER_H__
+#ifndef __DRIVER_ARM_M0PLUS_NXP_LPC11E68_DRIVER_H__
+#define __DRIVER_ARM_M0PLUS_NXP_LPC11E68_DRIVER_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-
-#if     defined(__KINETIS_L__)
-#   include ".\klxx\driver.h"
-#elif   defined(__LPC11XXX__)
-#   include ".\lpc11xxx\driver.h"
-#else
-#   error "No supported arm device, please check your configuration."
-#endif
+#include ".\device.h"
+#include "..\common\pm\pm.h"
+#include "..\common\uart\uart.h"
+#include "..\common\io\io.h"
+#include "..\common\spi\spi.h"
+//#include "..\common\wdt\wdt.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
+/*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
 
+/*! \note initialize driver
+ *  \param none
+ *  \retval true hal initialization succeeded.
+ *  \retval false hal initialization failed
+ */
+extern bool driver_init( void );
 
 #endif
 /* EOF */

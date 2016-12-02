@@ -21,7 +21,7 @@
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include ".\i_io_uart.h"
+#include ".\reg_uart.h"
 #include "..\device.h"
 
 /*============================ MACROS ========================================*/
@@ -39,11 +39,6 @@
     extern bool uart##__N##_disable(void);                                  \
     extern bool uart##__N##_write_byte(uint8_t chByte);                     \
     extern bool uart##__N##_read_byte(uint8_t *pchByte);                    \
-    extern bool uart##__N##_int_enable(uint32_t wMask);                     \
-    extern bool uart##__N##_int_disable(uint32_t wMask);                    \
-    extern bool uart##__N##_irda_init(uart_IrDA_cfg_t *ptUsartCFG);        \
-    extern bool uart##__N##_485_init(uart_485_cfg_t *pt485CFG);            \
-    extern bool uart##__N##_485_send_address(uint8_t chAddress);            \
         
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
@@ -51,28 +46,28 @@
 //! \name uart working mode 
 //! @{
 typedef enum {
-    UART_NO_AUTO_BAUD      = 0x00,
-    UART_AUTO_BAUD_MODE0   = 0x01,
-    UART_AUTO_BAUD_MODE1   = 0x03,
-    UART_AUTO_RESTART      = 0x04,
-    UART_NO_AUTO_RESTART   = 0x00,
+    //! bit 0-3
+    UART_5_BIT_LENGTH      = 0u << 0,
+    UART_6_BIT_LENGTH      = 1u << 0,
+    UART_7_BIT_LENGTH      = 2u << 0,
+    UART_8_BIT_LENGTH      = 3u << 0,
 
-    UART_NO_PARITY         = 0x00,
-    UART_EVEN_PARITY       = 0x18,
-    UART_ODD_PARITY        = 0x08,
-    UART_FORCE_1_PARITY    = 0x28,
-    UART_FORCE_0_PARITY    = 0x38,
+    //! bit 4-7
+    UART_NO_PARITY         = 0u << 4,
+    UART_EVEN_PARITY       = 1u << 4,
+    UART_ODD_PARITY        = 2u << 4,
+    UART_FORCE_1_PARITY    = 3u << 4,
+    UART_FORCE_0_PARITY    = 4u << 4,
 
-    UART_1_STOPBIT         = 0x00,
-    UART_2_STOPBIT         = 0x40,
+    //! bit 8-9
+    UART_1_STOPBIT         = 0u << 8,
+    UART_2_STOPBIT         = 1u << 8,
 
-    UART_ENABLE_FIFO       = 0x00,
-    UART_DISABLE_FIFO      = 0x80,
+    //! bit 10
+    UART_ENABLE_FIFO       = 1u << 10,
 
-    UART_5_BIT_LENGTH      = 0x0000,
-    UART_6_BIT_LENGTH      = 0x0100,
-    UART_7_BIT_LENGTH      = 0x0200,
-    UART_8_BIT_LENGTH      = 0x0300,
+    //! bit 11
+    UART_AUTO_BAUD_ENABLE  = 1u << 11,
 } em_uart_mode_t;
 //! @}
 
@@ -84,79 +79,12 @@ typedef struct {
 } uart_cfg_t;
 //! @}
 
-//! \name uart_irda_mode_t
-//! @{
-typedef enum {
-    UART_IRDA_DISABLE           = 0x00,         //!< disable irda
-    UART_IRDA_ENABLE            = 0x01,         //!< enable irda
-    
-    UART_IRDA_NOT_INVERTED      = 0x00,         //!< not inverted the input
-    UART_IRDA_INVERTED          = 0x02,         //!< inverted the input
-    
-    UART_IRDA_FIXPULSE_DISABLE  = 0x00,         //!< disable fixpulse
-    UART_IRDA_FIXPULSE_ENABLE   = 0x04,         //!< enable fixpulse
-    
-    UART_IRDA_PULSEDIV_2        = 0x00,         //!< 2* T_pclk(fixpulse enable)
-    UART_IRDA_PULSEDIV_4        = 0x08,         //!< 4* T_pclk(fixpulse enable)
-    UART_IRDA_PULSEDIV_8        = 0x10,         //!< 8* T_pclk(fixpulse enable)
-    UART_IRDA_PULSEDIV_16       = 0x18,         //!< 16* T_pclk(fixpulse enable)
-    UART_IRDA_PULSEDIV_32       = 0x20,         //!< 32* T_pclk(fixpulse enable)
-    UART_IRDA_PULSEDIV_64       = 0x28,         //!< 64* T_pclk(fixpulse enable)
-    UART_IRDA_PULSEDIV_128      = 0x30,         //!< 128* T_pclk(fixpulse enable)
-    UART_IRDA_PULSEDIV_256      = 0x38          //!< 256* T_pclk(fixpulse enable)
-} em_uart_irda_mode_t;
-//! @}
-
-//! \name uart_IrDA_cfg_t
-//! @{
-typedef struct {
-    uint16_t            hwIrDAMode;            //!< IrDA config word
-} uart_IrDA_cfg_t;
-//! @} 
-
-//! \name uart 485 working mode
-//! @{
-typedef enum {
-    UART_485_DISABLE               = 0x00,
-    UART_485_MULTI_STATION         = 0x01,
-    UART_485_DISABLE_RX            = 0x02,
-    UART_485_AUTO_ADDRESS_MATCH    = 0x04,
-    UART_485_USE_DTR_AS_DIR_CTRL   = 0x08,    
-    UART_485_ENABLE_AUTO_DIR_CTRL  = 0x10,
-    UART_485_DIR_PIN_IDLE_LOW      = 0x20
-}em_uart_485_mode_t;
-//! @}
-
-//! \name uart 485 configuration
-//! @{
-typedef struct {
-    uint8_t chMode;
-    uint8_t chAddress;
-    uint8_t chDelay;
-} uart_485_cfg_t;
-//! @}
-
 //! \name main baudrate interface
 //! @{
 DEF_INTERFACE(i_baudrate_t)
     bool            (*Set)(uint32_t wBaudrate);
     uint32_t        (*Get)(void);
 END_DEF_INTERFACE(i_baudrate_t)
-//! @}
-
-//! \name class: uart_irda_t
-//! @{
-DEF_INTERFACE(uart_irda_t)
-    bool        (*Init)(uart_IrDA_cfg_t *ptCFG);
-END_DEF_INTERFACE(uart_irda_t)
-//! @}
-
-//! \name class: uart_485_t
-//! @{
-DEF_INTERFACE(uart_485_t)
-    bool        (*Init)(uart_485_cfg_t *ptCFG);
-    bool        (*SendAddress)(uint8_t chAddress);
-END_DEF_INTERFACE(uart_485_t)
 //! @}
 
 //! \name class: i_uart_t
@@ -170,14 +98,7 @@ DEF_INTERFACE(i_uart_t)
     bool        (*ReadByte)(uint8_t *pchByte);
     
     i_baudrate_t Baudrate;
-    
-#if UART_485_SUPPORT == ENABLED
-    uart_485_t  RS485;
-#endif
 
-#if UART_IRDA_SUPPORT == ENABLED
-    uart_irda_t IrDA;     
-#endif
 END_DEF_INTERFACE(i_uart_t)
 //! @}
 

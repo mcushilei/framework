@@ -284,7 +284,7 @@ static bool usart_baudrate_set(uint32_t wUsart, uint32_t wBaudrate)
         ptREG->COMCON0 &= ~(1u << 7);
         ptREG->COMDIV2  = (1u << 15)
                         | ((wM & 3) << 11)
-                        | ((wN & MASK(0, 10)) << 0);
+                        | ((wN & MASK(10, 0)) << 0);
     } while (0);
     
     return true;
@@ -299,7 +299,7 @@ static uint32_t usart_baudrate_get(uint32_t wUsart)
     __usart_t *ptThis = (__usart_t *)&__UART[wUsart];
     uart_reg_t *ptREG = this.ptREG;     
     uint32_t wPclkFrequency;
-    uint32_t wN = ptREG->COMDIV2 & MASK(0, 10);
+    uint32_t wN = ptREG->COMDIV2 & MASK(10, 0);
     uint32_t wM = (ptREG->COMDIV2 >> 11) & 3;
 
     __SAFE_CLK_CODE(

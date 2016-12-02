@@ -16,16 +16,14 @@
 *******************************************************************************/
 
 
-#ifndef __DRIVER_ARM_M0PLUS_NXP_DRIVER_H__
-#define __DRIVER_ARM_M0PLUS_NXP_DRIVER_H__
+#ifndef __DRIVER_ARM_M0PLUS_NXP_LPC11XXX_DEVICE_H__
+#define __DRIVER_ARM_M0PLUS_NXP_LPC11XXX_DEVICE_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 
-#if     defined(__KINETIS_L__)
-#   include ".\klxx\driver.h"
-#elif   defined(__LPC11XXX__)
-#   include ".\lpc11xxx\driver.h"
+#if     defined(__LPC11E68__)
+    #include ".\lpc11e68\device.h"
 #else
 #   error "No supported arm device, please check your configuration."
 #endif

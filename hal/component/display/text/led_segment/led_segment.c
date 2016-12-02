@@ -132,7 +132,7 @@ bool led_segment_scan(void)
         //! write display data to data bus
         led_segment_write_data(s_tLEDSegmentDisplay.Framebuffer[s_tLEDSegmentDisplay.tScanPointer.chRow][s_tLEDSegmentDisplay.tScanPointer.chColumn]);
         led_segment_write_dot(s_tLEDSegmentDisplay.Dot[s_tLEDSegmentDisplay.tScanPointer.chRow][s_tLEDSegmentDisplay.tScanPointer.chColumn >> 3]
-                              & BIT(MASK(0, 2) & s_tLEDSegmentDisplay.tScanPointer.chColumn));
+                              & BIT(MASK(2, 0) & s_tLEDSegmentDisplay.tScanPointer.chColumn));
         //! set select line to display
         led_segment_select(&s_tLEDSegmentDisplay.tScanPointer);
         //! move curser
@@ -184,7 +184,7 @@ bool led_segment_set_dot(uint8_t chRow, uint8_t chColumn)
         return false;
     }
     
-    s_tLEDSegmentDataRam.Dot[chRow][chColumn >> 3] |= BIT(MASK(0, 2) & chColumn);
+    s_tLEDSegmentDataRam.Dot[chRow][chColumn >> 3] |= BIT(MASK(2, 0) & chColumn);
     
     return true;
 }
@@ -196,7 +196,7 @@ bool led_segment_clear_dot(uint8_t chRow, uint8_t chColumn)
         return false;
     }
     
-    s_tLEDSegmentDataRam.Dot[chRow][chColumn >> 3] &= ~BIT(MASK(0, 2) & chColumn);
+    s_tLEDSegmentDataRam.Dot[chRow][chColumn >> 3] &= ~BIT(MASK(2, 0) & chColumn);
     
     return true;
 }

@@ -195,7 +195,7 @@
 //! \brief bit mask
 #define BIT(__N)            (1u << (__N))
 #define __MASK(__N)         (BIT(__N) - 1u)
-#define MASK(__LSB, __MSB)  ((BIT(__MSB) | __MASK(__MSB)) ^ __MASK(__LSB))
+#define MASK(__MSB, __LSB)  ((BIT(__MSB) | __MASK(__MSB)) ^ __MASK(__LSB))
 
 /*============================ TYPES =========================================*/
 typedef union {

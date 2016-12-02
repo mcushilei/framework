@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2016 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -15,27 +15,17 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
+//! \note do not move this pre-processor statement to other places
+#include "..\app_cfg.h"
 
-#ifndef __DRIVER_ARM_M0PLUS_NXP_DRIVER_H__
-#define __DRIVER_ARM_M0PLUS_NXP_DRIVER_H__
+#ifndef __DRIVER_SPI_APP_CFG__
+#define __DRIVER_SPI_APP_CFG__
 
 /*============================ INCLUDES ======================================*/
-#include ".\app_cfg.h"
-
-#if     defined(__KINETIS_L__)
-#   include ".\klxx\driver.h"
-#elif   defined(__LPC11XXX__)
-#   include ".\lpc11xxx\driver.h"
-#else
-#   error "No supported arm device, please check your configuration."
-#endif
-
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 
-
 #endif
-/* EOF */

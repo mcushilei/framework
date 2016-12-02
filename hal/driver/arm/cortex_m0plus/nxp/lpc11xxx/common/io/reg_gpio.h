@@ -17,33 +17,33 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef __DRIVER_ARM_M0P_COMMON_H__
-#define __DRIVER_ARM_M0P_COMMON_H__
+#ifndef __REG_GPIO_H__
+#define __REG_GPIO_H__
 
 /*============================ INCLUDES ======================================*/
-#include ".\app_cfg.h"
-#include ".\core\core_cm0plus.h"
-
 /*============================ MACROS ========================================*/
+#define GPIO0_REG           (*(gpio_reg_page_t *)(GPIO_BASE_ADDRESS + 0x2000u))
+#define GPIO1_REG           (*(gpio_reg_page_t *)(GPIO_BASE_ADDRESS + 0x2004u))
+#define GPIO2_REG           (*(gpio_reg_page_t *)(GPIO_BASE_ADDRESS + 0x2008u))
+
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#define ENABLE_GLOBAL_INTERRUPT()   __enable_interrupt()
-#define DISABLE_GLOBAL_INTERRUPT()  __disable_interrupt()
-
-//! \brief Enter the safe atom operations
-#define ENTER_SAFE_ATOM_CODE()  uint32_t __wState = __get_interrupt_state();    \
-                                __disable_interrupt()
-
-//! \brief Exit from the safe atom operations
-#define EXIT_SAFE_ATOM_CODE()   __set_interrupt_state(__wState)
-
-//! \brief The safe ATOM code section macro
-#define SAFE_ATOM_CODE(...) {   \
-        ENTER_SAFE_ATOM_CODE(); \
-        __VA_ARGS__             \
-        EXIT_SAFE_ATOM_CODE();  \
-    }
-
 /*============================ TYPES =========================================*/
+typedef volatile struct {
+    reg32_t     DIR;         //!< Data Direction
+    REG32_RSVD(31)
+    reg32_t     MASK;        //!< port pin mask
+    REG32_RSVD(31)
+    reg32_t     PIN;         //!< port pin value
+    REG32_RSVD(31)
+    reg32_t     MPIN;        //!< masked port pin value
+    REG32_RSVD(31)
+    reg32_t     SET;         //!< set output
+    REG32_RSVD(31)
+    reg32_t     CLR;         //!< clear output
+    REG32_RSVD(31)
+    reg32_t     NOT;         //!< toggle output
+} gpio_reg_page_t;
+
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/

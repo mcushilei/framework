@@ -120,13 +120,13 @@
     } __NAME;
 
 //! \brief Macro to reseverd register.
-#define __REG8_RSVD(__N, __A)       reg8_t :8;
+#define __REG8_RSVD(__N, __A)       const reg8_t :8;
 #define REG8_RSVD(__N)              MREPEAT(__N, __REG8_RSVD, 0)
 
-#define __REG16_RSVD(__N, __A)      reg16_t :16;
+#define __REG16_RSVD(__N, __A)      const reg16_t :16;
 #define REG16_RSVD(__N)             MREPEAT(__N, __REG16_RSVD, 0)
 
-#define __REG32_RSVD(__N, __A)      reg32_t :32;
+#define __REG32_RSVD(__N, __A)      const reg32_t :32;
 #define REG32_RSVD(__N)             MREPEAT(__N, __REG32_RSVD, 0)
 
 /*============================ TYPES =========================================*/

@@ -16,20 +16,13 @@
 *******************************************************************************/
 
 
-#ifndef __DRIVER_ARM_M0PLUS_NXP_DRIVER_H__
-#define __DRIVER_ARM_M0PLUS_NXP_DRIVER_H__
+//! \note do not move this pre-processor statement to other places
+#include "..\app_cfg.h"
+
+#ifndef __DRIVER_ARM_M0PLUS_NXP_LPC11XXX_APP_CFG_H__
+#define __DRIVER_ARM_M0PLUS_NXP_LPC11XXX_APP_CFG_H__
 
 /*============================ INCLUDES ======================================*/
-#include ".\app_cfg.h"
-
-#if     defined(__KINETIS_L__)
-#   include ".\klxx\driver.h"
-#elif   defined(__LPC11XXX__)
-#   include ".\lpc11xxx\driver.h"
-#else
-#   error "No supported arm device, please check your configuration."
-#endif
-
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/

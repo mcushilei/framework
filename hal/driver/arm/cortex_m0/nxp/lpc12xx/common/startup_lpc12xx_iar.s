@@ -101,9 +101,8 @@ __vector_table_0x1c
     THUMB
 Reset_Handler
         CPSID   i                       ; mask interrupts
-        BL      __iar_program_start     ; call the C code
-__done
-        B       __done
+        BX      __iar_program_start     ; call the C code
+        B       Reset_Handler
 
       
 NMI_Handler

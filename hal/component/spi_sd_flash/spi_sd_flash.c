@@ -86,7 +86,7 @@
  *! \brief SD OCR register mask
  */
 #define SD_OCR_VDD_BIT0                 15
-#define SD_OCR_VDD_MSK                  MASK(15, 23)
+#define SD_OCR_VDD_MSK                  MASK(23, 15)
 #define SD_OCR_CCS_MSK                  (1u << 30)
 #define SD_OCR_POWER_UP_MSK             (1u << 31)
 

@@ -133,6 +133,7 @@ extern uint32_t pll_get_out_clock(void);
 extern uint32_t main_clock_get(void);
 extern bool     core_clock_cfg(em_main_clk_src_t tSrc, uint32_t wDiv);
 extern uint32_t core_clock_get(void);
+extern uint32_t ahb_clock_get(void);
 extern bool     peripheral_clock_enable(em_pconp_t tIndex);
 extern bool     peripheral_clock_disable(em_pconp_t tIndex);
 extern uint32_t peripheral_clock_get_status(em_pconp_t tIndex);

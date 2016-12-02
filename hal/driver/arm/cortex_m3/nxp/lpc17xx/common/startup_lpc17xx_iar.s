@@ -6,8 +6,8 @@ NVIC_VECTTBL    EQU     0xE000ED08
 
 
     EXTERN  __iar_program_start
-    PUBLIC  Vector_Table
-    PUBLIC  Vector_Table_0x1c
+    PUBLIC  __vector_table
+    PUBLIC  __vector_table_0x1c
                         
     PUBLIC  Reset_Handler
     PUBWEAK NMI_Handler         
@@ -62,7 +62,7 @@ NVIC_VECTTBL    EQU     0xE000ED08
     SECTION .intvec:CODE:NOROOT (2)               
     DATA
 ;Vector Table
-Vector_Table  
+__vector_table  
         DCD     SFE(CSTACK)               ; Top of Stack
         DCD     Reset_Handler             ; Reset Handler
         DCD     NMI_Handler               ; NMI Handler
@@ -70,7 +70,7 @@ Vector_Table
         DCD     MemManage_Handler         ; MPU Fault Handler
         DCD     BusFault_Handler          ; Bus Fault Handler
         DCD     UsageFault_Handler        ; Usage Fault Handler
-Vector_Table_0x1c
+__vector_table_0x1c
         DCD     0                         ; Reserved
         DCD     0                         ; Reserved
         DCD     0                         ; Reserved
@@ -117,6 +117,10 @@ Vector_Table_0x1c
         DCD     PLL1_IRQHandler           ; 48: PLL1 Lock (USB PLL)
         DCD		USBActivity_IRQHandler	  ; 49: USB Activity interrupt to wakeup
         DCD		CANActivity_IRQHandler	  ; 50: CAN Activity interrupt to wakeup
+__Vectors_End
+
+__Vectors       EQU     __vector_table
+__Vectors_Size 	EQU 	__Vectors_End - __Vectors
 
 
     IF      ReWrite_CRP
@@ -135,7 +139,7 @@ Vector_Table_0x1c
 Reset_Handler   
         CPSID   i                       ; mask interrupts
         ;LDR     R0, = NVIC_VECTTBL
-        ;LDR     R1, = Vector_Table
+        ;LDR     R1, = __vector_table
         ;STR     R1, [R0]
         LDR     R0, = __iar_program_start
         BX      R0

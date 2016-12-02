@@ -53,7 +53,7 @@ bool queue_init(queue_t *QueueObj, void *Buffer, __queue_uint_t Size, __queue_ui
     
     DEBUG_ASSERT_NOT_NULL(QueueObj);
     DEBUG_ASSERT_NOT_NULL(Buffer);
-    DEBUG_ASSERT_EQUAL_UINT(0, Size);
+    DEBUG_ASSERT(Size != 0);
     if (NULL == QueueObj || NULL == Buffer || 0 == Size) {
         return false;
     }

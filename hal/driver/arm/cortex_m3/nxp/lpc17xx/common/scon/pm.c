@@ -236,6 +236,11 @@ uint32_t core_clock_get(void)
     return main_clock_get() / ((SC_REG.CCLKCFG & SC_CCLKCFG_CCLKSEL_MSK) + 1);
 }
 
+uint32_t ahb_clock_get(void)
+{
+    return core_clock_get();
+}
+
 /*! \brief  Fet main clock frequency.
  *! \param  None
  *! \return main clock frequency
