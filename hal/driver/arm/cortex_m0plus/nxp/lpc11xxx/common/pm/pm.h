@@ -53,16 +53,6 @@
 #define PM_PCLK_RESUME(__INDEX, __STATUS)   peripheral_clk_config((__INDEX), (__STATUS))
 
 /*============================ TYPES =========================================*/
-//! \name the lowpower mode
-//! @{
-typedef enum {
-    WAIT            = 0,
-    SLEEP           = 1,
-    DEEP_SLEEP      = 2,
-    POWER_DOWN      = 3,
-} em_lowpower_mode_t;
-//! @}
-
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 extern bool     power_enable(uint32_t Part);
@@ -70,12 +60,12 @@ extern bool     power_disable(uint32_t Part);
 extern uint32_t power_status_get(uint32_t Part);
 extern bool     power_status_resume(uint32_t Part , uint32_t Status);
 
-extern bool     pll_enable(void);
-extern bool     pll_disable(void);
 //! Before call: PLL should NOT be in use AND should be power down.
 //! After  call: If there is any error(return false), PLL is power down;
 //!              else, PLL is work well.
-extern bool     pll_config(uint32_t Source, uint32_t Freq);
+extern bool     pll_init(uint32_t Source, uint32_t Freq);
+extern bool     pll_enable(void);
+extern bool     pll_disable(void);
 extern uint32_t pll_get_in_clock(void);
 extern uint32_t pll_get_out_clock(void);
 
@@ -96,6 +86,5 @@ extern bool     scon_usart_clock_disable(void);
 extern uint32_t scon_usart_clock_get(void);
 
 extern bool     clock_out_config(uint8_t tSrc, uint32_t wDiv);
-extern bool     enter_lowpower_mode(em_lowpower_mode_t tSleep);
 
 #endif

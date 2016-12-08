@@ -37,6 +37,7 @@ typedef enum {
     SLEEP           = 1,
     DEEP_SLEEP      = 2,
     POWER_DOWN      = 3,
+    DEEP_POWER_DOWN = 4,
 } em_lowpower_mode_t;
 //! @}
 
@@ -171,7 +172,7 @@ uint32_t pll_get_out_clock(void)
     return wClk;
 }
 
-bool pll_config(uint32_t Source, uint32_t Freq)
+bool pll_init(uint32_t Source, uint32_t Freq)
 {
     uint32_t m, p;
     uint32_t SourceFreq;
