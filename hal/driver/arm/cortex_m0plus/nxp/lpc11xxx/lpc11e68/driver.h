@@ -27,6 +27,7 @@
 #include "..\common\io\io.h"
 #include "..\common\spi\spi.h"
 #include "..\common\rtc\rtc.h"
+#include "..\common\iap\iap.h"
 //#include "..\common\wdt\wdt.h"
 
 /*============================ MACROS ========================================*/

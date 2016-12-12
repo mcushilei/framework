@@ -571,7 +571,7 @@ bool spi_sd_read_blocks(uint32_t block, uint8_t *buf, uint32_t cnt)
     return bRetVal;
 }
 
-bool spi_sd_write_block(uint32_t block, const uint8_t *buf, uint32_t cnt)
+bool spi_sd_write_blocks(uint32_t block, const uint8_t *buf, uint32_t cnt)
 {
     bool bRetVal = false;
     uint32_t wR1 = 0;
@@ -646,7 +646,7 @@ bool spi_sd_write_block(uint32_t block, const uint8_t *buf, uint32_t cnt)
     return bRetVal;
 }
 
-bool spi_sd_erase_block(uint32_t block, uint32_t cnt)
+bool spi_sd_erase_blocks(uint32_t block, uint32_t cnt)
 {
     bool bRetVal = false;
     uint32_t wR1;

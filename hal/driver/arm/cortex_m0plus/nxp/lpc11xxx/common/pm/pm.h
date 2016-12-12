@@ -27,30 +27,13 @@
 /*============================ MACROS ========================================*/
 #define DIV_(_N,_D)     DIV_##_N = (_N),
 
-#define ON_SLEEP_TURN_ON(__MSK)             (__MSK)
-#define ON_SLEEP_TURN_OFF(__MSK)            (~(__MSK))
-#define ON_WAKE_UP_TURN_ON(__MSK)           (__MSK)
-#define ON_WAKE_UP_TURN_OFF(__MSK)          (~(__MSK))
-#define ON_SEMI_WAKE_UP_TURN_ON(__MSK)      (__MSK)
-#define ON_SEMI_WAKE_UP_TURN_OFF(__MSK)     (~(__MSK))
-#define ON_ZOMBIE_TURN_ON(__MSK)            (__MSK)
-#define ON_ZOMBIE_TURN_OFF(__MSK)           (~(__MSK))
-#define ON_SLEEP_WALK_TURN_ON(__MSK)        (__MSK)
-#define ON_SLEEP_WALK_TURN_OFF(__MSK)       (~(__MSK))
-
-
-
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define PM_MAIN_CLK_GET()                   main_clk_get()
-#define PM_CORE_CLK_GET()                   core_clk_get()
+#define PM_CORE_CLK_GET()                   ahb_clock_get()
 #define PM_AHB_CLK_GET_STATUS(__INDEX)      ahb_clock_get_status((__INDEX))
 #define PM_AHB_CLK_ENABLE(__INDEX)          ahb_clock_enable((__INDEX))
 #define PM_AHB_CLK_DISABLE(__INDEX)         ahb_clock_disable((__INDEX))
 #define PM_AHB_CLK_RESUME(__INDEX, __STATUS) ahb_clock_resume_status((__INDEX), (__STATUS))
-#define PM_PCLK_CFG(__INDEX, __DIV)         peripheral_clk_config((__INDEX), (__DIV))
-#define PM_PCLK_GET(__INDEX)                peripheral_clk_get((__INDEX))
-#define PM_PCLK_GET_STATUS(__INDEX)         peripheral_clk_get_div((__INDEX))
-#define PM_PCLK_RESUME(__INDEX, __STATUS)   peripheral_clk_config((__INDEX), (__STATUS))
 
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
@@ -76,10 +59,6 @@ extern bool     ahb_clock_resume_status(uint32_t Part, uint32_t Status);
 extern bool     ahb_clock_config(uint32_t Source, uint32_t Div);
 extern uint32_t ahb_clock_get(void);
 extern uint32_t main_clock_get(void);
-
-extern bool     peripheral_clk_config(uint8_t chIndex , uint8_t chDiv);
-extern uint32_t peripheral_clk_get_div(uint8_t chIndex);
-extern uint32_t peripheral_clk_get(uint8_t chIndex);
 
 extern bool     scon_usart_clock_enable(void);
 extern bool     scon_usart_clock_disable(void);

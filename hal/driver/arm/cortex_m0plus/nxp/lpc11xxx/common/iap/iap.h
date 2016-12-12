@@ -16,24 +16,20 @@
 *******************************************************************************/
 
 
-//! \note do not move this pre-processor statement to other places
-#include "..\app_cfg.h"
-
-#ifndef __QUEUE_APP_CFG_H__
-#define __QUEUE_APP_CFG_H__
+#ifndef __IAP_H__
+#define __IAP_H__
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#undef __QUEUE_MUTEX_TYPE                      
-
-#define __QUEUE_ATOM_ENTER()                //ENTER_SAFE_ATOM_CODE()
-#define __QUEUE_ATOM_EXIT()                 //EXIT_SAFE_ATOM_CODE()
-
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef uint32_t __queue_uint_t;
-
 /*============================ GLOBAL VARIABLES ==============================*/
+/*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
+extern uint32_t iap_flash_write_pages(uint32_t wStartPage, uint32_t *pBuffer, uint32_t cnt);
+extern uint32_t iap_flash_erase_pages(uint32_t wStartPage, uint32_t cnt);
+extern uint32_t iap_eeprom_read(uint32_t Addr, uint8_t *pBuffer, uint32_t Length);
+extern uint32_t iap_eeprom_write(uint32_t Addr, uint8_t *pBuffer, uint32_t Length);
 
 #endif
+/* EOF */
