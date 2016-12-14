@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2016 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -19,15 +19,18 @@
 //! \note do not move this pre-processor statement to other places
 #include "..\app_cfg.h"
 
-#ifndef __LOCK_APP_CFG_H__
-#define __LOCK_APP_CFG_H__
+#ifndef __KEY_APP_CFG_H__
+#define __KEY_APP_CFG_H__
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
+#define KEY_SAMPLE_NUM          1u
+#define KEY_LONG_PRESS_TIME     4u
+#define KEY_REPEAT_PRESS_TIME   4u
+
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 
-#endif  //! #ifndef __LOCK_APP_CFG_H__
-/* EOF */
+#endif

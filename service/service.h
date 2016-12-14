@@ -22,7 +22,6 @@
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-//#include ".\lock\lock.h"
 #include ".\string\string.h"
 #include ".\debug\debug.h"
 #include ".\checksum\checksum.h"
@@ -34,6 +33,7 @@
 #include ".\softtimer\softtimer.h"
 #include ".\event_fsm\event_fsm.h"
 #include ".\fsm\fsm.h"
+#include ".\key\key.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
