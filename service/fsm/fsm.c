@@ -252,8 +252,8 @@ uint_fast8_t fsm_task_create(
 {
     fsm_tcb_t *ptTask;
     
-    if ((NULL == pptTask)                       //! validate parameters.
-    ||  (NULL == State)
+    //! validate parameters.
+    if ((NULL == State)
     ||  (NULL == Stack) 
     ||  (0 == StackSize)) {
         return FSM_ERR_INVALID_PARAM;
@@ -268,7 +268,9 @@ uint_fast8_t fsm_task_create(
     /*! Let this task to run. */
     fsm_set_task_ready(ptTask);
 
-    *pptTask = ptTask;
+    if (NULL != pptTask) {
+        *pptTask = ptTask;
+    }
     
     return FSM_ERR_NONE;
 }

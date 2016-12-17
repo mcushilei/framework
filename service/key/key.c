@@ -22,8 +22,8 @@
 #include ".\app_cfg.h"
 
 /*============================ MACROS ========================================*/
-#ifndef KEY_SAMPLE_NUM
-#error "KEY_SAMPLE_NUM is not defined!"
+#ifndef KEY_FILTER_SAMPLE_PERIOD
+#error "KEY_FILTER_SAMPLE_PERIOD is not defined!"
 #endif
 
 #ifndef KEY_LONG_PRESS_TIME
@@ -53,28 +53,38 @@ extern void key_callback(uint16_t Key, uint8_t Action);
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
+static uint16_t PreKey       = KEY_NO_ACTIVE;
+static uint16_t LastKeyValue = KEY_NO_ACTIVE;
+static uint8_t  FSMState = KEY_NO_ACTIVE;
+
 /*============================ IMPLEMENTATION ================================*/
+void key_init(void)
+{
+    SAFE_ATOM_CODE(
+        PreKey       = KEY_NO_ACTIVE;
+        LastKeyValue = KEY_NO_ACTIVE;
+        FSMState     = KEY_NO_ACTIVE;
+    )
+}
 
 static bool key_scan(uint16_t *pKeyValue)
 {
-    static uint16_t PreKey      = KEY_NO_ACTIVE;
     uint16_t        CurrentKey  = KEY_NO_ACTIVE;
-    static int16_t  FilterCnt   = 0;
+    static int16_t  Count       = 0;
 
     CurrentKey = key_get_key_value();
     
-    //! key must keep stable within KEY_SAMPLE_NUM.
+    //! key must keep stable within KEY_FILTER_SAMPLE_PERIOD.
     if (CurrentKey != PreKey) {     //! there is key active.
         PreKey  = CurrentKey;
-        FilterCnt = 0;
+        Count = 0;
+    }
+    if (Count < KEY_FILTER_SAMPLE_PERIOD) {
+        Count++;
     } else {
-        if (FilterCnt < KEY_SAMPLE_NUM) {
-            FilterCnt++;
-        } else {
-            FilterCnt = 0;
-            *pKeyValue = CurrentKey;
-            return true;
-        }
+        Count = 0;
+        *pKeyValue = CurrentKey;
+        return true;
     }
 
     return false;
@@ -82,46 +92,45 @@ static bool key_scan(uint16_t *pKeyValue)
 
 static void key_press_detector(uint16_t Value, uint8_t Action)
 {
-    static uint8_t FSMState = KEY_NO_ACTIVE;
     static uint16_t Timer = 0;
-
+    
     switch (FSMState) {
         case KEY_NO_ACTIVE:
             if (Action == KEY_PRESSED) {
+                key_callback(Value, KEY_PRESSED);
                 FSMState = KEY_PRESSED;
                 Timer = KEY_LONG_PRESS_TIME;
-                key_callback(Value, KEY_PRESSED);
             }
             break;
 
         case KEY_PRESSED:
             if (Action == KEY_RELEASED) {
-                FSMState = KEY_NO_ACTIVE;
                 key_callback(Value, KEY_RELEASED);
                 key_callback(Value, KEY_KNOCKED);
+                FSMState = KEY_NO_ACTIVE;
             } else {
                 if (Timer != 0) {
                     Timer--;
-                } else {
-                    //! timeout, so this key is long press.
-                    FSMState = KEY_REPEAT_PRESSED;
-                    Timer = KEY_REPEAT_PRESS_TIME;
-                    key_callback(Value, KEY_LONG_PRESSED);
+                    if (Timer == 0) {
+                        key_callback(Value, KEY_LONG_PRESSED);
+                        FSMState = KEY_REPEAT_PRESSED;
+                        Timer = KEY_REPEAT_PRESS_TIME;
+                    }
                 }
             }
             break;
 
         case KEY_REPEAT_PRESSED:
             if (Action == KEY_RELEASED) {
-                FSMState = KEY_NO_ACTIVE;
                 key_callback(Value, KEY_RELEASED);
+                FSMState = KEY_NO_ACTIVE;
             } else {
                 if (Timer != 0) {
                     Timer--;
-                } else {
-                    //! timeout, so this key is repeated press.
-                    Timer = KEY_REPEAT_PRESS_TIME;
-                    //key_callback(Value, KEY_REPEAT_PRESSED);
+                    if (Timer == 0) {
+                        key_callback(Value, KEY_REPEAT_PRESSED);
+                        Timer = KEY_REPEAT_PRESS_TIME;
+                    }
                 }
             }
             break;
@@ -130,18 +139,19 @@ static void key_press_detector(uint16_t Value, uint8_t Action)
 
 void key_poll(void)
 {
-    static uint16_t LastKeyValue = KEY_NO_ACTIVE;
-    uint16_t        KeyValue     = KEY_NO_ACTIVE;
+    uint16_t KeyValue;
 
     if (key_scan(&KeyValue)) {
         if (KeyValue != LastKeyValue) {
             if (LastKeyValue != KEY_NO_ACTIVE) {
                 key_press_detector(LastKeyValue, KEY_RELEASED);
             }
-            if (KEY_NO_ACTIVE != KeyValue) {
+            if (KeyValue != KEY_NO_ACTIVE) {
                 key_press_detector(KeyValue, KEY_PRESSED);
             }
             LastKeyValue = KeyValue;
+        } else {
+            key_press_detector(LastKeyValue, KEY_NO_ACTIVE);
         }
     } else {
         key_press_detector(LastKeyValue, KEY_NO_ACTIVE);

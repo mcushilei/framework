@@ -24,9 +24,10 @@
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define KEY_SAMPLE_NUM          1u
-#define KEY_LONG_PRESS_TIME     4u
-#define KEY_REPEAT_PRESS_TIME   4u
+//! set those value to 0 will disable it.
+#define KEY_FILTER_SAMPLE_PERIOD    (1u)
+#define KEY_LONG_PRESS_TIME         (4u)
+#define KEY_REPEAT_PRESS_TIME       (4u)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/

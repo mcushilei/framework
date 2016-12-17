@@ -68,7 +68,7 @@
             __V = x;                            \
         } while (0)
 
-#define IS_POWER_OF_2(__N)  (((__N) != 0u) && ((((unsigned int)(__N) - 1u) & (unsigned int)(__N)) == 0))
+#define IS_POWER_OF_2(__N)  (((__N) != 0u) && ((((__N) - 1u) & (__N)) == 0))
 
 #define NEXT_POEWER_OF_2(__N, __V)          do {\
             uint32_t x = __N;                   \

@@ -34,6 +34,7 @@ typedef enum {
 } key_action_t;
 
 /*============================ GLOBAL VARIABLES ==============================*/
+extern void key_init(void);
 //! this should be called periodically, like 10ms, 20ms.
 extern void key_poll(void);      // Key interface.
 
