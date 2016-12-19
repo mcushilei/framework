@@ -23,6 +23,7 @@
 #include "..\device.h"
 #include ".\reg_syscon.h"
 #include ".\reg_pmu.h"
+#include ".\reg_pinint.h"
 
 /*============================ MACROS ========================================*/
 #define DIV_(_N,_D)     DIV_##_N = (_N),

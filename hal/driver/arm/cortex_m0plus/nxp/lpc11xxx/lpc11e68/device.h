@@ -103,6 +103,7 @@ typedef enum IRQn {
 #define GPIO_BASE_ADDRESS               (0xA0000000ul)
 #define FLASH_BASE_ADDRESS              (0x4003C000ul)
 #define PMU_BASE_ADDRESS                (0x40038000ul)
+#define PININT_BASE_ADDRESS             (0xA0004000ul)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
