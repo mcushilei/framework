@@ -55,16 +55,6 @@ typedef enum {
 } em_out_clk_src_t;
 //! @}
 
-//! \name the lowpower mode
-//! @{
-typedef enum {
-    WAIT            = 0,
-    SLEEP           = 1,
-    DEEP_SLEEP      = 2,
-    POWER_DOWN      = 3,
-} em_lowpower_mode_t;
-//! @}
-
 //! \name pll interface
 //! @{
 DEF_INTERFACE(i_pll_t)
@@ -141,6 +131,5 @@ extern bool     peripheral_clock_resume_status(em_pconp_t tIndex, uint32_t wStat
 extern bool     peripheral_clock_config(em_pclksel_t tPer, em_pclk_div_t tDiv);
 extern uint32_t peripheral_clock_get(em_pclksel_t tPer);
 extern bool     clock_out_config(em_out_clk_src_t tSrc, uint32_t wDiv);
-extern bool     enter_lowpower_mode(em_lowpower_mode_t tSleep);
 
 #endif

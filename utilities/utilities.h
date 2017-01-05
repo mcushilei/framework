@@ -41,33 +41,6 @@
 #define UBOUND(__ARRAY)     (sizeof(__ARRAY) / sizeof(__ARRAY[0]))
 
 
-#define COUNT_LEADING_ZEROS(__N, __V)       do {\
-            uint32_t x = __N;                   \
-            x |= x >> 1;                        \
-            x |= x >> 2;                        \
-            x |= x >> 4;                        \
-            x |= x >> 8;                        \
-            x |= x >> 16;                       \
-            x = ~x;                             \
-            x = (x & 0x55555555U) + ((x >> 1)  & 0x55555555U);\
-            x = (x & 0x33333333U) + ((x >> 2)  & 0x33333333U);\
-            x = (x & 0x0f0f0f0fU) + ((x >> 4)  & 0x0f0f0f0fU);\
-            x = (x & 0x00ff00ffU) + ((x >> 8)  & 0x00ff00ffU);\
-            x = (x & 0x0000ffffU) + ((x >> 16) & 0x0000ffffU);\
-            __V = x;                            \
-        } while (0)
-
-#define COUNT_TRAILING_ZEROS(__N, __V)      do {\
-            uint32_t x = __N;                   \
-            x = ((x - 1) | x) ^ x;              \
-            x = (x & 0x55555555U) + ((x >> 1)  & 0x55555555U);\
-            x = (x & 0x33333333U) + ((x >> 2)  & 0x33333333U);\
-            x = (x & 0x0f0f0f0fU) + ((x >> 4)  & 0x0f0f0f0fU);\
-            x = (x & 0x00ff00ffU) + ((x >> 8)  & 0x00ff00ffU);\
-            x = (x & 0x0000ffffU) + ((x >> 16) & 0x0000ffffU);\
-            __V = x;                            \
-        } while (0)
-
 #define IS_POWER_OF_2(__N)  (((__N) != 0u) && ((((__N) - 1u) & (__N)) == 0))
 
 #define NEXT_POEWER_OF_2(__N, __V)          do {\
@@ -84,21 +57,45 @@
             __V = x + 1;                        \
         } while (0)
 
+#define COUNT_TRAILING_ZEROS(__N, __V)      do {\
+            uint32_t x = __N;                   \
+            x = ((x - 1) | x) ^ x;              \
+            x = (x & 0x55555555U) + ((x >> 1)  & 0x55555555U);\
+            x = (x & 0x33333333U) + ((x >> 2)  & 0x33333333U);\
+            x = (x & 0x0f0f0f0fU) + ((x >> 4)  & 0x0f0f0f0fU);\
+            x = (x & 0x00ff00ffU) + ((x >> 8)  & 0x00ff00ffU);\
+            x = (x & 0x0000ffffU) + ((x >> 16) & 0x0000ffffU);\
+            __V = x;                            \
+        } while (0)
+
+#define COUNT_LEADING_ZEROS(__N, __V)       do {\
+            uint32_t x = __N;                   \
+            x |= x >> 1;                        \
+            x |= x >> 2;                        \
+            x |= x >> 4;                        \
+            x |= x >> 8;                        \
+            x |= x >> 16;                       \
+            x = ~x;                             \
+            x = (x & 0x55555555U) + ((x >> 1)  & 0x55555555U);\
+            x = (x & 0x33333333U) + ((x >> 2)  & 0x33333333U);\
+            x = (x & 0x0f0f0f0fU) + ((x >> 4)  & 0x0f0f0f0fU);\
+            x = (x & 0x00ff00ffU) + ((x >> 8)  & 0x00ff00ffU);\
+            x = (x & 0x0000ffffU) + ((x >> 16) & 0x0000ffffU);\
+            __V = x;                            \
+        } while (0)
+
 //! \brief math macros
 #define MAX(__A,__B)        (((__A) > (__B)) ? (__A) : (__B))
 #define MIN(__A,__B)        (((__A) < (__B)) ? (__A) : (__B))
-#define ABS(__N)            (((__N) < 0)? (-(__N)) : (__N))
+#define ABS(__I)            (((__I) ^ ((__I) >> 31)) - ((__I) >> 31))
             
-//! \brief initialize large object
-# define OBJECT_INIT_ZERO(__OBJECT)         do {\
-            struct OBJECT_INIT {\
-                uint8_t StructMask[sizeof(__OBJECT)];\
-            } NULL_OBJECT = {{0}};\
-            (*((struct OBJECT_INIT *)&(__OBJECT))) = NULL_OBJECT;\
-        } while (false)
-
-//!< local FSM
-#define LFSM_BEGIN(__M)     do {
+//! \brief LFSM is designed to be used in thread (in OS) or in singal task (in RAW system);
+//! A local FSM is a function in C.
+#define LFSM_DEFINE(__M)    void __M(void *pParam)
+#define LFSM_PROTOTYPE(__M) void __M(void *pParam);
+#define LFSM_RUN(__M, __P)  __M(__P);
+    
+#define LFSM_BEGIN(__M)     do {\
     
 #define LFSM_END(__M)       __##__M##:\
                             break;\
@@ -106,16 +103,18 @@
 
 #define LFSM_CPL(__M)       goto __##__M##;
 
+//! A state is one code block in C.
 #define LFSM_STATE_BEGIN(__S)       __##__S##:\
                                     {
-    
+
+//! It reinto this state if there is no state transfer.
 #define LFSM_STATE_END(__S)         }\
                                     goto __##__S##;
 
 #define LFSM_STATE_TRANS_TO(__S)    goto __##__S##;
 
 /* LFSM example:
-void test_fun(void)
+LFSM_DEFINE(test_fsm)
 {
     LFSM_BEGIN(test_fsm)
         uint8_t c = 4;
