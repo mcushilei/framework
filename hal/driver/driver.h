@@ -23,8 +23,8 @@
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 
-#if     defined(__CPU_X86__)
-#   include ".\X86\driver.h"
+#if defined(__CPU_X86__)
+#   include ".\x86\driver.h"
 #elif   defined(__CPU_ARM__)
 #   include ".\arm\driver.h"
 #elif   defined(__CPU_TMS320__)

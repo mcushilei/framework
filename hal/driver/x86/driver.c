@@ -29,7 +29,6 @@
 /*============================ IMPLEMENTATION ================================*/
 
 
-
 /*! \note initialize driver
  *  \param none
  *  \retval true hal initialization succeeded.
@@ -37,8 +36,6 @@
  */  
 bool driver_init( void )
 {
-
-    
     return true;
 }
 
