@@ -19,15 +19,30 @@
 //! \note do not move this pre-processor statement to other places
 #include "..\app_cfg.h"
 
-#ifndef __COMMUNICATION_APP_CFG_H__
-#define __COMMUNICATION_APP_CFG_H__
+#ifndef __COMMUNICATION_FRAME_APP_CFG_H__
+#define __COMMUNICATION_FRAME_APP_CFG_H__
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
+#define FRAME_PAYLOAD_MAX_SIZE          (8u)
+
+#define FRAME_HEAD_SEGMENT_SIZE         (2u)
+#define FRAME_LENGTH_SEGMENT_SIZE       (1u)
+#define FRAME_CHECKSUM_SEGMENT_SIZE     (1u)
+
+#define FRAM_CRC8_POLLY         CRC8_POLY_CCITT
+#define FRAM_CRC16_POLLY        CRC16_POLY_CCITT
+
+#define FRAME_RCV_HEAD_BYTE_0     (0xA5)
+#define FRAME_RCV_HEAD_BYTE_1     (0x5A)
+
+#define FRAME_SND_HEAD_BYTE_0     (0xA5)
+#define FRAME_SND_HEAD_BYTE_1     (0x5A)
+
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 
-#endif  //! #ifndef __COMMUNICATION_APP_CFG_H__
+#endif  //! #ifndef __COMMUNICATION_FRAME_APP_CFG_H__
 /* EOF */

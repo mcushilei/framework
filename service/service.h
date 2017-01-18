@@ -25,7 +25,6 @@
 #include ".\string\string.h"
 #include ".\debug\debug.h"
 #include ".\checksum\checksum.h"
-#include ".\communication\communication.h"
 #include ".\queue\queue.h"
 #include ".\fifo\fifo.h"
 #include ".\pool\pool.h"

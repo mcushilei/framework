@@ -121,7 +121,6 @@ END_DEF_STRUCTURE(frame_tcp_t)
 DEBUG_DEFINE_THIS_FILE("FRAME");
 
 FRAME_QUEUE tFrameRcvQueue;
-static uint8_t chFrameRcvQueueBuf[FRAME_PAYLOAD_MAX_SIZE + 8];
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
@@ -131,9 +130,7 @@ bool frame_ini(void)
     return FRAME_QUEUE_INIT();
 }
 
-static uint8_t  s_chFrame[FRAME_PAYLOAD_MAX_SIZE];
-
-fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t **ppchDate, uint16_t *phwLength)
+fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t *pchDate, uint16_t *phwLength)
 {
     static enum {
         RCV_ENQUEUE = 0,
@@ -246,7 +243,7 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t **ppchDate, uint
                         break;
 
                     case WAIT_FOR_DATA:
-                        s_chFrame[s_WritePoint] = chByte;
+                        pchDate[s_WritePoint] = chByte;
                         s_Checksum = FRAME_CHECKSUM(chByte);
                         s_WritePoint++;
                         s_DataLength--;
@@ -284,7 +281,6 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t **ppchDate, uint
         //break;    //!< omitted intentionally.
 
         case RCV_HANDLE:
-            *ppchDate = s_chFrame;
             *phwLength = s_WritePoint;
             s_tState0 = RCV_ENQUEUE;
             return FSM_RT_CPL;
@@ -294,9 +290,6 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t **ppchDate, uint
 }
 
 extern bool frame_output_byte(uint8_t chByte);
-
-#define FRAME_SND_HEAD_BYTE_0     (0xA5)
-#define FRAME_SND_HEAD_BYTE_1     (0x5A)
 
 fsm_rt_t frame_snd_fsm(const uint8_t *pchData, uint16_t hwLength)
 {
