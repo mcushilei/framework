@@ -30,14 +30,6 @@
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#if DEBUG_FOMART_STRING == ENABLED
-    #define __DEBUG_PRINT(...)          printf(__VA_ARGS__);
-#else
-    #define __DEBUG_PRINT(string, ...)  debug_print_string(string);
-#endif
-
-#define DEBUG_PRINT(...)                __DEBUG_PRINT(__VA_ARGS__)
-
 #define DEBUG_PRINT_EOL {                            \
     DEBUG_OUTPUT_CHAR('\r');                         \
     DEBUG_OUTPUT_CHAR('\n');                         \
@@ -45,7 +37,7 @@
 
 #define DEBUG_PRINT_LOCATION(__FILE, __LINE) {       \
     DEBUG_OUTPUT_CHAR('<');                          \
-    DEBUG_PRINT(__FILE);                             \
+    debug_print_string(__FILE);                      \
     DEBUG_OUTPUT_CHAR('>');                          \
     debug_print_number_unsigned(__LINE);             \
     DEBUG_OUTPUT_CHAR(':');                          \
@@ -81,20 +73,6 @@ static volatile _CHAR s_chExitTrap = 0;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-void debug_trap(void)
-{
-    //__disable_interrupts();
-    while (!s_chExitTrap) {
-    }
-
-    s_chExitTrap = 0;
-}
-
-void debug_exit_trap(void)
-{
-    s_chExitTrap = 1;
-}
-
 int debug_string_compare(const _CHAR *expected, const _CHAR *actual)
 {
     if (expected && actual) {
@@ -113,14 +91,6 @@ int debug_string_compare(const _CHAR *expected, const _CHAR *actual)
 //-----------------------------------------------
 // Pretty Printers
 //-----------------------------------------------
-#if DEBUG_FOMART_STRING == ENABLED
-int putchar(int ch)
-{
-    DEBUG_OUTPUT_CHAR(ch);
- 
-    return ch;
-}
-#else
 void debug_print_string(const _CHAR *string)
 {
     if (string != NULL) {
@@ -129,7 +99,6 @@ void debug_print_string(const _CHAR *string)
         }
     }
 }
-#endif
 
 //-----------------------------------------------
 //! basically do an itoa using as little ram as possible
@@ -251,31 +220,29 @@ static void debug_print_mask(const _UINT mask, const _UINT number)
 //-----------------------------------------------
 void debug_print_null_point(void)
 {
-    DEBUG_PRINT(DebugStrNullPointer);
-    DEBUG_PRINT_EOL
+    debug_print_string(DebugStrNullPointer);
 }
 
 //-----------------------------------------------
 void debug_print_expected_actual_string(const _CHAR *expected, const _CHAR *actual)
 {
-    DEBUG_PRINT(DebugStrExpected);
+    debug_print_string(DebugStrExpected);
     if (expected != NULL) {
         DEBUG_OUTPUT_CHAR('\"');
-        DEBUG_PRINT(expected);
+        debug_print_string(expected);
         DEBUG_OUTPUT_CHAR('\"');
     } else {
-      DEBUG_PRINT(DebugStrNull);          
+      debug_print_string(DebugStrNull);          
     }
 
-    DEBUG_PRINT(DebugStrWas);
+    debug_print_string(DebugStrWas);
     if (actual != NULL) {
         DEBUG_OUTPUT_CHAR('\"');
-        DEBUG_PRINT(actual);
+        debug_print_string(actual);
         DEBUG_OUTPUT_CHAR('\"');
     } else {
-      DEBUG_PRINT(DebugStrNull);          
+      debug_print_string(DebugStrNull);          
     }
-    DEBUG_PRINT_EOL
 }
 
 //-----------------------------------------------
@@ -284,11 +251,10 @@ void debug_print_equal_bits(
     const _UINT expected,
     const _UINT actual)
 {
-    DEBUG_PRINT(DebugStrExpected);
+    debug_print_string(DebugStrExpected);
     debug_print_mask(mask, expected);
-    DEBUG_PRINT(DebugStrWas);
+    debug_print_string(DebugStrWas);
     debug_print_mask(mask, actual);
-    DEBUG_PRINT_EOL
 }
 
 //-----------------------------------------------
@@ -297,7 +263,7 @@ void debug_print_equal_number(
     const _SINT actual, 
     const em_DebugDisplayStyle_t style)
 {
-    DEBUG_PRINT(DebugStrExpected);
+    debug_print_string(DebugStrExpected);
     switch (style) {
         case DEBUG_DISPLAY_STYLE_INT:
             debug_print_number_signed(expected);
@@ -314,7 +280,7 @@ void debug_print_equal_number(
             break;
     }
 
-    DEBUG_PRINT(DebugStrWas);
+    debug_print_string(DebugStrWas);
     switch (style) {
         case DEBUG_DISPLAY_STYLE_INT:
             debug_print_number_signed(actual);
@@ -330,7 +296,6 @@ void debug_print_equal_number(
             debug_print_number_hex(actual, 2 * sizeof(_UINT));
             break;
     }
-    DEBUG_PRINT_EOL
 }
 
 //-----------------------------------------------
@@ -339,15 +304,25 @@ void debug_print_equal_number(
 void debug_failure_captured(const _CHAR *file, const _UINT line)
 {
     DEBUG_PRINT_EOL
-    DEBUG_PRINT(DebugStrFail);
+    debug_print_string(DebugStrFail);
     DEBUG_PRINT_LOCATION(file, line)
 }
 
 void debug_msg_output(const _CHAR *file, const _UINT line)
 {
     DEBUG_PRINT_EOL
-    DEBUG_PRINT(DebugStrMessage);
+    debug_print_string(DebugStrMessage);
     DEBUG_PRINT_LOCATION(file, line)
+}
+
+void debug_trap(void)
+{
+    while (!s_chExitTrap);
+}
+
+void debug_exit_trap(void)
+{
+    s_chExitTrap = 1;
 }
 
 #endif      /* #ifdef __DEBUG__ */

@@ -110,7 +110,7 @@ bool queue_enqueue(queue_t *QueueObj, void *Data)
         do {
             if ((Queue->Head ==  Queue->Tail)
             &&  (0 != Queue->Counter)) {
-                DEBUG_MSG(QUEUE_DEBUG, "QueueObj is full.");
+                DEBUG_MSG(QUEUE_DEBUG, debug_print_string("QueueObj is full."););
                 break;
             }
 
@@ -165,7 +165,7 @@ bool queue_dequeue(queue_t *QueueObj, void *Data)
         do {
             if ((Queue->Head ==  Queue->Tail)
             &&  (0 == Queue->Counter)) {
-                DEBUG_MSG(QUEUE_DEBUG, "QueueObj is empty.");
+                DEBUG_MSG(QUEUE_DEBUG, debug_print_string("QueueObj is empty."););
                 break;
             }
 
@@ -223,7 +223,7 @@ bool queue_peek(queue_t *QueueObj, void *Data)
         do {
             if ((Queue->Peek ==  Queue->Tail)
             &&  (0 == Queue->PeekCounter)) {
-                DEBUG_MSG(QUEUE_DEBUG, "QueueObj has been peeked all.");
+                DEBUG_MSG(QUEUE_DEBUG, debug_print_string("QueueObj has been peeked all."););
                 break;
             }
             if (NULL != Data) {
