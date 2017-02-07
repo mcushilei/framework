@@ -15,6 +15,7 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
+#ifndef __FIFO_C__
 #ifndef __FIFO_H__
 #define __FIFO_H__
 
@@ -31,16 +32,20 @@
 
 /*============================ TYPES =========================================*/
 EXTERN_CLASS(fifo8_t)
-    uint8_t *   Buffer;
-    uint32_t    Size;
-    uint32_t    Out;
-    uint32_t    In;
+    uint8_t *       Buffer;
+    __fifo_uint_t   Size;
+    __fifo_uint_t   Out;
+    __fifo_uint_t   In;
 END_EXTERN_CLASS(fifo8_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool fifo8_init  (fifo8_t *FIFOObj, uint8_t *pBuffer, uint32_t Size);
+extern bool fifo8_init  (fifo8_t *FIFOObj, uint8_t *pBuffer, __fifo_uint_t Size);
 extern bool fifo8_in    (fifo8_t *FIFOObj, const uint8_t *pBuffer);
 extern bool fifo8_out   (fifo8_t *FIFOObj, uint8_t *pBuffer);
+extern bool fifo8_in_burst  (fifo8_t *FIFOObj, const uint8_t *Buffer, __fifo_uint_t Size);
+extern bool fifo8_out_burst (fifo8_t *FIFOObj, uint8_t *Buffer, __fifo_uint_t Size);
 
 #endif
+#endif
+/* EOF */

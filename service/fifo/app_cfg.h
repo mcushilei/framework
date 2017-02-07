@@ -33,3 +33,4 @@ typedef uint32_t __fifo_uint_t;
 
 
 #endif
+/* EOF */

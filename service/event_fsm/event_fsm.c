@@ -75,19 +75,23 @@ static fn_event_state_t *event_fsm_get_current_state(event_fsm_t *EFSM)
 
 bool event_fsm_transfer_to_current(event_fsm_t *EFSM)
 {
-    EFSM->SP = EFSM->CurrentSP;
+    EFSM->SP = EFSM->CurrentSP;             //!< POP stack to current level.
+    return true;
+}
+
+//! transfer to specified state that locate in the same level(This is called in current level obviously).
+bool event_fsm_current_transfer_to(event_fsm_t *EFSM, fn_event_state_t *State)
+{
+    EFSM->Stack[EFSM->CurrentSP] = State;   //!< transfer to State.
+
     return true;
 }
 
 //! transfer to specified state that locate in the same level(This is called in current level obviously).
 bool event_fsm_transfer_to(event_fsm_t *EFSM, fn_event_state_t *State)
 {
-    if (State == NULL) {
-        return false;
-    }
-    
-    EFSM->SP = EFSM->CurrentSP;
-    EFSM->Stack[EFSM->SP] = State;
+    EFSM->SP = EFSM->CurrentSP;             //!< POP stack to current level.
+    EFSM->Stack[EFSM->CurrentSP] = State;   //!< transfer to State.
     
     return true;
 }
@@ -99,10 +103,7 @@ bool event_fsm_transfer_to_uper(event_fsm_t *EFSM, fn_event_state_t *State)
         return false;
     }
 
-    if (State == NULL) {
-        return false;
-    }
-    
+    //! PUSH stack.
     EFSM->CurrentSP++;
     EFSM->SP = EFSM->CurrentSP;
     EFSM->Stack[EFSM->SP] = State;
@@ -113,10 +114,11 @@ bool event_fsm_transfer_to_uper(event_fsm_t *EFSM, fn_event_state_t *State)
 //! transfer to specified state that locate in a lower level.
 bool event_fsm_transfer_to_lower(event_fsm_t *EFSM, fn_event_state_t *State)
 {
-    if (EFSM->CurrentSP == 0) {
+    if (EFSM->CurrentSP == 0) {     //!< avoid overflow.
         return false;
     }
     
+    //! POP stack.
     EFSM->CurrentSP--;
     EFSM->SP = EFSM->CurrentSP;
     if (State != NULL) {
@@ -127,7 +129,7 @@ bool event_fsm_transfer_to_lower(event_fsm_t *EFSM, fn_event_state_t *State)
 }
 
 
-fsm_rt_t event_fsm_dispatch_event(event_fsm_t *EFSM, void *Event)
+uint8_t event_fsm_dispatch_event(event_fsm_t *EFSM, void *Event)
 {
     fn_event_state_t *fnCurrentState;
     uint8_t chRes;
@@ -138,16 +140,19 @@ fsm_rt_t event_fsm_dispatch_event(event_fsm_t *EFSM, void *Event)
             return FSM_RT_ERR;
         }
         chRes = (*fnCurrentState)(Event);
-        if (FSM_RT_UNHANDLE == chRes) {
-            if (!event_fsm_current_level_decrease(EFSM)) {
+        switch (chRes) {
+            case FSM_RT_UNHANDLE:
+                //! Try handle this event at lower level if current state does not handle it.
+                if (!event_fsm_current_level_decrease(EFSM)) {
+                    event_fsm_reset_current(EFSM);
+                    return FSM_RT_CPL;
+                }
+                break;
+            case FSM_RT_ONGOING:
+                return FSM_RT_ONGOING;
+            default:
                 event_fsm_reset_current(EFSM);
                 return FSM_RT_CPL;
-            }
-        } else if (FSM_RT_ONGOING == chRes) {
-            return FSM_RT_ONGOING;
-        } else {
-            event_fsm_reset_current(EFSM);
-            return FSM_RT_CPL;
         }
     } while (1);
 }

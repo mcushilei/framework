@@ -33,7 +33,7 @@
 
 #define OS_DEBUG_EN               0u   /* Enable(1) debug variables                                    */
 
-#define OS_EVENT_MULTI_EN         1u   /* Include code for OSEventPendMulti()                          */
+#define OS_EVENT_MULTI_EN         0u   /* Include code for OSEventPendMulti()                          */
 #define OS_EVENT_NAME_EN          0u   /* Enable names for Sem, Mutex, Mbox and Q                      */
 
 #define OS_LOWEST_PRIO           63u   /* Defines the lowest priority that can be assigned ...         */
@@ -42,7 +42,7 @@
 #define OS_MAX_EVENTS            16u   /* Max. number of event control blocks in your application      */
 #define OS_MAX_FLAGS              0u   /* Max. number of Event Flag Groups    in your application      */
 #define OS_MAX_MEM_PART           0u   /* Max. number of memory partitions                             */
-#define OS_MAX_QS                12u   /* Max. number of queue control blocks in your application      */
+#define OS_MAX_QS                 0u   /* Max. number of queue control blocks in your application      */
 #define OS_MAX_TASKS             12u   /* Max. number of tasks in your application, MUST be >= 2       */
 
 #define OS_SCHED_LOCK_EN          1u   /* Include code for OSSchedLock() and OSSchedUnlock()           */
@@ -108,7 +108,7 @@
 
 
                                        /* ---------------------- MESSAGE QUEUES ---------------------- */
-#define OS_Q_EN                   1u   /* Enable (1) or Disable (0) code generation for QUEUES         */
+#define OS_Q_EN                   0u   /* Enable (1) or Disable (0) code generation for QUEUES         */
 #define OS_Q_ACCEPT_EN            1u   /*     Include code for OSQAccept()                             */
 #define OS_Q_DEL_EN               1u   /*     Include code for OSQDel()                                */
 #define OS_Q_FLUSH_EN             1u   /*     Include code for OSQFlush()                              */

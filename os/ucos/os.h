@@ -33,10 +33,10 @@
 #define OS_CRITICAL_EXIT(__CRITICAL)        OS_EXIT_CRITICAL(__CRITICAL)
 
 
-#define OS_MUTEX_TYPE           OS_EVENT  *
+#define OS_MUTEX_TYPE                       OS_EVENT *
 
-#define OS_MUTEX_CREAT(__MUTEX, __BINITVAL) do {\
-                if (!(__BINITVAL)) {\
+#define OS_MUTEX_CREAT(__MUTEX, __OWNER) do {\
+                if (!(__OWNER)) {\
                     (__MUTEX) = OSSemCreate(0);\
                 } else {\
                     (__MUTEX) = OSSemCreate(1);\
@@ -49,7 +49,7 @@
             } while (0)
 
 #define OS_MUTEX_WAIT(__MUTEX, __TIME, __RES)  do {\
-                OSSemPend(__MUTEX, __TIME, (uint8_t *)&__RES);\
+                OSSemPend(__MUTEX, __TIME, &(uint8_t)__RES);\
             } while (0)
 
 #define OS_MUTEX_RELEASE(__MUTEX, __RES)   do {\
@@ -57,7 +57,7 @@
             } while (0)
 
 
-#define OS_EVENT_TYPE           OS_EVENT  *
+#define OS_EVENT_TYPE                       OS_EVENT *
 
 #define OS_EVENT_INIT(__EVENT, __BMANUAL, __BINITVAL) do {\
                 if (!(__BINITVAL)) {\
@@ -77,13 +77,14 @@
             } while (0)
 
 #define OS_EVENT_RESET(__EVENT, __RES) do {\
-                OSSemSet(__EVENT, 0, (uint8_t *)&__RES);\
+                OSSemSet(__EVENT, 0, &(uint8_t)__RES);\
             } while (0)
 
 #define OS_EVENT_WAIT(__EVENT, __TIME, __RES) do {\
-                OSSemPend(__EVENT, __TIME, (uint8_t *)&__RES);\
+                OSSemPend(__EVENT, __TIME, &(uint8_t)__RES);\
             } while (0)
 
+ 
 #define OS_TIME_GET()                   OSTimeGet()
 
 /*============================ MACROFIED FUNCTIONS ===========================*/

@@ -44,12 +44,13 @@ extern bool     event_fsm_init(event_fsm_t          *EFSM,
                                event_fsm_stack_t    *Stack,
                                uint8_t              StackSize,
                                fn_event_state_t     *InitState);
-extern fsm_rt_t event_fsm_dispatch_event(event_fsm_t *EFSM, void *Event);
+extern uint8_t  event_fsm_dispatch_event(event_fsm_t *EFSM, void *Event);
 
-extern bool event_fsm_transfer_to(event_fsm_t *EFSM, fn_event_state_t *State);
 extern bool event_fsm_transfer_to_uper(event_fsm_t *EFSM, fn_event_state_t *State);
 extern bool event_fsm_transfer_to_lower(event_fsm_t *EFSM, fn_event_state_t *State);
 extern bool event_fsm_transfer_to_current(event_fsm_t *EFSM);
+extern bool event_fsm_current_transfer_to(event_fsm_t *EFSM, fn_event_state_t *State);
+extern bool event_fsm_transfer_to(event_fsm_t *EFSM, fn_event_state_t *State);
 
 
 #endif  //! #ifndef __EVENT_FSM_H__

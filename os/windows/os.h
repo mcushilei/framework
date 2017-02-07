@@ -29,27 +29,35 @@
 #include <iphlpapi.h>
 #pragma comment(lib, "Ws2_32.lib")
 
-/*============================ MACROS ========================================*/
-#define OS_CRITICAL_TYPE                CRITICAL_SECTION
-#define OS_CRITICAL_INIT(__ATOM)        InitializeCriticalSectionAndSpinCount(__ATOM, 0x00000400)
-#define OS_CRITICAL_DEINIT(__ATOM)      DeleteCriticalSection(__ATOM)
-#define OS_CRITICAL_ENTER(__ATOM)       EnterCriticalSection(__ATOM)
-#define OS_CRITICAL_EXIT(__ATOM)        LeaveCriticalSection(__ATOM)
+#include <stdint.h>
+#include <stdbool.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
-#define OS_MUTEX_TYPE                           CRITICAL_SECTION
-#define OS_MUTEX_CREAT(__MUTEX, __BINITVAL)     InitializeCriticalSectionAndSpinCount(__MUTEX, 0x00000400)
-#define OS_MUTEX_DELET(__MUTEX)                 DeleteCriticalSection(__MUTEX)
-#define OS_MUTEX_WAIT(__MUTEX, __RES)           EnterCriticalSection(__MUTEX)
-#define OS_MUTEX_RELEASE(__MUTEX, __RES)        LeaveCriticalSection(__MUTEX)
+/*============================ MACROS ========================================*/
+#define OS_CRITICAL_TYPE                        CRITICAL_SECTION
+#define OS_CRITICAL_INIT(__ATOM)                InitializeCriticalSectionAndSpinCount(__ATOM, 0x00000400)
+#define OS_CRITICAL_DEINIT(__ATOM)              DeleteCriticalSection(__ATOM)
+#define OS_CRITICAL_ENTER(__ATOM)               EnterCriticalSection(__ATOM)
+#define OS_CRITICAL_EXIT(__ATOM)                LeaveCriticalSection(__ATOM)
+
+#define OS_MUTEX_TYPE                           HANDLE
+#define OS_MUTEX_CREATE(__MUTEX, __OWNER)       __MUTEX = CreateMutex(NULL, __OWNER, NULL)
+#define OS_MUTEX_DELETE(__MUTEX)                CloseHandle(__MUTEX)
+#define OS_MUTEX_WAIT(__MUTEX, __TIME, __RES)   __RES = WaitForSingleObject(__MUTEX, __TIME)
+#define OS_MUTEX_RELEASE(__MUTEX, __RES)        __RES = ReleaseMutex(__MUTEX)
 
 #define OS_EVENT_TYPE                           HANDLE
-#define OS_EVENT_INIT(__EVENT, __BMANUAL, __BINITVAL) __EVENT = CreateEvent(NULL, __BMANUAL, __BINITVAL, NULL)
-#define OS_EVENT_DEINIT(__EVENT)                CloseHandle(__EVENT)
+#define OS_EVENT_CREATE(__EVENT, __BMANUAL, __BINITVAL)\
+                                                __EVENT = CreateEvent(NULL, __BMANUAL, __BINITVAL, NULL)
+#define OS_EVENT_DELETE(__EVENT)                CloseHandle(__EVENT)
 #define OS_EVENT_SET(__EVENT, __RES)            __RES = SetEvent(__EVENT)
 #define OS_EVENT_RESET(__EVENT, __RES)          __RES = ResetEvent(__EVENT)
 #define OS_EVENT_WAIT(__EVENT, __TIME, __RES)   __RES = WaitForSingleObject(__EVENT, __TIME)
 
-#define OS_TIME_GET()                   GetTickCount()
+#define OS_TIME_GET()                           GetTickCount()
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
