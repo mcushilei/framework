@@ -26,26 +26,26 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef void fn_softtimer_handler_t(uint8_t chTimer);
+typedef void fn_softtimer_handler_t(uint8_t Timer);
 
 DEF_STRUCTURE(softtimer_t)
-    uint32_t        wReload;
-    uint32_t        wCount;
-    uint8_t         chFlag;
-    fn_softtimer_handler_t *fnHandler;
+    uint32_t        Reload;
+    uint32_t        Count;
+    uint8_t         Flag;
+    fn_softtimer_handler_t *pHandler;
 END_DEF_STRUCTURE(softtimer_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-void softtimer_init(uint8_t     chTimer,
-                    uint32_t    wValue,
-                    uint32_t    wReload,
-                    uint8_t     chFlag,
-                    fn_softtimer_handler_t *fnHandler);
+void softtimer_init(uint8_t     Timer,
+                    uint32_t    Value,
+                    uint32_t    Reload,
+                    uint8_t     Flag,
+                    fn_softtimer_handler_t *pHandler);
 void softtimer_tick(void);
-void softtimer_start(uint8_t chTimer, uint32_t wValue);
-void softtimer_stop(uint8_t chTimer);
-bool softtimer_is_timeout(uint8_t chTimer);
+void softtimer_start(uint8_t Timer, uint32_t Value);
+void softtimer_stop(uint8_t Timer);
+bool softtimer_is_timeout(uint8_t Timer);
 
 #endif  //! #ifndef __SOFTTIMER_H__
 #endif  //! #ifndef __SOFTTIMER_C__

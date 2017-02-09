@@ -20,22 +20,7 @@
 #define __APP_TYPE_H__
 
 /*============================ INCLUDES ======================================*/
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
-#include <limits.h>
-
 /*============================ MACROS ========================================*/
-//! \name boolean value
-//! @{
-#ifndef false
-#   define false            0
-#endif
-
-#ifndef true
-#   define true             (!false)
-#endif
-
 #ifndef FALSE
 #   define FALSE            false
 #endif
@@ -43,18 +28,21 @@
 #ifndef TRUE
 #   define TRUE             true
 #endif
-//! @}
 
-#define __HZ_MACRO__
+#ifndef ENABLED
+#   define ENABLED          1
+#endif
+
+#ifndef DISABLED
+#   define DISABLED         0
+#endif
+
 #define Hz                  *1u
 #define KHz                 *1000u
 #define MHz                 *1000000u
 
 #define KB                  *1024u
 #define MB                  *1024u*1024u
-
-#define ENABLED             1
-#define DISABLED            0
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define __REG_MACRO__

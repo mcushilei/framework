@@ -22,14 +22,15 @@
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 
+
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 DEF_CLASS(fifo8_t)
     uint8_t *       Buffer;
-    __fifo_uint_t   Size;
-    __fifo_uint_t   Out;
-    __fifo_uint_t   In;
+    fifo_uint_t     Size;
+    fifo_uint_t     Out;
+    fifo_uint_t     In;
 END_DEF_CLASS(fifo8_t)
 
 /*============================ PROTOTYPES ====================================*/
@@ -37,7 +38,7 @@ END_DEF_CLASS(fifo8_t)
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
 
-bool fifo8_init(fifo8_t *FIFOObj, uint8_t *Buffer, __fifo_uint_t Size)
+bool fifo8_init(fifo8_t *FIFOObj, uint8_t *Buffer, fifo_uint_t Size)
 {
     CLASS(fifo8_t) *FIFO = (CLASS(fifo8_t) *)FIFOObj;
     
@@ -56,7 +57,7 @@ bool fifo8_init(fifo8_t *FIFOObj, uint8_t *Buffer, __fifo_uint_t Size)
 bool fifo8_in(fifo8_t *FIFOObj, const uint8_t *Buffer)
 {
     CLASS(fifo8_t) *FIFO = (CLASS(fifo8_t) *)FIFOObj;
-    __fifo_uint_t l1, l2;
+    fifo_uint_t l1, l2;
 
     if (NULL == FIFOObj || NULL == Buffer) {
         return false;
@@ -80,7 +81,7 @@ bool fifo8_in(fifo8_t *FIFOObj, const uint8_t *Buffer)
 bool fifo8_out(fifo8_t *FIFOObj, uint8_t *Buffer)
 {
     CLASS(fifo8_t) *FIFO = (CLASS(fifo8_t) *)FIFOObj;
-    __fifo_uint_t l1, l2;
+    fifo_uint_t l1, l2;
 
     if (NULL == FIFOObj) {
         return false;
@@ -103,55 +104,56 @@ bool fifo8_out(fifo8_t *FIFOObj, uint8_t *Buffer)
     return true;
 }
 
-bool fifo8_in_burst(fifo8_t *FIFOObj, const uint8_t *Buffer, __fifo_uint_t Size)
-{
-    CLASS(fifo8_t) *FIFO = (CLASS(fifo8_t) *)FIFOObj;
-    __fifo_uint_t l1, l2;
+//bool fifo8_in_burst(fifo8_t *FIFOObj, const uint8_t *Buffer, fifo_uint_t Size)
+//{
+//    CLASS(fifo8_t) *FIFO = (CLASS(fifo8_t) *)FIFOObj;
+//    fifo_uint_t l1, l2;
+//
+//    if (NULL == FIFOObj || NULL == Buffer) {
+//        return false;
+//    }
+//
+//    l1 = FIFO->Size - (FIFO->In - FIFO->Out);
+//    l2 = FIFO->Size - (FIFO->In & (FIFO->Size - 1u));
+//    if (l1 == 0u) {     //!< fifo is full.
+//        return false;
+//    }
+//
+//    l1 = MIN(Size, l1); //!< all those without data.
+//    l2 = MIN(l1, l2);   //!< those can be access at once.
+//
+//    memcpy(FIFO->Buffer + (FIFO->In & (FIFO->Size - 1u)), Buffer, l2);
+//    memcpy(FIFO->Buffer, Buffer + l2, l1 - l2);
+//    FIFO->In += l1;
+//
+//    return true;
+//}
+//
+//bool fifo8_out_burst(fifo8_t *FIFOObj, uint8_t *Buffer, fifo_uint_t Size)
+//{
+//    CLASS(fifo8_t) *FIFO = (CLASS(fifo8_t) *)FIFOObj;
+//    fifo_uint_t l1, l2;
+//
+//    if (NULL == FIFOObj) {
+//        return false;
+//    }
+//
+//    l1 = FIFO->In - FIFO->Out;
+//    l2 = FIFO->Size - (FIFO->Out & (FIFO->Size - 1u));
+//    if (l1 == 0u) {     //!< fifo is empty.
+//        return false;
+//    }
+//
+//    l1 = MIN(Size, l1); //!< all those with data.
+//    l2 = MIN(l1, l2);   //!< those can be access at once.
+//
+//    if (NULL != Buffer) {
+//        memcpy(Buffer, FIFO->Buffer + (FIFO->Out & (FIFO->Size - 1u)), l2);
+//        memcpy(Buffer + l2, FIFO->Buffer, l1 - l2);
+//    }
+//    FIFO->Out += l1;
+//
+//    return true;
+//}
 
-    if (NULL == FIFOObj || NULL == Buffer) {
-        return false;
-    }
-
-    l1 = FIFO->Size - (FIFO->In - FIFO->Out);
-    l2 = FIFO->Size - (FIFO->In & (FIFO->Size - 1u));
-    if (l1 == 0u) {     //!< fifo is full.
-        return false;
-    }
-
-    l1 = MIN(Size, l1); //!< all those without data.
-    l2 = MIN(l1, l2);   //!< those can be access at once.
-
-    memcpy(FIFO->Buffer + (FIFO->In & (FIFO->Size - 1u)), Buffer, l2);
-    memcpy(FIFO->Buffer, Buffer + l2, l1 - l2);
-    FIFO->In += l1;
-
-    return true;
-}
-
-bool fifo8_out_burst(fifo8_t *FIFOObj, uint8_t *Buffer, __fifo_uint_t Size)
-{
-    CLASS(fifo8_t) *FIFO = (CLASS(fifo8_t) *)FIFOObj;
-    __fifo_uint_t l1, l2;
-
-    if (NULL == FIFOObj) {
-        return false;
-    }
-
-    l1 = FIFO->In - FIFO->Out;
-    l2 = FIFO->Size - (FIFO->Out & (FIFO->Size - 1u));
-    if (l1 == 0u) {     //!< fifo is empty.
-        return false;
-    }
-
-    l1 = MIN(Size, l1); //!< all those with data.
-    l2 = MIN(l1, l2);   //!< those can be access at once.
-
-    if (NULL != Buffer) {
-        memcpy(Buffer, FIFO->Buffer + (FIFO->Out & (FIFO->Size - 1u)), l2);
-        memcpy(Buffer + l2, FIFO->Buffer, l1 - l2);
-    }
-    FIFO->Out += l1;
-
-    return true;
-}
 /* EOF */

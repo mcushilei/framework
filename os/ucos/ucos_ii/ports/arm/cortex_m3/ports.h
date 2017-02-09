@@ -28,11 +28,11 @@
 #define INT_PRIO_MASK               ((INT8U)1 << (8 - 5))
 
 #if OS_CRITICAL_METHOD == 3
-    #define  OS_ENTER_CRITICAL()    cpu_sr = CALL_SVC2(1, INT_PRIO_MASK)  /* 关中断 */
-    #define  OS_EXIT_CRITICAL()     CALL_SVC2(1, cpu_sr)  /* 开中断 */
+    #define  OS_ENTER_CRITICAL()    cpu_sr = CALL_SVC2(1, INT_PRIO_MASK)  //!< disable interrupt.
+    #define  OS_EXIT_CRITICAL()     CALL_SVC2(1, cpu_sr)    //!< enable interrupt.
 #else
-    #define OS_ENTER_CRITICAL()     CALL_SVC1(1)            /* 关中断 */
-    #define OS_EXIT_CRITICAL()      CALL_SVC1(2)            /* 开中断 */
+    #define OS_ENTER_CRITICAL()     CALL_SVC1(1)            //!< disable interrupt.
+    #define OS_EXIT_CRITICAL()      CALL_SVC1(2)            //!< enable interrupt.
 #endif
 
 #define	SVC_TO_USER()               CALL_SVC2(2, 1)

@@ -33,18 +33,18 @@
 /*============================ TYPES =========================================*/
 EXTERN_CLASS(fifo8_t)
     uint8_t *       Buffer;
-    __fifo_uint_t   Size;
-    __fifo_uint_t   Out;
-    __fifo_uint_t   In;
+    fifo_uint_t     Size;
+    fifo_uint_t     Out;
+    fifo_uint_t     In;
 END_EXTERN_CLASS(fifo8_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool fifo8_init  (fifo8_t *FIFOObj, uint8_t *pBuffer, __fifo_uint_t Size);
-extern bool fifo8_in    (fifo8_t *FIFOObj, const uint8_t *pBuffer);
-extern bool fifo8_out   (fifo8_t *FIFOObj, uint8_t *pBuffer);
-extern bool fifo8_in_burst  (fifo8_t *FIFOObj, const uint8_t *Buffer, __fifo_uint_t Size);
-extern bool fifo8_out_burst (fifo8_t *FIFOObj, uint8_t *Buffer, __fifo_uint_t Size);
+extern bool fifo8_init      (fifo8_t *FIFOObj, uint8_t *pBuffer, fifo_uint_t Size);
+extern bool fifo8_in        (fifo8_t *FIFOObj, const uint8_t *pBuffer);
+extern bool fifo8_out       (fifo8_t *FIFOObj, uint8_t *pBuffer);
+//extern bool fifo8_in_burst  (fifo8_t *FIFOObj, const uint8_t *Buffer, fifo_uint_t Size);
+//extern bool fifo8_out_burst (fifo8_t *FIFOObj, uint8_t *Buffer, fifo_uint_t Size);
 
 #endif
 #endif

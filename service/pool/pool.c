@@ -26,27 +26,24 @@
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 DEF_STRUCTURE(pool_block_t)
-    pool_block_t *      Next;
+    pool_block_t *  Next;
 END_DEF_STRUCTURE(pool_block_t)
 
 DEF_CLASS(pool_t)
-    void *              FreeList;
-    __pool_uint_t       Size;           //!< block size in byte.
-    __pool_uint_t       Level;          //!< amount of block allocable
-    __pool_uint_t       LevelMin;       //!< amount of block allocable
-#ifdef __POOL_MUTEX_TYPE
-    __POOL_MUTEX_TYPE   Mutex;
-#endif
+    pool_block_t *  FreeList;
+    pool_uint_t     Size;           //!< block size in byte.
+    pool_uint_t     Level;          //!< amount of block allocable
+    pool_uint_t     LevelMin;       //!< amount of block allocable
 END_DEF_CLASS(pool_t)
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-bool pool_init(pool_t *PoolObj, void *PoolMem, __pool_uint_t PoolSize, __pool_uint_t BlockSize)
+bool pool_init(pool_t *PoolObj, void *PoolMem, pool_uint_t PoolSize, pool_uint_t BlockSize)
 {    
     CLASS(pool_t) *Pool = (CLASS(pool_t) *)PoolObj;
-    void **ppBlockRef;
+    pool_block_t **ppBlockRef;
 
     if ((NULL == PoolObj) || (NULL == PoolMem) || (0 == PoolSize) || (sizeof(void *) > BlockSize)) {
         return false;
@@ -130,7 +127,7 @@ void *pool_new(pool_t *PoolObj)
     return Block;     
 }    
 
-__pool_uint_t pool_get_level(pool_t *PoolObj)
+pool_uint_t pool_get_level(pool_t *PoolObj)
 {
     CLASS(pool_t) *Pool = (CLASS(pool_t) *)PoolObj;
 
@@ -141,7 +138,7 @@ __pool_uint_t pool_get_level(pool_t *PoolObj)
     return Pool->Level;
 }
 
-__pool_uint_t pool_get_min_level(pool_t *PoolObj)
+pool_uint_t pool_get_min_level(pool_t *PoolObj)
 {
     CLASS(pool_t) *Pool = (CLASS(pool_t) *)PoolObj;
 
@@ -151,19 +148,6 @@ __pool_uint_t pool_get_min_level(pool_t *PoolObj)
 
     return Pool->LevelMin;
 }
-
-#ifdef __POOL_MUTEX_TYPE
-__POOL_MUTEX_TYPE *pool_get_mutex(pool_t *PoolObj)
-{    
-    CLASS(pool_t) *Pool = (CLASS(pool_t) *)PoolObj;
-
-    if (NULL == PoolObj)  {
-        return NULL;   
-    }
-
-    return &(Pool->Mutex);
-}
-#endif
 
 
 /* EOF */

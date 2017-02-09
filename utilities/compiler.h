@@ -33,6 +33,11 @@
     #error "No specified CPU type!"
 #endif
 
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+#include <limits.h>
+
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/

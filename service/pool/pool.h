@@ -46,29 +46,26 @@
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
+DEF_STRUCTURE(pool_block_t)
+    pool_block_t *      Next;
+END_DEF_STRUCTURE(pool_block_t)
+
 EXTERN_CLASS(pool_t)
-    void *              FreeList;
-    __pool_uint_t       Size;           //!< block size in byte.
-    __pool_uint_t       Level;          //!< amount of block allocable
-    __pool_uint_t       LevelMin;       //!< amount of block allocable
-#ifdef __POOL_MUTEX_TYPE
-    __POOL_MUTEX_TYPE   Mutex;
-#endif
+    pool_block_t *  FreeList;
+    pool_uint_t     Size;           //!< block size in byte.
+    pool_uint_t     Level;          //!< amount of block allocable
+    pool_uint_t     LevelMin;       //!< amount of block allocable
 END_EXTERN_CLASS(pool_t)
 
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool             pool_init       (pool_t *PoolObj, void *PoolMem, __pool_uint_t PoolSize, __pool_uint_t BlockSize);
-extern bool             pool_deinit     (pool_t *PoolObj);
-extern void *           pool_new        (pool_t *PoolObj);
-extern bool             pool_free       (pool_t *PoolObj, void *Block);
-extern __pool_uint_t    pool_get_level  (pool_t *PoolObj);
-extern __pool_uint_t    pool_get_min_level(pool_t *PoolObj);
-
-#ifdef __POOL_MUTEX_TYPE
-extern __POOL_MUTEX_TYPE *pool_get_mutex(pool_t *PoolObj);
-#endif
+extern bool         pool_init       (pool_t *PoolObj, void *PoolMem, pool_uint_t PoolSize, pool_uint_t BlockSize);
+extern bool         pool_deinit     (pool_t *PoolObj);
+extern void *       pool_new        (pool_t *PoolObj);
+extern bool         pool_free       (pool_t *PoolObj, void *Block);
+extern pool_uint_t  pool_get_level  (pool_t *PoolObj);
+extern pool_uint_t  pool_get_min_level(pool_t *PoolObj);
 
 #endif
 /* EOF */

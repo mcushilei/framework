@@ -30,12 +30,12 @@ DEF_STRUCTURE(softtimer_t)
     uint32_t        Count;
     uint32_t        Reload;
     uint8_t         Flag;
-    fn_softtimer_handler_t *Handler;
+    fn_softtimer_handler_t *pHandler;
 END_DEF_STRUCTURE(softtimer_t)
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
-static softtimer_t  stSofttimers[SOFTTIMER_MAX_TIMERS];
+static softtimer_t  softTimers[SOFTTIMER_MAX_TIMERS];
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
@@ -43,14 +43,14 @@ void softtimer_init(uint8_t     Timer,
                     uint32_t    Value,
                     uint32_t    Reload,
                     uint8_t     Flag,
-                    fn_softtimer_handler_t *Handler)
+                    fn_softtimer_handler_t *pHandler)
 {
     if (Timer < SOFTTIMER_MAX_TIMERS) {
     SAFE_ATOM_CODE(
-        stSofttimers[Timer].Count  = Value;
-        stSofttimers[Timer].Reload = Reload;
-        stSofttimers[Timer].Flag  = 0;
-        stSofttimers[Timer].Handler = Handler;
+        softTimers[Timer].Count  = Value;
+        softTimers[Timer].Reload = Reload;
+        softTimers[Timer].Flag   = 0;
+        softTimers[Timer].pHandler = pHandler;
     )
     }
 }
@@ -59,13 +59,13 @@ void softtimer_tick(void)
 {
     uint_fast8_t n;
 
-    for (n = 0; n < UBOUND(stSofttimers); n++) {
-        if (stSofttimers[n].Count) {
-            stSofttimers[n].Count--;
-            if (stSofttimers[n].Count == 0) {
-                stSofttimers[n].Flag = 1;
-                if (stSofttimers[n].Handler != NULL) {
-                    stSofttimers[n].Handler(n);
+    for (n = 0; n < UBOUND(softTimers); n++) {
+        if (softTimers[n].Count) {
+            softTimers[n].Count--;
+            if (softTimers[n].Count == 0) {
+                softTimers[n].Flag = 1;
+                if (softTimers[n].pHandler != NULL) {
+                    softTimers[n].pHandler(n);
                 }
             }
         }
@@ -76,8 +76,8 @@ void softtimer_start(uint8_t Timer, uint32_t Value)
 {
     if (Timer < SOFTTIMER_MAX_TIMERS) {
     SAFE_ATOM_CODE(
-        stSofttimers[Timer].Count = Value;
-        stSofttimers[Timer].Flag = 0;
+        softTimers[Timer].Count = Value;
+        softTimers[Timer].Flag = 0;
     )
     }
 }
@@ -86,7 +86,7 @@ void softtimer_stop(uint8_t Timer)
 {
     if (Timer < SOFTTIMER_MAX_TIMERS) {
     SAFE_ATOM_CODE(
-        stSofttimers[Timer].Count = 0;
+        softTimers[Timer].Count = 0;
     )
     }
 }
@@ -94,9 +94,9 @@ void softtimer_stop(uint8_t Timer)
 bool softtimer_is_timeout(uint8_t Timer)
 {
     if (Timer < SOFTTIMER_MAX_TIMERS) {
-        if (stSofttimers[Timer].Flag) {
+        if (softTimers[Timer].Flag) {
             SAFE_ATOM_CODE(
-                stSofttimers[Timer].Flag = 0;
+                softTimers[Timer].Flag = 0;
             )
             return true;
         }

@@ -1,24 +1,3 @@
-/*
-*********************************************************************************************************
-*                                               uC/OS-II
-*                                         The Real-Time Kernel
-*
-*
-*                                (c) Copyright 2006, Micrium, Weston, FL
-*                                          All Rights Reserved
-*
-*                                           ARM Cortex-M3 Port
-*
-* File      : OS_CPU_C.C
-* Version   : V2.86
-* By        : Jean J. Labrosse
-*             Brian Nagel
-*
-* For       : ARMv7M Cortex-M3
-* Mode      : Thumb2
-* Toolchain : IAR EWARM
-*********************************************************************************************************
-*/
 
 #include ".\app_cfg.h"
 
@@ -321,8 +300,7 @@ static INT32U SVC2_Process(INT32U R0, INT32U R1, INT32U R2, INT32U R3);
 
 typedef INT32U fnSVCHandle_t(INT32U, INT32U, INT32U, INT32U);
 
-static const fnSVCHandle_t *SVC_ProcessFunArray[] = 
-{
+static const fnSVCHandle_t *SVC_ProcessFunArray[] = {
     SVC0_Process, SVC1_Process, SVC2_Process,
 };
 

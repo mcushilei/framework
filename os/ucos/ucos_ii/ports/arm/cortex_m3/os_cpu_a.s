@@ -1,19 +1,5 @@
 ;********************************************************************************************************
-;                                               uC/OS-II
-;                                         The Real-Time Kernel
-;
-;                               (c) Copyright 1992-2006, Micrium, Weston, FL
-;                                          All Rights Reserved
-;
-;                                           ARM Cortex-M3 Port
-;
-; File      : OS_CPU_A.ASM
-; Version   : V2.86
-; By        : Jean J. Labrosse
-;             Brian Nagel
-;
 ; For       : ARMv7M Cortex-M3
-; Mode      : Thumb2
 ; Toolchain : IAR EWARM
 ;********************************************************************************************************
 
@@ -21,7 +7,7 @@
 ;                                           PUBLIC FUNCTIONS
 ;********************************************************************************************************
 
-    EXTERN  OSRunning                               ; External references
+    EXTERN  OSRunning
     EXTERN  OSPrioCur
     EXTERN  OSPrioHighRdy
     EXTERN  OSTCBCur
@@ -34,17 +20,17 @@
 
     PUBLIC  CALL_SVC1
     PUBLIC  CALL_SVC2
-    PUBLIC  TASK_SW
+    PUBLIC  SVC_Handler
+    PUBLIC  DISABLE_ALL_INT
     PUBLIC  ENTER_CRITICAL
     PUBLIC  EXIT_CRITICAL
     PUBLIC  SET_INTERRUPT_MASK
     PUBLIC  CHANGE_CPU_PRIVILEGE
-    PUBLIC  SVC_Handler
+    PUBLIC  TASK_SW
     PUBLIC  PendSV_Handler
     PUBLIC  OSStartHighRdy
     PUBLIC  OSCtxSw
     PUBLIC  OSIntCtxSw
-    PUBLIC  DISABLE_ALL_INT
 
 ;********************************************************************************************************
 ;                                                EQUATES
@@ -94,30 +80,30 @@ CALL_SVC2
     BX      LR
 
 ;********************************************************************************************************
-;  SVC_Handler
+; SVC_Handler
+; Note(s) : 1) This is paper wrapping.
+;              All process will be done in SVC_Process.
 ;********************************************************************************************************
 
 SVC_Handler
-    ;判断SVC中断前使用的哪个堆栈
+    ;判断SVC中断前使用的哪个堆栈,并将堆栈指针保存到R0（作为SVC_Process的参数）
     TST     LR, #0x04                               ;按位与，并更新Z标志
     ITE     EQ
     MRSEQ   R0, MSP
     MRSNE   R0, PSP
     PUSH    {LR}
-    BL      SVC_Process    
+    BL      SVC_Process
     POP     {PC}
 
-;********************************************************************************************************
-;                                              触发任务调度
-;                                           void TASK_SW(void)
-;********************************************************************************************************
 
-TASK_SW	    	    	    	    	            
-	LDR     R0, =NVIC_INT_CTRL                      ; Trigger the PendSV exception (causes context switch)
-    LDR     R1, =NVIC_PENDSVSET
-    STR     R1, [R0]
-    BX      LR
 
+
+
+DISABLE_ALL_INT
+    LDR 	R1, =INT_PRIO_MASK                               
+    MSR 	BASEPRI, R1
+	BX      LR
+    	
 ;********************************************************************************************************
 ;                                              进入临界区
 ;                                         void ENTER_CRITICAL(void)
@@ -177,7 +163,24 @@ CHANGE_CPU_PRIVILEGE
     IT      LS
     MSRLS 	CONTROL, R0
     BX      LR
-    
+
+
+
+
+
+
+
+;********************************************************************************************************
+;                                              触发任务调度
+;                                           void TASK_SW(void)
+;********************************************************************************************************
+
+TASK_SW	    	    	    	    	            
+	LDR     R0, =NVIC_INT_CTRL                      ; Trigger the PendSV exception (causes context switch)
+    LDR     R1, =NVIC_PENDSVSET
+    STR     R1, [R0]
+    BX      LR
+
 ;********************************************************************************************************
 ;                                          START MULTITASKING
 ;                                       void OSStartHighRdy(void)
@@ -348,12 +351,6 @@ OS_CPU_PendSVHandler_nosave
 
 
 
-
-DISABLE_ALL_INT
-    LDR 	R1, =INT_PRIO_MASK                               
-    MSR 	BASEPRI, R1
-	BX      LR
-    	
     
     END
 

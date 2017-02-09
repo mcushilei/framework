@@ -35,7 +35,7 @@
 
 #define OS_MUTEX_TYPE                       OS_EVENT *
 
-#define OS_MUTEX_CREAT(__MUTEX, __OWNER) do {\
+#define OS_MUTEX_CREATE(__MUTEX, __OWNER) do {\
                 if (!(__OWNER)) {\
                     (__MUTEX) = OSSemCreate(0);\
                 } else {\
@@ -43,7 +43,7 @@
                 }\
             } while (0)
 
-#define OS_MUTEX_DELET(__MUTEX) do {\
+#define OS_MUTEX_DELETE(__MUTEX) do {\
                 uint8_t chOSError;\
                 OSSemDel(__MUTEX, OS_DEL_ALWAYS, &chOSError);\
             } while (0)
@@ -57,31 +57,44 @@
             } while (0)
 
 
-#define OS_EVENT_TYPE                       OS_EVENT *
+#define OS_EVENT_TYPE                       OS_FLAG_GRP *
 
-#define OS_EVENT_INIT(__EVENT, __BMANUAL, __BINITVAL) do {\
-                if (!(__BINITVAL)) {\
-                    (__EVENT) = OSSemCreate(0);\
+#define OS_EVENT_CREATE(__EVENT, __BMANUAL, __BINITVAL) do {\
+                uint8_t chOSError;\
+                OS_FLAGS flags = 0;\
+                if (__BMANUAL) {\
+                    flags = 0x80u;\
                 } else {\
-                    (__EVENT) = OSSemCreate(1);\
+                    flags = 0u;\
+                }\
+                if (__BINITVAL) {\
+                    (__EVENT) = OSFlagCreate(flags | 0x01u, &chOSError);\
+                } else {\
+                    (__EVENT) = OSFlagCreate(flags, &chOSError);\
                 }\
             } while (0)
 
-#define OS_EVENT_DEINIT(__EVENT)    do {\
+#define OS_EVENT_DELETE(__EVENT)    do {\
                 uint8_t chOSError;\
-                OSSemDel(__EVENT, OS_DEL_ALWAYS, &chOSError);\
+                OSFlagDel(__EVENT, OS_DEL_ALWAYS, &chOSError);\
             } while (0)
 
 #define OS_EVENT_SET(__EVENT, __RES)   do {\
-                __RES = OSSemPost(__EVENT);\
+                OSFlagPost(__EVENT, 0x01u, OS_FLAG_SET, &(uint8_t)__RES);\
             } while (0)
 
 #define OS_EVENT_RESET(__EVENT, __RES) do {\
-                OSSemSet(__EVENT, 0, &(uint8_t)__RES);\
+                OSFlagPost(__EVENT, 0x01u, OS_FLAG_CLR, &(uint8_t)__RES);\
             } while (0)
 
 #define OS_EVENT_WAIT(__EVENT, __TIME, __RES) do {\
-                OSSemPend(__EVENT, __TIME, &(uint8_t)__RES);\
+                uint8_t chOSError;\
+                OS_FLAGS flags = 0;\
+                OSFlagPend(__EVENT, 0x01u, OS_FLAG_WAIT_SET_ANY, __TIME, &(uint8_t)__RES);\
+                flags = OSFlagAccept(__EVENT, 0x80u, OS_FLAG_WAIT_SET_ANY, __TIME, &(uint8_t)__RES);\
+                if (flags & 0x80u) {\
+                    OSFlagPost(__EVENT, 0x01u, OS_FLAG_CLR, &chOSError);\
+                }\
             } while (0)
 
  
