@@ -137,7 +137,6 @@ __Vectors_Size 	EQU 	__Vectors_End - __Vectors
 
 ; Reset Handler
 Reset_Handler   
-        CPSID   i                       ; mask interrupts
         ;LDR     R0, = NVIC_VECTTBL
         ;LDR     R1, = __vector_table
         ;STR     R1, [R0]
