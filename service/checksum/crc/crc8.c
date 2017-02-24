@@ -44,8 +44,8 @@ return r;
 */
 
 /*! \brief CRC8
+ *! \param hwPoly       CRC polynomial
  *! \param pchCRCValue  CRC init value
- *! \param chData       target byte
  *! \return CRC8 result
  */
 uint8_t crc8_calculator(uint8_t chPoly, uint8_t chCRCValue, uint8_t chData)
@@ -80,7 +80,7 @@ void crc8_table_generator(uint8_t chPoly, uint8_t *pchTable)
  *! \param pchTable     CRC table
  *! \return CRC8 result
  */
-uint8_t crc8_check(uint8_t chCRCValue, uint8_t chData, const uint8_t *pchTable)
+uint8_t crc8_check(const uint8_t *pchTable, uint8_t chCRCValue, uint8_t chData)
 {
     chCRCValue = pchTable[chCRCValue ^ chData];
 

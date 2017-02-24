@@ -27,8 +27,8 @@
 /*============================ PROTOTYPES ====================================*/
 /*============================ IMPLEMENTATION ================================*/
 /*! \brief calculate CRC32
- *! \param pchCRCValue  CRC init value
- *! \param chData       target byte
+ *! \param hwPoly       CRC polynomial
+ *! \param pchCRCValue  CRC initialize value
  *! \return CRC32 result
  */
 uint32_t crc32_calculator(uint32_t wPoly, uint32_t wCRCValue, uint8_t chData)
@@ -58,12 +58,12 @@ void crc32_table_generator(uint32_t wPoly, uint32_t *pwTable)
 }
 
 /*! \brief calculate CRC32 checksum by looking up table
- *! \param wCRCValue    CRC Variable
+ *! \param wCRCValue    CRC initialize value
  *! \param chData       target byte
  *! \param pwTable      CRC table
  *! \return CRC32 result
  */
-uint32_t crc32_check(uint32_t wCRCValue, uint8_t chData, const uint32_t *pwTable)
+uint32_t crc32_check(const uint32_t *pwTable, uint32_t wCRCValue, uint8_t chData)
 {
     wCRCValue = (wCRCValue << 8) ^ pwTable[(wCRCValue >> 24) ^ chData];
         

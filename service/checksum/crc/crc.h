@@ -36,15 +36,15 @@
 /*============================ PROTOTYPES ====================================*/
 extern uint8_t  crc7_calculator(uint8_t chPoly, uint8_t chCRCValue, uint8_t chData);
 extern void     crc7_table_generator(uint8_t chPoly, uint8_t *pchTable);
-extern uint8_t  crc7_check(uint8_t chCRCValue, uint8_t chData, const uint8_t *pchTable);
+extern uint8_t  crc7_check(const uint8_t *pchTable, uint8_t chCRCValue, uint8_t chData);
 extern uint8_t  crc8_calculator(uint8_t chPoly, uint8_t chCRCValue, uint8_t chData);
 extern void     crc8_table_generator(uint8_t chPoly, uint8_t *pchTable);
-extern uint8_t  crc8_check(uint8_t chCRCValue, uint8_t chData, const uint8_t *pchTable);
+extern uint8_t  crc8_check(const uint8_t *pchTable, uint8_t chCRCValue, uint8_t chData);
 extern uint16_t crc16_calculator(uint16_t hwPoly, uint16_t hwCRCValue, uint8_t chData);
 extern void     crc16_table_generator(uint16_t hwPoly, uint16_t *phwTable);
-extern uint16_t crc16_check(uint16_t hwCRCValue, uint8_t chData, const uint16_t *phwTable);
+extern uint16_t crc16_check(const uint16_t *phwTable, uint16_t hwCRCValue, uint8_t chData);
 extern uint32_t crc32_calculator(uint32_t wPoly, uint32_t wCRCValue, uint8_t chData);
 extern void     crc32_table_generator(uint32_t wPoly, uint32_t *pwTable);
-extern uint32_t crc32_check(uint32_t wCRCValue, uint8_t chData, const uint32_t *pwTable);
+extern uint32_t crc32_check(const uint32_t *pwTable, uint32_t wCRCValue, uint8_t chData);
 
 #endif

@@ -15,59 +15,39 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
+#ifndef  __KERNEL_CORTEX_M3_PORTS_H__
+#define  __KERNEL_CORTEX_M3_PORTS_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
+#include ".\os_cpu_cfg.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
+#define INT_PRIO_MASK               (1u << 3)
+
+#if OS_CRITICAL_METHOD == 3
+    #define  OS_ENTER_CRITICAL()    cpu_sr = CALL_SVC2(1, INT_PRIO_MASK)  //!< disable interrupt.
+    #define  OS_EXIT_CRITICAL()     CALL_SVC2(1, cpu_sr)    //!< enable interrupt.
+#else
+    #define OS_ENTER_CRITICAL()     CALL_SVC1(1)            //!< disable interrupt.
+    #define OS_EXIT_CRITICAL()      CALL_SVC1(2)            //!< enable interrupt.
+#endif
+
+#define	SVC_TO_USER()               CALL_SVC2(2, 1)
+#define	SVC_TO_PRIVILEGE()          CALL_SVC2(2, 0)
+#define	SVC_DO_NOTHING()            CALL_SVC3()             /* 触发一次SVC中断，但什么都没做*/
+
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
-/*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
-/*============================ IMPLEMENTATION ================================*/
-/*! \brief CRC7
- *! \param hwPoly       CRC polynomial
- *! \param pchCRCValue  CRC init value
- *! \param chData       target byte
- *! \return CRC7 result, MSB 7 bits are valid.
- */
-uint8_t crc7_calculator(uint8_t chPoly, uint8_t chCRCValue, uint8_t chData)
-{
-    uint_fast8_t i;
 
-    chCRCValue ^= chData;
-    for (i = 8; i; i--) {
-        if (chCRCValue & 0x80) {
-            chCRCValue <<= 1;
-            chCRCValue ^= chPoly << 1;
-        } else {
-            chCRCValue <<= 1;
-        }
-    }
+extern void DISABLE_ALL_INT(void);
+extern INT32U CALL_SVC1(INT32U x);
+extern INT32U CALL_SVC2(INT32U x, INT32U y);
+extern INT32U CALL_SVC3(void);
 
-    return chCRCValue;
-}
 
-void crc7_table_generator(uint8_t chPoly, uint8_t *pchTable)
-{
-    uint_fast16_t i;
 
-    for (i = 0; i < 256; i++) {
-        pchTable[i] = crc7_calculator(chPoly, 0, i);
-    }
-}
 
-/*! \brief crc7
- *! \param phwCRCValue  CRC Variable
- *! \param chData       target byte
- *! \param pchTable     CRC table
- *! \return CRC7 result
- */
-uint8_t crc7_check(const uint8_t *pchTable, uint8_t chCRCValue, uint8_t chData)
-{
-    chCRCValue = pchTable[chCRCValue ^ chData];
-
-    return chCRCValue;
-}
-
+#endif

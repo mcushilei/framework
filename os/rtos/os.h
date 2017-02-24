@@ -16,58 +16,71 @@
 *******************************************************************************/
 
 
+#ifndef __KERNEL_OS_H__
+#define __KERNEL_OS_H__
+
 /*============================ INCLUDES ======================================*/
-#include ".\app_cfg.h"
+#include ".\source\os.h"
 
 /*============================ MACROS ========================================*/
+#define INFINITE                            (0ul)
+
+
+#define OS_CRITICAL_TYPE                    uint8_t
+#define OS_CRITICAL_INIT(__CRITICAL)        
+#define OS_CRITICAL_DEINIT(__CRITICAL)      
+#define OS_CRITICAL_ENTER(__CRITICAL)       OS_ENTER_CRITICAL(__CRITICAL)
+#define OS_CRITICAL_EXIT(__CRITICAL)        OS_EXIT_CRITICAL(__CRITICAL)
+
+
+#define OS_MUTEX_TYPE                       OS_HANDLE
+
+#define OS_MUTEX_CREATE(__MUTEX, __OWNER) do {\
+                osMutexCreate(&__MUTEX);\
+            } while (0)
+
+#define OS_MUTEX_DELETE(__MUTEX) do {\
+                osMutexDelete(__MUTEX, OS_DEL_ALWAYS);\
+            } while (0)
+
+#define OS_MUTEX_WAIT(__MUTEX, __TIME, __RES)  do {\
+                osMutexPend(__MUTEX, __TIME);\
+            } while (0)
+
+#define OS_MUTEX_RELEASE(__MUTEX)   do {\
+                osMutexPost(__MUTEX);\
+            } while (0)
+
+
+#define OS_FLAG_TYPE                        OS_HANDLE
+
+#define OS_FLAG_CREATE(__EVENT, __BMANUAL, __BINITVAL) do {\
+                osFlagCreate(&__EVENT, __BINITVAL, __BMANUAL);\
+            } while (0)
+
+#define OS_FLAG_DELETE(__EVENT)    do {\
+                osFlagDelete(__EVENT, OS_DEL_ALWAYS);\
+            } while (0)
+
+#define OS_FLAG_SET(__EVENT)   do {\
+                osFlagSet(__EVENT);\
+            } while (0)
+
+#define OS_FLAG_RESET(__EVENT) do {\
+                osFlagReset(__EVENT);\
+            } while (0)
+
+#define OS_FLAG_WAIT(__EVENT, __TIME, __RES) do {\
+                __RES = osFlagPend(__EVENT, __TIME);\
+            } while (0)
+
+ 
+#define OS_TIME_GET()                   OSTimeGet()
+
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
-/*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
-/*============================ IMPLEMENTATION ================================*/
-/*! \brief CRC7
- *! \param hwPoly       CRC polynomial
- *! \param pchCRCValue  CRC init value
- *! \param chData       target byte
- *! \return CRC7 result, MSB 7 bits are valid.
- */
-uint8_t crc7_calculator(uint8_t chPoly, uint8_t chCRCValue, uint8_t chData)
-{
-    uint_fast8_t i;
 
-    chCRCValue ^= chData;
-    for (i = 8; i; i--) {
-        if (chCRCValue & 0x80) {
-            chCRCValue <<= 1;
-            chCRCValue ^= chPoly << 1;
-        } else {
-            chCRCValue <<= 1;
-        }
-    }
-
-    return chCRCValue;
-}
-
-void crc7_table_generator(uint8_t chPoly, uint8_t *pchTable)
-{
-    uint_fast16_t i;
-
-    for (i = 0; i < 256; i++) {
-        pchTable[i] = crc7_calculator(chPoly, 0, i);
-    }
-}
-
-/*! \brief crc7
- *! \param phwCRCValue  CRC Variable
- *! \param chData       target byte
- *! \param pchTable     CRC table
- *! \return CRC7 result
- */
-uint8_t crc7_check(const uint8_t *pchTable, uint8_t chCRCValue, uint8_t chData)
-{
-    chCRCValue = pchTable[chCRCValue ^ chData];
-
-    return chCRCValue;
-}
-
+#endif
+/* EOF */

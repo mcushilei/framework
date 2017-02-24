@@ -27,6 +27,7 @@
 /*============================ PROTOTYPES ====================================*/
 /*============================ IMPLEMENTATION ================================*/
 /*! \brief calculate CRC16
+ *! \param hwPoly       CRC polynomial
  *! \param pchCRCValue  CRC init value
  *! \param chData       target byte
  *! \return CRC16 result
@@ -63,7 +64,7 @@ void crc16_table_generator(uint16_t hwPoly, uint16_t *phwTable)
  *! \param phwTable     CRC table
  *! \return CRC16 result
  */
-uint16_t crc16_check(uint16_t hwCRCValue, uint8_t chData, const uint16_t *phwTable)
+uint16_t crc16_check(const uint16_t *phwTable, uint16_t hwCRCValue, uint8_t chData)
 {
     hwCRCValue = (hwCRCValue << 8) ^ phwTable[(hwCRCValue >> 8) ^ chData];
 
