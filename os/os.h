@@ -22,8 +22,8 @@
 /*============================ INCLUDES ======================================*/
 #if     defined(__OS_WINDOWS__)
     #include ".\windows\os.h"
-#elif   defined(__OS_UCOS__)
-    #include ".\ucos\os.h"
+#elif   defined(__OS_RTOS__)
+    #include ".\rtos\os.h"
 #endif
 
 /*============================ MACROS ========================================*/
