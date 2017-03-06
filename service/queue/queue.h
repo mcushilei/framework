@@ -15,7 +15,7 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-
+#ifndef __QUEUE_C__
 #ifndef __QUEUE_H__
 #define __QUEUE_H__
 
@@ -46,31 +46,27 @@
 
 /*============================ TYPES =========================================*/
 EXTERN_CLASS(queue_t)
-    void *              Buffer;
-    __queue_uint_t      DataSize;
-    __queue_uint_t      Size;
+    void *              pBuffer;
+    __queue_uint_t      bufferSize;
+    __queue_uint_t      itemSize;
     __queue_uint_t      Head;
     __queue_uint_t      Tail;
     __queue_uint_t      Counter;
     __queue_uint_t      Peek;
     __queue_uint_t      PeekCounter;
-#ifdef __QUEUE_MUTEX_TYPE
-    __QUEUE_MUTEX_TYPE  Mutex;
-#endif
 END_EXTERN_CLASS(queue_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool queue_init(queue_t *QueueObj, void *Buffer, __queue_uint_t Size, __queue_uint_t DataSize);
-extern bool queue_deinit(queue_t *QueueObj);
-extern bool queue_enqueue(queue_t *QueueObj, void *Data);
-extern bool queue_dequeue(queue_t *QueueObj, void *Data);
-extern bool queue_peek(queue_t *QueueObj, void *Data);
-extern void queue_get_all_peeked(queue_t *QueueObj);
-extern void queue_reset_peek(queue_t *QueueObj);
-extern __queue_uint_t queue_get_object_count(queue_t *QueueObj);
-#ifdef __QUEUE_MUTEX_TYPE
-extern __QUEUE_MUTEX_TYPE *queue_get_mutex(queue_t *QueueObj);
-#endif
+extern bool queue_init      (void *queueObj, void *pBuffer, __queue_uint_t bufferSize, __queue_uint_t itemSize);
+extern bool queue_deinit    (void *queueObj);
+extern bool queue_enqueue   (void *queueObj, void *pData);
+extern bool queue_dequeue   (void *queueObj, void *pData);
+extern bool queue_peek      (void *queueObj, void *pData);
+extern void queue_get_all_peeked(void *queueObj);
+extern void queue_reset_peek(void *queueObj);
+extern __queue_uint_t queue_get_object_count(void *queueObj);
 
 #endif
+#endif
+/* EOF */

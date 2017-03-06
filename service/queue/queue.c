@@ -22,87 +22,75 @@
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\string\string.h"
-#include "..\debug\debug.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 DEF_CLASS(queue_t)
-    void *              Buffer;
-    __queue_uint_t      DataSize;
-    __queue_uint_t      Size;
+    void *              pBuffer;
+    __queue_uint_t      bufferSize;
+    __queue_uint_t      itemSize;
     __queue_uint_t      Head;
     __queue_uint_t      Tail;
     __queue_uint_t      Counter;
     __queue_uint_t      Peek;
     __queue_uint_t      PeekCounter;
-#ifdef __QUEUE_MUTEX_TYPE
-    __QUEUE_MUTEX_TYPE  Mutex;
-#endif
 END_DEF_CLASS(queue_t)
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
-DEBUG_DEFINE_THIS_FILE("QUEUE");
-
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-bool queue_init(queue_t *QueueObj, void *Buffer, __queue_uint_t Size, __queue_uint_t DataSize)
+bool queue_init(void *queueObj, void *pBuffer, __queue_uint_t bufferSize, __queue_uint_t itemSize)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)QueueObj;
+    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
     
-    DEBUG_ASSERT_NOT_NULL(QueueObj);
-    DEBUG_ASSERT_NOT_NULL(Buffer);
-    DEBUG_ASSERT(Size != 0);
-    if (NULL == QueueObj || NULL == Buffer || 0 == Size) {
+    if (NULL == Queue || NULL == pBuffer || 0 == bufferSize) {
         return false;
     }
 
-    Queue->Buffer  = Buffer;
-    Queue->DataSize = DataSize;
-    Queue->Size    = Size;
-    Queue->Head    = 0;
-    Queue->Tail    = 0;
-    Queue->Peek    = 0;
-    Queue->Counter = 0;
+    Queue->pBuffer  = pBuffer;
+    Queue->itemSize = itemSize;
+    Queue->bufferSize   = bufferSize;
+    Queue->Head     = 0;
+    Queue->Tail     = 0;
+    Queue->Peek     = 0;
+    Queue->Counter  = 0;
     Queue->PeekCounter = 0;
 
     return true;
 }
 
-bool queue_deinit(queue_t *QueueObj)
+bool queue_deinit(void *queueObj)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)QueueObj;
+    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
 
-    DEBUG_ASSERT_NOT_NULL(QueueObj);
-    if (NULL == QueueObj) {
+    if (NULL == Queue) {
         return false;
     }
 
-    Queue->Buffer  = NULL;
-    Queue->DataSize = 0;
-    Queue->Size    = 0;
-    Queue->Head    = 0;
-    Queue->Tail    = 0;
-    Queue->Peek    = 0;
-    Queue->Counter = 0;
+    Queue->pBuffer  = NULL;
+    Queue->itemSize = 0;
+    Queue->bufferSize   = 0;
+    Queue->Head     = 0;
+    Queue->Tail     = 0;
+    Queue->Peek     = 0;
+    Queue->Counter  = 0;
     Queue->PeekCounter = 0;
 
     return true;
 }
 
-bool queue_enqueue(queue_t *QueueObj, void *Data)
+bool queue_enqueue(void *queueObj, void *pData)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)QueueObj;
+    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
     bool bResult = false;
 
-    DEBUG_ASSERT_NOT_NULL(QueueObj);
-    if (NULL == QueueObj) {
+    if (NULL == Queue) {
         return false;
     }
 
-    DEBUG_ASSERT_NOT_NULL(Queue->Buffer);
-    if (NULL == Queue->Buffer) {
+    if (NULL == Queue->pBuffer) {
         return false;
     }
 
@@ -110,31 +98,30 @@ bool queue_enqueue(queue_t *QueueObj, void *Data)
         do {
             if ((Queue->Head ==  Queue->Tail)
             &&  (0 != Queue->Counter)) {
-                DEBUG_MSG(QUEUE_DEBUG, debug_print_string("QueueObj is full."););
                 break;
             }
 
-            switch (Queue->DataSize) {
-                case 1:
-                    ((uint8_t *)(Queue->Buffer))[
-                                 Queue->Tail] = *(uint8_t *)Data;
+            switch (Queue->itemSize) {
+                case sizeof(uint8_t):
+                    ((uint8_t *)(Queue->pBuffer))[
+                                 Queue->Tail] = *(uint8_t *)pData;
                     break;
-                case 2:
-                    ((uint16_t *)(Queue->Buffer))[
-                                  Queue->Tail] = *(uint16_t *)Data;
+                case sizeof(uint16_t):
+                    ((uint16_t *)(Queue->pBuffer))[
+                                  Queue->Tail] = *(uint16_t *)pData;
                     break;
-                case 4:
-                    ((uint32_t *)(Queue->Buffer))[
-                                  Queue->Tail] = *(uint32_t *)Data;
+                case sizeof(uint32_t):
+                    ((uint32_t *)(Queue->pBuffer))[
+                                  Queue->Tail] = *(uint32_t *)pData;
                     break;
                 default:
-                    mem_copy((uint8_t *)Queue->Buffer + (Queue->DataSize) * (Queue->Tail),
-                             Data,
-                             Queue->DataSize);
+                    mem_copy((void *)((uint32_t)Queue->pBuffer + Queue->Tail * Queue->itemSize),
+                             pData,
+                             Queue->itemSize);
                     break;
             }
             Queue->Tail++;
-            if (Queue->Tail >= Queue->Size) {
+            if (Queue->Tail >= Queue->bufferSize) {
                 Queue->Tail = 0;
             }
             Queue->Counter++;
@@ -146,18 +133,16 @@ bool queue_enqueue(queue_t *QueueObj, void *Data)
     return bResult;
 }
 
-bool queue_dequeue(queue_t *QueueObj, void *Data)
+bool queue_dequeue(void *queueObj, void *pData)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)QueueObj;
+    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
     bool bResult = false;
 
-    DEBUG_ASSERT_NOT_NULL(QueueObj);
-    if (NULL == QueueObj) {
+    if (NULL == Queue) {
         return false;
     }
 
-    DEBUG_ASSERT_NOT_NULL(Queue->Buffer);
-    if (NULL == Queue->Buffer) {
+    if (NULL == Queue->pBuffer) {
         return false;
     }
 
@@ -165,33 +150,32 @@ bool queue_dequeue(queue_t *QueueObj, void *Data)
         do {
             if ((Queue->Head ==  Queue->Tail)
             &&  (0 == Queue->Counter)) {
-                DEBUG_MSG(QUEUE_DEBUG, debug_print_string("QueueObj is empty."););
                 break;
             }
 
-            if (NULL != Data) {
-                switch (Queue->DataSize) {
-                    case 1:
-                        *(uint8_t *)Data = ((uint8_t *)(Queue->Buffer))[
+            if (NULL != pData) {
+                switch (Queue->itemSize) {
+                    case sizeof(uint8_t):
+                        *(uint8_t *)pData = ((uint8_t *)(Queue->pBuffer))[
                                                          Queue->Head];
                         break;
-                    case 2:
-                        *(uint16_t *)Data = ((uint16_t *)(Queue->Buffer))[
+                    case sizeof(uint16_t):
+                        *(uint16_t *)pData = ((uint16_t *)(Queue->pBuffer))[
                                                            Queue->Head];
                         break;
-                    case 4:
-                        *(uint32_t *)Data = ((uint32_t *)(Queue->Buffer))[
+                    case sizeof(uint32_t):
+                        *(uint32_t *)pData = ((uint32_t *)(Queue->pBuffer))[
                                                            Queue->Head];
                         break;
                     default:
-                        mem_copy(Data,
-                                 (uint8_t *)Queue->Buffer + (Queue->DataSize) * (Queue->Head),
-                                 Queue->DataSize);
+                        mem_copy(pData,
+                                 (void *)((uint32_t)Queue->pBuffer + Queue->Head * Queue->itemSize),
+                                 Queue->itemSize);
                         break;
                 }
             }
             Queue->Head++;
-            if (Queue->Head >= Queue->Size) {
+            if (Queue->Head >= Queue->bufferSize) {
                 Queue->Head = 0;
             }
             Queue->Counter--;
@@ -204,51 +188,49 @@ bool queue_dequeue(queue_t *QueueObj, void *Data)
     return bResult;
 }
 
-bool queue_peek(queue_t *QueueObj, void *Data)
+bool queue_peek(void *queueObj, void *pData)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)QueueObj;
+    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
     bool bResult = false;
 
-    DEBUG_ASSERT_NOT_NULL(QueueObj);
-    if (NULL == QueueObj) {
+    if (NULL == Queue) {
         return false;
     }
 
-    DEBUG_ASSERT_NOT_NULL(Queue->Buffer);
-    if (NULL == Queue->Buffer) {
+    if (NULL == Queue->pBuffer) {
         return false;
     }
 
     __QUEUE_ATOM_ENTER();
         do {
-            if ((Queue->Peek ==  Queue->Tail)
+            if ((Queue->Peek == Queue->Tail)
             &&  (0 == Queue->PeekCounter)) {
-                DEBUG_MSG(QUEUE_DEBUG, debug_print_string("QueueObj has been peeked all."););
                 break;
             }
-            if (NULL != Data) {
-                switch (Queue->DataSize) {
-                    case 1:
-                        *(uint8_t *)Data = ((uint8_t *)(Queue->Buffer))[
+            if (NULL != pData) {
+                switch (Queue->itemSize) {
+                    case sizeof(uint8_t):
+                        *(uint8_t *)pData = ((uint8_t *)(Queue->pBuffer))[
                                                          Queue->Peek];
                         break;
-                    case 2:
-                        *(uint16_t *)Data = ((uint16_t *)(Queue->Buffer))[
+                    case sizeof(uint16_t):
+                        *(uint16_t *)pData = ((uint16_t *)(Queue->pBuffer))[
                                                            Queue->Peek];
                         break;
-                    case 4:
-                        *(uint32_t *)Data = ((uint32_t *)(Queue->Buffer))[
+                    case sizeof(uint32_t):
+                        *(uint32_t *)pData = ((uint32_t *)(Queue->pBuffer))[
                                                            Queue->Peek];
                         break;
                     default:
-                        *(__queue_uint_t *)Data = ((__queue_uint_t *)(Queue->Buffer))[
-                                                           Queue->Peek];
+                        mem_copy(pData,
+                                 (void *)((uint32_t)Queue->pBuffer + Queue->Peek * Queue->itemSize),
+                                 Queue->itemSize);
                         break;
                 }
             }
             Queue->Peek++;
             Queue->PeekCounter--;
-            if (Queue->Peek >= Queue->Size) {
+            if (Queue->Peek >= Queue->bufferSize) {
                 Queue->Peek = 0;
             }
             bResult = true;
@@ -258,12 +240,11 @@ bool queue_peek(queue_t *QueueObj, void *Data)
     return bResult;
 }
 
-void queue_get_all_peeked(queue_t *QueueObj)
+void queue_get_all_peeked(void *queueObj)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)QueueObj;
+    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
 
-    DEBUG_ASSERT_NOT_NULL(QueueObj);
-    if (NULL == QueueObj) {
+    if (NULL == Queue) {
         return ;
     }
 
@@ -273,13 +254,12 @@ void queue_get_all_peeked(queue_t *QueueObj)
     __QUEUE_ATOM_EXIT();
 }
 
-void queue_reset_peek(queue_t *QueueObj)
+void queue_reset_peek(void *queueObj)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)QueueObj;
+    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
 
-    DEBUG_ASSERT_NOT_NULL(QueueObj);
-    if (NULL == QueueObj) {
-        return ;
+    if (NULL == Queue) {
+        return;
     }
 
     __QUEUE_ATOM_ENTER();
@@ -288,13 +268,12 @@ void queue_reset_peek(queue_t *QueueObj)
     __QUEUE_ATOM_EXIT();
 }
 
-__queue_uint_t queue_get_object_count(queue_t *QueueObj)
+__queue_uint_t queue_get_object_count(void *queueObj)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)QueueObj;
+    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
     __queue_uint_t Counter;
 
-    DEBUG_ASSERT_NOT_NULL(QueueObj);
-    if (NULL == QueueObj) {
+    if (NULL == Queue) {
         return 0;
     }
 
@@ -304,18 +283,4 @@ __queue_uint_t queue_get_object_count(queue_t *QueueObj)
 
     return Counter;
 }
-
-#ifdef __QUEUE_MUTEX_TYPE
-__QUEUE_MUTEX_TYPE *queue_get_mutex(queue_t *QueueObj)
-{    
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)QueueObj;
-    
-    DEBUG_ASSERT_NOT_NULL(QueueObj);
-    if (NULL == QueueObj)  {
-        return NULL;   
-    }
-
-    return &(Queue->Mutex);
-}
-#endif
 

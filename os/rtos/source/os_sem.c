@@ -21,7 +21,7 @@
 *              OS_ERR_EVENT_DEPLETED    No more event control blocks available.
 *********************************************************************************************************/
 
-INT8U   osSemCreate (OS_HANDLE  *pSemaphoreHandle,
+OS_ERR   osSemCreate (OS_HANDLE  *pSemaphoreHandle,
                      INT16U      cnt)
 {
     OS_EVENT  **ppevent = (OS_EVENT **)pSemaphoreHandle;
@@ -91,7 +91,7 @@ INT8U   osSemCreate (OS_HANDLE  *pSemaphoreHandle,
 *********************************************************************************************************/
 
 #if OS_SEM_DEL_EN > 0u
-INT8U   osSemDelete (OS_HANDLE  hSemaphore,
+OS_ERR   osSemDelete (OS_HANDLE  hSemaphore,
                      INT8U      opt)
 {
     OS_EVENT  *pevent = (OS_EVENT *)hSemaphore;
@@ -184,7 +184,7 @@ INT8U   osSemDelete (OS_HANDLE  hSemaphore,
 *              OS_ERR_PEVENT_NULL  If 'pevent' is a NULL pointer.
 *********************************************************************************************************/
 
-INT8U   osSemPend (OS_HANDLE  hSemaphore,
+OS_ERR   osSemPend (OS_HANDLE  hSemaphore,
                    INT32U     timeout)
 {
     OS_EVENT  *pevent = (OS_EVENT *)hSemaphore;
@@ -277,7 +277,7 @@ INT8U   osSemPend (OS_HANDLE  hSemaphore,
 *********************************************************************************************************/
 
 #if OS_SEM_PEND_ABORT_EN > 0u
-INT8U  osSemPendAbort (OS_HANDLE  hSemaphore,
+OS_ERR  osSemPendAbort (OS_HANDLE  hSemaphore,
                        INT8U      opt)
 {
     OS_EVENT  *pevent = (OS_EVENT *)hSemaphore;
@@ -341,7 +341,7 @@ INT8U  osSemPendAbort (OS_HANDLE  hSemaphore,
 *              OS_ERR_PEVENT_NULL  If 'pevent' is a NULL pointer.
 *********************************************************************************************************/
 
-INT8U  osSemPost (OS_HANDLE hSemaphore,
+OS_ERR  osSemPost (OS_HANDLE hSemaphore,
                   INT16U    cnt)
 {
     OS_EVENT  *pevent = (OS_EVENT *)hSemaphore;
@@ -400,7 +400,7 @@ INT8U  osSemPost (OS_HANDLE hSemaphore,
 *********************************************************************************************************/
 
 #if OS_SEM_SET_EN > 0u
-INT8U   osSemSet    (OS_HANDLE  hSemaphore,
+OS_ERR   osSemSet    (OS_HANDLE  hSemaphore,
                      INT16U     cnt)
 {
     OS_EVENT  *pevent = (OS_EVENT *)hSemaphore;
@@ -453,7 +453,7 @@ INT8U   osSemSet    (OS_HANDLE  hSemaphore,
 *********************************************************************************************************/
 
 #if OS_SEM_QUERY_EN > 0u
-INT8U  osSemQuery (OS_HANDLE    hSemaphore,
+OS_ERR  osSemQuery (OS_HANDLE    hSemaphore,
                    OS_SEM_DATA *p_sem_data)
 {
     OS_EVENT       *pevent = (OS_EVENT *)hSemaphore;

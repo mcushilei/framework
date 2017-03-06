@@ -42,11 +42,10 @@ static softtimer_t  softTimers[SOFTTIMER_MAX_TIMERS];
 void softtimer_init(uint8_t     Timer,
                     uint32_t    Value,
                     uint32_t    Reload,
-                    uint8_t     Flag,
                     fn_softtimer_handler_t *pHandler)
 {
     if (Timer < SOFTTIMER_MAX_TIMERS) {
-    SAFE_ATOM_CODE(
+    __SOFTTIMER_SAFE_ATOME_CODE(
         softTimers[Timer].Count  = Value;
         softTimers[Timer].Reload = Reload;
         softTimers[Timer].Flag   = 0;
@@ -55,6 +54,7 @@ void softtimer_init(uint8_t     Timer,
     }
 }
 
+//! This function should be called periodly.
 void softtimer_tick(void)
 {
     uint_fast8_t n;
@@ -64,6 +64,7 @@ void softtimer_tick(void)
             softTimers[n].Count--;
             if (softTimers[n].Count == 0) {
                 softTimers[n].Flag = 1;
+                softTimers[n].Count = softTimers[n].Reload;
                 if (softTimers[n].pHandler != NULL) {
                     softTimers[n].pHandler(n);
                 }
@@ -75,7 +76,7 @@ void softtimer_tick(void)
 void softtimer_start(uint8_t Timer, uint32_t Value)
 {
     if (Timer < SOFTTIMER_MAX_TIMERS) {
-    SAFE_ATOM_CODE(
+    __SOFTTIMER_SAFE_ATOME_CODE(
         softTimers[Timer].Count = Value;
         softTimers[Timer].Flag = 0;
     )
@@ -85,17 +86,17 @@ void softtimer_start(uint8_t Timer, uint32_t Value)
 void softtimer_stop(uint8_t Timer)
 {
     if (Timer < SOFTTIMER_MAX_TIMERS) {
-    SAFE_ATOM_CODE(
+    __SOFTTIMER_SAFE_ATOME_CODE(
         softTimers[Timer].Count = 0;
     )
     }
 }
 
-bool softtimer_is_timeout(uint8_t Timer)
+bool softtimer_check_timeout(uint8_t Timer)
 {
     if (Timer < SOFTTIMER_MAX_TIMERS) {
         if (softTimers[Timer].Flag) {
-            SAFE_ATOM_CODE(
+            __SOFTTIMER_SAFE_ATOME_CODE(
                 softTimers[Timer].Flag = 0;
             )
             return true;

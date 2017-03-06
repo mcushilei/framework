@@ -40,6 +40,12 @@
 
 #define UBOUND(__ARRAY)     (sizeof(__ARRAY) / sizeof(__ARRAY[0]))
 
+/*! \brief  change representation of a varible to another type. This is different
+ *          from type conversion which change the BINARY value of varible.
+ *  \note   It's assume that the destination type is memory alligned to original
+ *          type.
+ */
+#define TYPE_CAST(__V, __T) ((__T *)&(__V))[0]
 
 #define IS_POWER_OF_2(__N)  (((__N) != 0u) && ((((__N) - 1u) & (__N)) == 0))
 

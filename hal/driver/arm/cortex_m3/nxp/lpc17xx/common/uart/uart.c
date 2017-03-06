@@ -429,8 +429,9 @@ static bool uart_enable(uint32_t wUsart)
     
     //! Enable Peripheral Clock
     PM.Power.Enable(ptThis->tPCON);
+    
     //! Transmit enable
-    ptThis->ptREG->TER |= UART_TER_TXEN_MSK; 
+    ptThis->ptREG->TER = (1u << 7); 
 
     return true;
 }    
@@ -449,7 +450,7 @@ static bool uart_disable(uint32_t wUsart)
     }
 
     //! Transmit disable
-    ptThis->ptREG->TER &= ~UART_TER_TXEN_MSK; 
+    ptThis->ptREG->TER = (0u << 7); 
 
     //! Disable Peripheral Clock
     PM.Power.Disable(ptThis->tPCON);

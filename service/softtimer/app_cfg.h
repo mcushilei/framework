@@ -25,6 +25,13 @@
 /*============================ MACROS ========================================*/
 #define SOFTTIMER_MAX_TIMERS    (8u)
 
+#define __SOFTTIMER_SAFE_ATOME_CODE(...) {\
+            OS_CPU_SR  cpu_sr = 0u;\
+            OS_ENTER_CRITICAL();\
+            __VA_ARGS__\
+            OS_EXIT_CRITICAL();\
+        }
+
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/

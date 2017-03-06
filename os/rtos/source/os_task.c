@@ -35,7 +35,7 @@ static  void    OS_TaskStkClr  (OS_STK         *pbos,
 *********************************************************************************************************/
 
 #if OS_TASK_CHANGE_PRIO_EN > 0u
-INT8U  osTaskChangePrio (INT8U  oldprio,
+OS_ERR  osTaskChangePrio (INT8U  oldprio,
                          INT8U  newprio)
 {
 #if (OS_EVENT_EN)
@@ -181,7 +181,7 @@ INT8U  osTaskChangePrio (INT8U  oldprio,
 *                                               operation started.
 *********************************************************************************************************/
 
-INT8U  osTaskCreate(void   (*task)(void *parg),
+OS_ERR  osTaskCreate(void   (*task)(void *parg),
                     void    *parg,
                     INT8U    prio,
                     OS_STK  *pstk,
@@ -253,7 +253,7 @@ INT8U  osTaskCreate(void   (*task)(void *parg),
 *********************************************************************************************************/
 
 #if OS_TASK_QUERY_EN > 0u
-INT8U  osTaskQuery (INT8U    prio,
+OS_ERR  osTaskQuery (INT8U    prio,
                     OS_TCB  *p_task_data)
 {
     OS_TCB    *ptcb;
@@ -454,7 +454,7 @@ static  void    OS_TaskStkClr  (OS_STK  *pstk,
 *********************************************************************************************************/
 
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
-INT8U   OS_TaskStkChk   (INT8U  prio)
+OS_ERR   OS_TaskStkChk   (INT8U  prio)
 {
     OS_TCB    *ptcb;
     OS_STK    *pstk;

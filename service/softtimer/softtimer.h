@@ -40,12 +40,11 @@ END_DEF_STRUCTURE(softtimer_t)
 void softtimer_init(uint8_t     Timer,
                     uint32_t    Value,
                     uint32_t    Reload,
-                    uint8_t     Flag,
                     fn_softtimer_handler_t *pHandler);
 void softtimer_tick(void);
 void softtimer_start(uint8_t Timer, uint32_t Value);
 void softtimer_stop(uint8_t Timer);
-bool softtimer_is_timeout(uint8_t Timer);
+bool softtimer_check_timeout(uint8_t Timer);
 
 #endif  //! #ifndef __SOFTTIMER_H__
 #endif  //! #ifndef __SOFTTIMER_C__

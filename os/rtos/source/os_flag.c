@@ -24,9 +24,9 @@ static  BOOLEAN  OS_FlagTaskRdy(OS_FLAG_NODE *pnode, INT8U pend_stat);
 * Called from: Task ONLY
 *********************************************************************************************************/
 
-INT8U   osFlagCreate   (OS_HANDLE  *pFlagHandle,
+OS_ERR   osFlagCreate   (OS_HANDLE  *pFlagHandle,
                         BOOLEAN     init,
-                        BOOLEAN     autoreset)
+                        BOOLEAN     manual)
 {
     OS_FLAG   **ppflag = (OS_FLAG **)pFlagHandle;
     OS_FLAG    *pflag;
@@ -45,10 +45,10 @@ INT8U   osFlagCreate   (OS_HANDLE  *pFlagHandle,
     }
 #endif
 
-    if (init != 0u) {
+    if (init != OS_FALSE) {
         flags |= 0x01u;
     }
-    if (autoreset != 0u) {
+    if (manual == OS_FALSE) {
         flags |= 0x80u;
     }
 
@@ -96,10 +96,12 @@ INT8U   osFlagCreate   (OS_HANDLE  *pFlagHandle,
 *                 time is directly proportional to the number of tasks waiting on the event flag group.
 *              3) All tasks that were waiting for the event flag will be readied and returned an
 *                 OS_ERR_PEND_ABORT if osFlagDelete() was called with OS_DEL_ALWAYS
+*
+* Called from: Task ONLY
 *********************************************************************************************************/
 
 #if OS_FLAG_DEL_EN > 0u
-INT8U   osFlagDelete    (OS_HANDLE   hFlag,
+OS_ERR   osFlagDelete    (OS_HANDLE   hFlag,
                          INT8U       opt)
 {
     OS_FLAG      *pflag = (OS_FLAG *)hFlag;
@@ -199,7 +201,7 @@ INT8U   osFlagDelete    (OS_HANDLE   hFlag,
 *                 event flags.
 *********************************************************************************************************/
 
-INT8U   osFlagPend  (OS_HANDLE       hFlag,
+OS_ERR   osFlagPend  (OS_HANDLE       hFlag,
                      INT32U          timeout)
 {
     OS_FLAG      *pflag = (OS_FLAG *)hFlag;
@@ -232,7 +234,7 @@ INT8U   osFlagPend  (OS_HANDLE       hFlag,
     flags_rdy = (INT16U)(pflag->OSFlagFlags & 0x01u);
     if (flags_rdy != 0u) {                          //!< See if flag set
         if (consume != 0u) {                        //!< Yes. See if we need to consume the flags
-            pflag->OSFlagFlags &= (INT16U)~0x01u;           //!< Yes. Clear flag
+            pflag->OSFlagFlags &= (INT16U)~0x01u;   //!< Yes. Clear flag
         }
         OS_EXIT_CRITICAL();
         return OS_ERR_NONE;
@@ -291,7 +293,7 @@ INT8U   osFlagPend  (OS_HANDLE       hFlag,
 *                 the event flag group.
 *********************************************************************************************************/
 
-INT8U   osFlagSet   (OS_HANDLE  hFlag)
+OS_ERR   osFlagSet   (OS_HANDLE  hFlag)
 {
     OS_FLAG      *pflag = (OS_FLAG *)hFlag;
     OS_FLAG_NODE *pnode;
@@ -317,7 +319,7 @@ INT8U   osFlagSet   (OS_HANDLE  hFlag)
         pnode = (OS_FLAG_NODE *)pflag->OSFlagWaitList;
         while (pnode != OS_NULL) {                          //!< Ready ALL tasks waiting for flag
             (void)OS_FlagTaskRdy(pnode, OS_STAT_PEND_OK);
-            pnode = (OS_FLAG_NODE *)pnode->OSFlagNodeNext;  //!< Point to next task waiting for event flag
+            pnode = (OS_FLAG_NODE *)pnode->OSFlagNodeNext;
         }
     }
     if (sched == OS_TRUE) {                                 //!< Is there any task wait for this flag?
@@ -356,7 +358,7 @@ INT8U   osFlagSet   (OS_HANDLE  hFlag)
 *                 the event flag group.
 *********************************************************************************************************/
 
-INT8U   osFlagReset (OS_HANDLE  hFlag)
+OS_ERR   osFlagReset (OS_HANDLE  hFlag)
 {
     OS_FLAG    *pflag = (OS_FLAG *)hFlag;
 #if OS_CRITICAL_METHOD == 3u                         //!< Allocate storage for CPU status register
@@ -393,7 +395,7 @@ INT8U   osFlagReset (OS_HANDLE  hFlag)
 *********************************************************************************************************/
 
 #if OS_FLAG_QUERY_EN > 0u
-INT8U   osFlagQuery (OS_HANDLE      hFlag,
+OS_ERR   osFlagQuery (OS_HANDLE      hFlag,
                      OS_FLAG_DATA  *p_flag_data)
 {
     OS_FLAG    *pflag = (OS_FLAG *)hFlag;

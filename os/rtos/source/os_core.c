@@ -807,7 +807,7 @@ static  void  OS_InitTCBList (void)
 * Note       : This function is INTERNAL to OS and your application should not call it.
 *********************************************************************************************************/
 
-INT8U  OS_TCBInit (INT8U    prio,
+OS_ERR  OS_TCBInit (INT8U    prio,
                    OS_STK  *psp,
                    OS_STK  *pstk,
                    INT32U   stk_size,
@@ -916,7 +916,7 @@ INT8U  OS_TCBInit (INT8U    prio,
 *********************************************************************************************************/
 
 #if (OS_EVENT_EN)
-INT8U  OS_EventTaskRdy (OS_EVENT  *pevent,
+OS_ERR  OS_EventTaskRdy (OS_EVENT  *pevent,
                         INT8U      msk,
                         INT8U      pend_stat)
 {

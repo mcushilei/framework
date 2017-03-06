@@ -173,30 +173,26 @@ typedef struct os_bitmap {
 
 typedef void *  OS_HANDLE;
 
-typedef struct os_obj_head {
-    INT16U      OSObjType;          //!< Only low 8bit is used at present.
-    INT16U      OSObjKey;           //!< Objct define value.
-} OS_OBJ_HEAD;
-
-typedef union os_obj {
-    OS_OBJ_HEAD;
-    INT32U      OSObjHeadValue;
+#define OS_OBJ_STRUCT           \
+    INT16U      OSObjType;      \
+    INT16U      OSObjKey;
+    
+typedef struct os_obj {
+    OS_OBJ_STRUCT
 } OS_OBJ;
+
     
 /*********************************************************************************************************
 *                                         EVENT CONTROL BLOCK
 *********************************************************************************************************/
 #if (OS_EVENT_EN) && (OS_MAX_EVENTS > 0u)
 typedef struct os_event {
-    OS_OBJ;
+    OS_OBJ_STRUCT
     void           *OSEventPtr;                     //!< Pointer to Mutex owner's TCB
     INT16U          OSEventCnt;                     //!< Semaphore Count or Mutex owner priority
     OS_PRIO         OSEventGrp;                     //!< Group corresponding to tasks waiting for event to occur
     OS_PRIO         OSEventTbl[OS_EVENT_TBL_SIZE];  //!< List of tasks waiting for event to occur
 } OS_EVENT;
-
-typedef OS_EVENT OS_SEM;
-typedef OS_EVENT OS_MUTEX;
 #endif
 
 /*********************************************************************************************************
@@ -204,7 +200,7 @@ typedef OS_EVENT OS_MUTEX;
 *********************************************************************************************************/
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 typedef struct os_flag {
-    OS_OBJ;
+    OS_OBJ_STRUCT
     void           *OSFlagWaitList;                 //!< Pointer to first NODE of task waiting on event flag
     INT16U          OSFlagFlags;                    //!< Flag options
 } OS_FLAG;
@@ -221,7 +217,7 @@ typedef struct os_flag_node {                       //!< Event Flag Wait List No
 *                                         TASK CONTROL BLOCK
 *********************************************************************************************************/
 typedef struct os_tcb {
-    OS_OBJ;
+    OS_OBJ_STRUCT
     OS_STK         *OSTCBStkPtr;                    //!< Pointer to current top of stack
 
     struct os_tcb  *OSTCBNext;                      //!< Pointer to next     TCB in the TCB list
@@ -337,24 +333,24 @@ OS_EXT  OS_STK      OSTaskIdleStk[OS_TASK_IDLE_STK_SIZE];       //!< Idle task s
 *********************************************************************************************************/
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 
-INT8U       osFlagCreate           (OS_HANDLE      *pFlagHandle,
+OS_ERR      osFlagCreate           (OS_HANDLE      *pFlagHandle,
                                     BOOLEAN         init,
-                                    BOOLEAN         autoreset);
+                                    BOOLEAN         manual);
 
 #if OS_FLAG_DEL_EN > 0u
-INT8U       osFlagDelete           (OS_HANDLE       hFlag,
+OS_ERR      osFlagDelete           (OS_HANDLE       hFlag,
                                     INT8U           opt);
 #endif
 
-INT8U       osFlagPend             (OS_HANDLE       hFlag,
+OS_ERR      osFlagPend             (OS_HANDLE       hFlag,
                                     INT32U          timeout);
 
-INT8U       osFlagSet              (OS_HANDLE       hFlag);
+OS_ERR      osFlagSet              (OS_HANDLE       hFlag);
 
-INT8U       osFlagReset            (OS_HANDLE       hFlag);
+OS_ERR      osFlagReset            (OS_HANDLE       hFlag);
 
 #if OS_FLAG_QUERY_EN > 0u
-INT8U       osFlagQuery            (OS_HANDLE       hFlag,
+OS_ERR      osFlagQuery            (OS_HANDLE       hFlag,
                                     OS_FLAG_DATA   *p_flag_data);
 #endif
 
@@ -365,20 +361,20 @@ INT8U       osFlagQuery            (OS_HANDLE       hFlag,
 *********************************************************************************************************/
 #if OS_MUTEX_EN > 0u
 
-INT8U       osMutexCreate          (OS_HANDLE      *pMutexHandle);
+OS_ERR      osMutexCreate          (OS_HANDLE      *pMutexHandle);
 
 #if OS_MUTEX_DEL_EN > 0u
-INT8U       osMutexDelete          (OS_HANDLE       hMutex,
+OS_ERR      osMutexDelete          (OS_HANDLE       hMutex,
                                     INT8U           opt);
 #endif
 
-INT8U       osMutexPend            (OS_HANDLE       hMutex,
+OS_ERR      osMutexPend            (OS_HANDLE       hMutex,
                                     INT32U          timeout);
 
-INT8U       osMutexPost            (OS_HANDLE       hMutex);
+OS_ERR      osMutexPost            (OS_HANDLE       hMutex);
 
 #if OS_MUTEX_QUERY_EN > 0u
-INT8U       osMutexQuery           (OS_HANDLE       hMutex,
+OS_ERR      osMutexQuery           (OS_HANDLE       hMutex,
                                     OS_MUTEX_DATA  *p_mutex_data);
 #endif
 
@@ -389,32 +385,32 @@ INT8U       osMutexQuery           (OS_HANDLE       hMutex,
 *********************************************************************************************************/
 #if OS_SEM_EN > 0u
 
-INT8U       osSemCreate            (OS_HANDLE      *pSemaphoreHandle,
+OS_ERR      osSemCreate            (OS_HANDLE      *pSemaphoreHandle,
                                     INT16U          cnt);
 
 #if OS_SEM_DEL_EN > 0u
-INT8U       osSemDelete            (OS_HANDLE       hSemaphore,
+OS_ERR      osSemDelete            (OS_HANDLE       hSemaphore,
                                     INT8U           opt);
 #endif
 
-INT8U       osSemPend              (OS_HANDLE       hSemaphore,
+OS_ERR      osSemPend              (OS_HANDLE       hSemaphore,
                                     INT32U          timeout);
 
 #if OS_SEM_PEND_ABORT_EN > 0u
-INT8U       osSemPendAbort         (OS_HANDLE       hSemaphore,
+OS_ERR      osSemPendAbort         (OS_HANDLE       hSemaphore,
                                     INT8U           opt);
 #endif
 
-INT8U       osSemPost              (OS_HANDLE       hSemaphore,
+OS_ERR      osSemPost              (OS_HANDLE       hSemaphore,
                                     INT16U          cnt);
 
 #if OS_SEM_SET_EN > 0u
-INT8U       osSemSet               (OS_HANDLE       hSemaphore,
+OS_ERR      osSemSet               (OS_HANDLE       hSemaphore,
                                     INT16U          cnt);
 #endif
 
 #if OS_SEM_QUERY_EN > 0u
-INT8U       osSemQuery             (OS_HANDLE       hSemaphore,
+OS_ERR      osSemQuery             (OS_HANDLE       hSemaphore,
                                     OS_SEM_DATA    *p_sem_data);
 #endif
 
@@ -423,7 +419,7 @@ INT8U       osSemQuery             (OS_HANDLE       hSemaphore,
 /*********************************************************************************************************
 *                                           TASK MANAGEMENT
 *********************************************************************************************************/
-INT8U       osTaskCreate           (void          (*task)(void *parg),
+OS_ERR      osTaskCreate           (void          (*task)(void *parg),
                                     void           *parg,
                                     INT8U           prio,
                                     OS_STK         *pstk,
@@ -431,12 +427,12 @@ INT8U       osTaskCreate           (void          (*task)(void *parg),
                                     INT8U           opt);
 
 #if OS_TASK_CHANGE_PRIO_EN > 0u
-INT8U       osTaskChangePrio       (INT8U           oldprio,
+OS_ERR      osTaskChangePrio       (INT8U           oldprio,
                                     INT8U           newprio);
 #endif
 
 #if OS_TASK_QUERY_EN > 0u
-INT8U       osTaskQuery            (INT8U           prio,
+OS_ERR      osTaskQuery            (INT8U           prio,
                                     OS_TCB         *p_task_data);
 #endif
 
@@ -512,11 +508,11 @@ void        OSDebugInit            (void);
 void        OS_Sched               (void);
 
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
-INT8U       OS_TaskStkChk          (INT8U           prio);
+OS_ERR      OS_TaskStkChk          (INT8U           prio);
 #endif
 
 #if (OS_EVENT_EN)
-INT8U       OS_EventTaskRdy        (OS_EVENT       *pevent,
+OS_ERR      OS_EventTaskRdy        (OS_EVENT       *pevent,
                                     INT8U           msk,
                                     INT8U           pend_stat);
 
@@ -543,7 +539,7 @@ void        OS_MemCopy             (INT8U          *pdest,
 
 void        OS_Dummy               (void);
 
-INT8U       OS_TCBInit             (INT8U           prio,
+OS_ERR      OS_TCBInit             (INT8U           prio,
                                     OS_STK         *psp,
                                     OS_STK         *pstk,
                                     INT32U          stk_size,

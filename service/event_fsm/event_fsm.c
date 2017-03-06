@@ -43,11 +43,11 @@ bool event_fsm_init(event_fsm_t         *EFSM,
                     uint8_t             StackSize,
                     fn_event_state_t    *InitState)
 {
-    EFSM->Stack       = Stack;
+    EFSM->Stack      = Stack;
     EFSM->StackSize  = StackSize;
     EFSM->SP         = 0;
     EFSM->CurrentSP  = 0;
-    EFSM->Stack[0]    = InitState;
+    EFSM->Stack[0]   = InitState;
 
     return true;
 }
@@ -129,6 +129,13 @@ bool event_fsm_transfer_to_lower(event_fsm_t *EFSM, fn_event_state_t *State)
 }
 
 
+/*! \brief dispatch an event to an fsm.
+ *  \param EFSM                 point to an event fsm.
+ *  \param Event                point to an event. The type of event is base on application.
+ *  \retval FSM_RT_CPL          event has been handle success.
+ *  \retval FSM_RT_ONGOING      state has not been run complete.
+ *  \retval FSM_RT_ERR          failed to get current state, might stack uninitialzed or voerflow.
+ */
 uint8_t event_fsm_dispatch_event(event_fsm_t *EFSM, void *Event)
 {
     fn_event_state_t *fnCurrentState;

@@ -31,7 +31,7 @@
 #define SD_CSR_ERASE_SEQ_ERR            (0x10000000u)
 #define SD_CSR_BAD_ERASE_PARAM          (0x08000000u)
 #define SD_CSR_WRITE_PROT_VIOLATION     (0x04000000u)
-#define SD_CSR_CARD_IS_LOCKED           (0x02000000u)    // 卡是锁的
+#define SD_CSR_CARD_IS_LOCKED           (0x02000000u)
 #define SD_CSR_LOCK_UNLOCK_FAILED       (0x01000000u)
 #define SD_CSR_COM_CRC_FAILED           (0x00800000u)
 #define SD_CSR_ILLEGAL_CMD              (0x00400000u)
@@ -44,8 +44,8 @@
 #define SD_CSR_WP_ERASE_SKIP            (0x00008000u)
 #define SD_CSR_CARD_ECC_DISABLED        (0x00004000u)
 #define SD_CSR_ERASE_RESET              (0x00002000u)
-#define SD_CSR_READY_FOR_DATA           (0x00000100u)     // 可以接受数据
-#define SD_CSR_APP_CMD                  (0x00000020u)     // 下一命令是应用命令
+#define SD_CSR_READY_FOR_DATA           (0x00000100u)
+#define SD_CSR_APP_CMD                  (0x00000020u)
 #define SD_CSR_AKE_SEQ_ERROR            (0x00000008u)
 #define SD_CSR_ERRORBITS                (0xFDFFE008u)
 
@@ -56,6 +56,7 @@
 #define SD_R1_ERASE_SEQ_ERROR_MSK       (0x10u)
 #define SD_R1_ADDRESS_ERROR_MSK         (0x20u)
 #define SD_R1_PARAM_ERROR_MSK           (0x40u)
+
 /** 
   * @brief  Masks for R6 Response 
   */
@@ -79,8 +80,6 @@
 #define SD_SUPPLY_VOLTAGE               (0x01u)       // 2.7-3.6V
 #define SD_CMD8_SUPPLY_VOLTAGE_BIT0     8
 #define SD_CMD8_ARGUMENT                ((SD_SUPPLY_VOLTAGE << 8) | SD_CHECK_PATTERN)
-
-#define SD_CMD8_RESP_SUPPLY_VOLTAGE_BIT0    8
 
 /*! 
  *! \brief SD OCR register mask
@@ -242,7 +241,7 @@ typedef enum {
  *! @brief SD Card information 
  */
 typedef struct {
-    uint32_t wCardCapacity;  /*!< Card Capacity */
+    uint32_t wCardCapacity;     /*!< Card Capacity */
     uint32_t wCardMaxBlockSize; /*!< Card Block Size */
     uint16_t hwRCA;
     uint8_t  chCardType;
@@ -700,15 +699,6 @@ bool spi_sd_erase_blocks(uint32_t block, uint32_t cnt)
     return bRetVal;
 }
 
-bool spi_sd_init(void)
-{    
-    return true;
-}
-
-bool spi_sd_deinit(void)
-{
-    return true;
-}
 
 
 		   

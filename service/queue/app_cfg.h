@@ -24,7 +24,6 @@
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#undef __QUEUE_MUTEX_TYPE                      
 
 #define __QUEUE_ATOM_ENTER()                //ENTER_SAFE_ATOM_CODE()
 #define __QUEUE_ATOM_EXIT()                 //EXIT_SAFE_ATOM_CODE()

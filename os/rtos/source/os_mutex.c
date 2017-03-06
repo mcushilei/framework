@@ -26,7 +26,7 @@
 *                 owning the mutex or 0xFF if no task owns the mutex.
 *********************************************************************************************************/
 
-INT8U   osMutexCreate (OS_HANDLE   *pMutexHandle)
+OS_ERR   osMutexCreate (OS_HANDLE   *pMutexHandle)
 {
     OS_EVENT  **ppevent = (OS_EVENT **)pMutexHandle;
     OS_EVENT   *pevent;
@@ -97,7 +97,7 @@ INT8U   osMutexCreate (OS_HANDLE   *pMutexHandle)
 *********************************************************************************************************/
 
 #if OS_MUTEX_DEL_EN > 0u
-INT8U   osMutexDelete   (OS_HANDLE  hMutex,
+OS_ERR   osMutexDelete   (OS_HANDLE  hMutex,
                          INT8U      opt)
 {
     OS_EVENT  *pevent = (OS_EVENT *)hMutex;
@@ -192,7 +192,7 @@ INT8U   osMutexDelete   (OS_HANDLE  hMutex,
 *              2) You MUST NOT change the priority of the task that owns the mutex
 *********************************************************************************************************/
 
-INT8U   osMutexPend (OS_HANDLE  hMutex,
+OS_ERR   osMutexPend (OS_HANDLE  hMutex,
                      INT32U     timeout)
 {
     OS_EVENT  *pevent = (OS_EVENT *)hMutex;
@@ -278,7 +278,7 @@ INT8U   osMutexPend (OS_HANDLE  hMutex,
 * Note(s)    : 1) The mutex can ONLY be released by it's owner.
 *********************************************************************************************************/
 
-INT8U   osMutexPost (OS_HANDLE  hMutex)
+OS_ERR   osMutexPost (OS_HANDLE  hMutex)
 {
     OS_EVENT  *pevent = (OS_EVENT *)hMutex;
     INT8U      prio;
@@ -336,7 +336,7 @@ INT8U   osMutexPost (OS_HANDLE  hMutex)
 *********************************************************************************************************/
 
 #if OS_MUTEX_QUERY_EN > 0u
-INT8U  osMutexQuery (OS_HANDLE      hMutex,
+OS_ERR  osMutexQuery (OS_HANDLE      hMutex,
                      OS_MUTEX_DATA *p_mutex_data)
 {
     OS_EVENT       *pevent = (OS_EVENT *)hMutex;

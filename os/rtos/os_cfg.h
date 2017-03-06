@@ -12,9 +12,9 @@
 #define OS_MAX_PRIO_LEVELS      255u   //!< Defines the priority levels ...
                                        //!< ... MUST NEVER be higher than 255!
 
-#define OS_MAX_EVENTS            8u   //!< Max. number of event control blocks in your application
-#define OS_MAX_FLAGS             8u   //!< Max. number of Event Flag Groups    in your application
-#define OS_MAX_TASKS             8u   //!< Max. number of tasks in your application, MUST be >= 2
+#define OS_MAX_EVENTS            12u   //!< Max. number of event control blocks in your application
+#define OS_MAX_FLAGS             16u   //!< Max. number of Event Flag Groups    in your application
+#define OS_MAX_TASKS             12u   //!< Max. number of tasks in your application, MUST be >= 2
 
 #define OS_SCHED_LOCK_EN          1u   //!< Include code for osSchedLock() and osSchedUnlock()
 
