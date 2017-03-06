@@ -39,7 +39,7 @@
 
 #define IO_CFG(...)                     do {                            \
             static const io_cfg_t Config[] = {__VA_ARGS__};             \
-            IO.Config(Config, UBOUND(Config));                          \
+            IO.Config(Config, ARRAY_LENGTH(Config));                          \
         } while(0)
 
 /*============================ TYPES =========================================*/

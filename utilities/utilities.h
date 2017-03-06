@@ -38,7 +38,7 @@
             };
 //! @}
 
-#define UBOUND(__ARRAY)     (sizeof(__ARRAY) / sizeof(__ARRAY[0]))
+#define ARRAY_LENGTH(__ARRAY)     (sizeof(__ARRAY) / sizeof(__ARRAY[0]))
 
 /*! \brief  change representation of a varible to another type. This is different
  *          from type conversion which change the BINARY value of varible.

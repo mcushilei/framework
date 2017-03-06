@@ -48,7 +48,7 @@ void fsm_event_init(void)
     p = &sptEventList;
     
     //! add event OCBs to the free list
-    for (n = 0; n < UBOUND(stEventPool); n++) {
+    for (n = 0; n < ARRAY_LENGTH(stEventPool); n++) {
         *p = &stEventPool[n];
         p = (fsm_event_t **)&((*p)->ObjNext);
     }

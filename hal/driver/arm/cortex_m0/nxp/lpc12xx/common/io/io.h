@@ -53,7 +53,7 @@
 #define IO_CFG(...)                     do {                            \
             io_cfg_t tCFG[] = {__VA_ARGS__};                            \
             uint32_t wSize = 0;                                         \
-            for (; wSize != UBOUND(tCFG); ++wSize) {                    \
+            for (; wSize != ARRAY_LENGTH(tCFG); ++wSize) {                    \
                 uint32_t wPinIndex  = tCFG[wSize].tPIN;                 \
                 uint32_t wIOCTRL    = tCFG[wSize].wMode ^ IOCTRL_PIN_ADMOD_MSK \
                                     | IOCTRL_PIN_FUNSEL(tCFG[wSize].wFunction);\

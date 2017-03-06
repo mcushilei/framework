@@ -574,7 +574,7 @@ static void fsm_tcb_pool_init(void)
     p = &sptTCBFreeList;
     
     //! add TCBs to the free list
-    for (n = 0; n < UBOUND(stTCBs); n++) {
+    for (n = 0; n < ARRAY_LENGTH(stTCBs); n++) {
         *p = &stTCBs[n];
         p  = &((*p)->Next);
     }

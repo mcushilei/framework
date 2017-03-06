@@ -59,7 +59,7 @@ void softtimer_tick(void)
 {
     uint_fast8_t n;
 
-    for (n = 0; n < UBOUND(softTimers); n++) {
+    for (n = 0; n < ARRAY_LENGTH(softTimers); n++) {
         if (softTimers[n].Count) {
             softTimers[n].Count--;
             if (softTimers[n].Count == 0) {

@@ -48,7 +48,7 @@ void fsm_semaphore_init(void)
     p = &sptSemtList;
     
     //! add semaphore OCBs to the free list
-    for (n = 0; n < UBOUND(stSemPool); n++) {
+    for (n = 0; n < ARRAY_LENGTH(stSemPool); n++) {
         *p = &stSemPool[n];
         p = (fsm_semaphore_t **)&((*p)->ObjNext);
     }

@@ -48,7 +48,7 @@ void fsm_mutex_init(void)
     p = &sptMutexList;
     
     //! add mutex OCBs to the free list
-    for (n = 0; n < UBOUND(stMutexPool); n++) {
+    for (n = 0; n < ARRAY_LENGTH(stMutexPool); n++) {
         *p = &stMutexPool[n];
         p = (fsm_mutex_t **)&((*p)->ObjNext);
     }

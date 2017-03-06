@@ -62,7 +62,7 @@
 #define IO_CFG(...)                                                         \
             do {                                                            \
                 io_cfg_t tCFG[] = {__VA_ARGS__};                            \
-                IO.Config(tCFG, UBOUND(tCFG));                              \
+                IO.Config(tCFG, ARRAY_LENGTH(tCFG));                              \
             } while(0)
 
 /*============================ TYPES =========================================*/
