@@ -257,13 +257,20 @@ static volatile uint32_t s_wTimer = 0;
 static sd_card_properties_t s_tCardProperties;
 
 /*============================ PROTOTYPES ====================================*/
+extern void     sd_spi_write_byte(uint8_t Data);
+extern uint8_t  sd_spi_read_byte(void);
+extern void     sd_spi_cs_clr(void);
+extern void     sd_spi_cs_set(void);
+extern uint8_t sd_crc7_calculator(uint8_t chCRCValue, uint8_t chData);
+extern uint8_t sd_crc16_calculator(uint16_t hwCRCValue, uint8_t chData);
+
 /*============================ IMPLEMENTATION ================================*/
 static bool spi_sd_wait_busy(void)
 {
     uint32_t wCnt = 1000;
     
     do {
-        if (SD_SPI_READ_BYTE() == 0xFF) {
+        if (sd_spi_read_byte() == 0xFF) {
             return TRUE;
         }
     } while (--wCnt);
@@ -283,24 +290,24 @@ static uint32_t spi_sd_send_cmd(uint8_t cmd, uint32_t arg, uint8_t *pchResp, uin
 
     //! Calculate CRC.
     cmd |= SD_CMD_FORMAT_START_AND_TRANS_BIT_MSK;
-    crc_end = SD_CRC7_CALCULATOR(0, cmd);
-    crc_end = SD_CRC7_CALCULATOR(crc_end, arg >> 24);
-    crc_end = SD_CRC7_CALCULATOR(crc_end, arg >> 16);
-    crc_end = SD_CRC7_CALCULATOR(crc_end, arg >> 8);
-    crc_end = SD_CRC7_CALCULATOR(crc_end, arg);
+    crc_end = sd_crc7_calculator(0, cmd);
+    crc_end = sd_crc7_calculator(crc_end, arg >> 24);
+    crc_end = sd_crc7_calculator(crc_end, arg >> 16);
+    crc_end = sd_crc7_calculator(crc_end, arg >> 8);
+    crc_end = sd_crc7_calculator(crc_end, arg);
     crc_end |= SD_CMD_FORMAT_END_BIT_MSK; //!< CRC7 + End bit.
 
     //! Send command.
-    SD_SPI_WRITE_BYTE(cmd);
-    SD_SPI_WRITE_BYTE(arg >> 24);
-    SD_SPI_WRITE_BYTE(arg >> 16);
-    SD_SPI_WRITE_BYTE(arg >> 8);
-    SD_SPI_WRITE_BYTE(arg);
-    SD_SPI_WRITE_BYTE(crc_end); /* Valid or dummy CRC plus stop bit */
+    sd_spi_write_byte(cmd);
+    sd_spi_write_byte(arg >> 24);
+    sd_spi_write_byte(arg >> 16);
+    sd_spi_write_byte(arg >> 8);
+    sd_spi_write_byte(arg);
+    sd_spi_write_byte(crc_end); /* Valid or dummy CRC plus stop bit */
 
     //! The command response time is 0 to 8 bytes for SDC, 1 to 8 bytes for MMC. */
     for (i = 8; i; i--) {
-        wR1 = SD_SPI_READ_BYTE();
+        wR1 = sd_spi_read_byte();
         if (wR1 != 0xFF) {
             break;   /* received valid response */
         }
@@ -314,7 +321,7 @@ static uint32_t spi_sd_send_cmd(uint8_t cmd, uint32_t arg, uint8_t *pchResp, uin
     /* Read remaining bytes after R1 response */
     if (pchResp && len) {
         do {
-            *pchResp++ = SD_SPI_READ_BYTE ();
+            *pchResp++ = sd_spi_read_byte ();
         } while (--len);
     }
     
@@ -346,11 +353,11 @@ bool spi_sd_card_detect(void)
 //    /* Before reset, Send at least 74 clocks at low frequency 
 //    (between 100kHz and 400kHz) with CS high and DI (MISO) high. */
 //    for (uint32_t i = 0; i < 10; i++) {
-//        SD_SPI_WRITE_BYTE(0xFF);
+//        sd_spi_write_byte(0xFF);
 //    }
     
     //! The CS signal must be kept low during a transaction
-    SD_SPI_CS_CLR();
+    sd_spi_cs_clr();
     
     wR1 = spi_sd_send_cmd(SD_CMD_CMD0, 0, NULL, 0);
     if (wR1 != SD_R1_IDLE_STATE_MSK) {
@@ -422,11 +429,11 @@ bool spi_sd_card_detect(void)
         }
     }
     
-    SD_SPI_CS_SET();
+    sd_spi_cs_set();
     return true;
 
 __CARD_DETECT_FAULT_EXIT:
-    SD_SPI_CS_SET();
+    sd_spi_cs_set();
     return false;
 }
 
@@ -439,7 +446,7 @@ static bool spi_sd_read_data(uint8_t *buf, uint32_t len)
     //! Read data token (0xFE)
 	SD_TIME_SET(1000);
 	do {							
-		chByte = SD_SPI_READ_BYTE();
+		chByte = sd_spi_read_byte();
         if (chByte == 0xFE) {
             break;
         }
@@ -450,16 +457,16 @@ static bool spi_sd_read_data(uint8_t *buf, uint32_t len)
 
     //! Read data block
     for (i = 0; i < len; i++) {
-        chByte = SD_SPI_READ_BYTE();
+        chByte = sd_spi_read_byte();
         buf[i] = chByte;
-        hwCRC = SD_CRC16_CALCULATOR(hwCRC, chByte);
+        hwCRC = sd_crc16_calculator(hwCRC, chByte);
     }
 
     //! 2 bytes CRC 
-    chByte = SD_SPI_READ_BYTE();
-    hwCRC = SD_CRC16_CALCULATOR(hwCRC, chByte);
-    chByte = SD_SPI_READ_BYTE();
-    hwCRC = SD_CRC16_CALCULATOR(hwCRC, chByte);
+    chByte = sd_spi_read_byte();
+    hwCRC = sd_crc16_calculator(hwCRC, chByte);
+    chByte = sd_spi_read_byte();
+    hwCRC = sd_crc16_calculator(hwCRC, chByte);
     //! hwCRC shuld be 0.
 
     return true;
@@ -470,19 +477,19 @@ static bool spi_sd_write_data(const uint8_t *buf, uint8_t tkn, uint32_t len)
     uint32_t i;
     
     /* Send Start Block Token */
-    SD_SPI_WRITE_BYTE(tkn);
+    sd_spi_write_byte(tkn);
 
     /* Send data block */
     for (i = 0; i < len; i++) {
-        SD_SPI_WRITE_BYTE(buf[i]);
+        sd_spi_write_byte(buf[i]);
     }
 
     /* Send 2 bytes dummy CRC */
-    SD_SPI_WRITE_BYTE(0xFF);
-    SD_SPI_WRITE_BYTE(0xFF);
+    sd_spi_write_byte(0xFF);
+    sd_spi_write_byte(0xFF);
 
     /* Read data response to check if the data block has been accepted. */
-    if ((SD_SPI_READ_BYTE() & SD_SPI_DATA_RESP_TOKEN_STATUS_MSK)
+    if ((sd_spi_read_byte() & SD_SPI_DATA_RESP_TOKEN_STATUS_MSK)
     != SD_SPI_DATA_RESP_TOKEN_STATUS_ACCEPTED) {
         return false; /* write error */
     }
@@ -496,31 +503,31 @@ bool spi_sd_get_card_info(void)
     uint8_t chBuf[16];
     
     /* Read CID */
-    SD_SPI_CS_CLR();
+    sd_spi_cs_clr();
     wR1 = spi_sd_send_cmd(SD_CMD_SEND_CID, 0, NULL, 0);
     if (0 != wR1) {
-        SD_SPI_CS_SET();
+        sd_spi_cs_set();
         return false;
     }
     if (!spi_sd_read_data(chBuf, 16)) {
-        SD_SPI_CS_SET();
+        sd_spi_cs_set();
         return false;
     }
-    SD_SPI_CS_SET();
+    sd_spi_cs_set();
     //! paser CID here.
 
     /* Read CSD */
-    SD_SPI_CS_CLR();
+    sd_spi_cs_clr();
     wR1 = spi_sd_send_cmd(SD_CMD_SEND_CSD, 0, NULL, 0);
     if (0 != wR1) {
-        SD_SPI_CS_SET();
+        sd_spi_cs_set();
         return false;
     }
     if (!spi_sd_read_data(chBuf, 16)) {
-        SD_SPI_CS_SET();
+        sd_spi_cs_set();
         return false;
     }
-    SD_SPI_CS_SET();
+    sd_spi_cs_set();
     //! paser CSD here.
 
     return true;
@@ -537,7 +544,7 @@ bool spi_sd_read_blocks(uint32_t block, uint8_t *buf, uint32_t cnt)
     }
 
     //! The CS signal must be kept low during a transaction.
-    SD_SPI_CS_CLR();
+    sd_spi_cs_clr();
     
     if (cnt > 1) {  /* Read multiple block */
         wR1 = spi_sd_send_cmd(SD_CMD_READ_MULT_BLOCK, block, NULL, 0);
@@ -566,7 +573,7 @@ bool spi_sd_read_blocks(uint32_t block, uint8_t *buf, uint32_t cnt)
         }
     }
 
-    SD_SPI_CS_SET();
+    sd_spi_cs_set();
     return bRetVal;
 }
 
@@ -582,7 +589,7 @@ bool spi_sd_write_blocks(uint32_t block, const uint8_t *buf, uint32_t cnt)
     }
 
     //! The CS signal must be kept low during a transaction.
-    SD_SPI_CS_CLR();
+    sd_spi_cs_clr();
     
     if (cnt > 1) { /* write multiple block */
         wR1 = spi_sd_send_cmd(SD_CMD_WRITE_MULT_BLOCK, block, NULL, 0);
@@ -595,7 +602,7 @@ bool spi_sd_write_blocks(uint32_t block, const uint8_t *buf, uint32_t cnt)
                 /* Wait for wirte complete. */
                 SD_TIME_SET(1000);
                 do {
-                    recv = SD_SPI_READ_BYTE();
+                    recv = sd_spi_read_byte();
                     if (recv == 0xFF) {
                         break;
                     }
@@ -611,7 +618,7 @@ bool spi_sd_write_blocks(uint32_t block, const uint8_t *buf, uint32_t cnt)
             if (!cnt) {
                 spi_sd_send_cmd(SD_CMD_STOP_TRANSMISSION, 0, NULL, 0);
             } else {
-                SD_SPI_WRITE_BYTE(0xFD);
+                sd_spi_write_byte(0xFD);
             }
         
             /* Wait for complete */
@@ -627,7 +634,7 @@ bool spi_sd_write_blocks(uint32_t block, const uint8_t *buf, uint32_t cnt)
                 /* Wait for wirte complete. */
                 SD_TIME_SET(4000);
                 do {
-                    recv = SD_SPI_READ_BYTE();
+                    recv = sd_spi_read_byte();
                     if (recv == 0xFF) {
                         break;
                     }
@@ -641,7 +648,7 @@ bool spi_sd_write_blocks(uint32_t block, const uint8_t *buf, uint32_t cnt)
         }
     }
 
-    SD_SPI_CS_SET();
+    sd_spi_cs_set();
     return bRetVal;
 }
 
@@ -664,7 +671,7 @@ bool spi_sd_erase_blocks(uint32_t block, uint32_t cnt)
     }
     
     //! The CS signal must be kept low during a transaction.
-    SD_SPI_CS_CLR();
+    sd_spi_cs_clr();
     
     do {
         wR1 = spi_sd_send_cmd(SD_CMD_ERASE_WR_BLK_START_ADDR, wStart, NULL, 0);
@@ -685,7 +692,7 @@ bool spi_sd_erase_blocks(uint32_t block, uint32_t cnt)
         //! Wait for wirte complete.
         SD_TIME_SET(1000);
         do {
-            recv = SD_SPI_READ_BYTE();
+            recv = sd_spi_read_byte();
             if (recv == 0xFF) {
                 break;
             }
@@ -695,7 +702,7 @@ bool spi_sd_erase_blocks(uint32_t block, uint32_t cnt)
         }
     } while (0);
     
-    SD_SPI_CS_SET();
+    sd_spi_cs_set();
     return bRetVal;
 }
 
