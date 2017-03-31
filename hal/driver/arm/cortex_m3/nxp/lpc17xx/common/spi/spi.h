@@ -107,8 +107,8 @@ DEF_INTERFACE(i_spi_t)
     bool (*Open)(void);                         //!< open spi
     bool (*Close)(void);                        //!< close spi
     bool (*Idle)(void);                         //!< get busy flag status
-    bool (*Write)(uint16_t hwOut);              //!< write data to spi buffer
-    bool (*Read)(uint16_t *phwIn);              //!< read data from spi buffer
+    bool (*Write)(uint16_t Data);              //!< write data to spi buffer
+    bool (*Read)(uint16_t *pData);              //!< read data from spi buffer
 END_DEF_INTERFACE(i_spi_t)
 //! @}
 
@@ -122,8 +122,8 @@ extern const i_spi_t SPI[SPI_COUNT];
 MREPEAT(SPI_COUNT, __EXTERN_SPI_INTERFACE, NULL)
 
 extern bool spi_config(spi_cfg_t *ptSpiCfg);
-extern bool spi_write(uint16_t hwOut);
-extern bool spi_read(uint16_t *phwIn);
+extern bool spi_write(uint16_t Data);
+extern bool spi_read(uint16_t *pData);
 extern bool spi_enable(void);
 extern bool spi_disable(void);
 

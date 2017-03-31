@@ -381,7 +381,8 @@ static bool uart_config(uint32_t wUsart, uart_cfg_t *ptUsartCFG)
             if (!(hwMode & UART_DISABLE_FIFO)) {
                 ptREG->FCR =  UART_FCR_FIFO_EN_MSK      | 
                                             UART_FCR_RX_FIFO_RS_MSK   |
-                                            UART_FCR_TX_FIFO_RS_MSK;
+                                            UART_FCR_TX_FIFO_RS_MSK |
+                                                (0x02u << 6);
             }
 
             //! parity configuration

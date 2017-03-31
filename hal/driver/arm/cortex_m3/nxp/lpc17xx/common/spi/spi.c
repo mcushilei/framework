@@ -404,6 +404,7 @@ bool spi_config(spi_cfg_t *ptSpiCfg)
 
     uint32_t wStatus   = PM_POWER_GET_STATUS(PCONP_SPI);
     PM_POWER_ENABLE(PCONP_SPI);
+    
         spi_reg_t *ptREG = &SPI_REG;
 
         //!  read SPCR register
@@ -452,6 +453,7 @@ bool spi_config(spi_cfg_t *ptSpiCfg)
             wTemp += 1;
         }
         ptREG->SPCCR = wTemp;
+        
     PM_POWER_RESUME(PCONP_SPI, wStatus);
 
     return true;

@@ -15,9 +15,8 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-
-#ifndef __REG_GPIO_H__
-#define __REG_GPIO_H__
+#ifndef __DRIVER_LPC17XX_REG_GPIO_H__
+#define __DRIVER_LPC17XX_REG_GPIO_H__
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/

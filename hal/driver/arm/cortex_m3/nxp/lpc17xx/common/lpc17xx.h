@@ -115,64 +115,6 @@ typedef struct
       reg32_t RICOUNTER;
 } rit_reg_t;
 
-/*------------- Real-Time Clock (RTC) ----------------------------------------*/
-/** @brief  Real-Time Clock (RTC) register structure definition */
-typedef struct
-{
-    reg8_t  ILR;
-       uint8_t  RESERVED0[7];
-    reg8_t  CCR;
-       uint8_t  RESERVED1[3];
-    reg8_t  CIIR;
-       uint8_t  RESERVED2[3];
-    reg8_t  AMR;
-       uint8_t  RESERVED3[3];
-      reg32_t CTIME0;
-      reg32_t CTIME1;
-      reg32_t CTIME2;
-    reg8_t  SEC;
-       uint8_t  RESERVED4[3];
-    reg8_t  MIN;
-       uint8_t  RESERVED5[3];
-    reg8_t  HOUR;
-       uint8_t  RESERVED6[3];
-    reg8_t  DOM;
-       uint8_t  RESERVED7[3];
-    reg8_t  DOW;
-       uint8_t  RESERVED8[3];
-      reg16_t DOY;
-       uint16_t RESERVED9;
-    reg8_t  MONTH;
-       uint8_t  RESERVED10[3];
-      reg16_t YEAR;
-       uint16_t RESERVED11;
-      reg32_t CALIBRATION;
-      reg32_t GPREG0;
-      reg32_t GPREG1;
-      reg32_t GPREG2;
-      reg32_t GPREG3;
-      reg32_t GPREG4;
-    reg8_t  RTC_AUXEN;
-       uint8_t  RESERVED12[3];
-    reg8_t  RTC_AUX;
-       uint8_t  RESERVED13[3];
-    reg8_t  ALSEC;
-       uint8_t  RESERVED14[3];
-    reg8_t  ALMIN;
-       uint8_t  RESERVED15[3];
-    reg8_t  ALHOUR;
-       uint8_t  RESERVED16[3];
-    reg8_t  ALDOM;
-       uint8_t  RESERVED17[3];
-    reg8_t  ALDOW;
-       uint8_t  RESERVED18[3];
-      reg16_t ALDOY;
-       uint16_t RESERVED19;
-    reg8_t  ALMON;
-       uint8_t  RESERVED20[3];
-      reg16_t ALYEAR;
-       uint16_t RESERVED21;
-} rtc_reg_t;
 
 /*------------- Analog-to-Digital Converter (ADC) ----------------------------*/
 /** @brief  Analog-to-Digital Converter (ADC) register structure definition */
@@ -607,7 +549,6 @@ typedef struct
 #define RIT_REG                 (*(rit_reg_t       *) RIT_BASE      )
 #define PWM1_REG                (*(pwm_reg_t       *) PWM1_BASE     )
 #define I2S_REG                 (*(i2s_reg_t       *) I2S_BASE      )
-#define RTC_REG                 (*(rtc_reg_t       *) RTC_BASE      )
 #define ADC_REG                 (*(adc_reg_t       *) ADC_BASE      )
 #define DAC_REG                 (*(dac_reg_t       *) DAC_BASE      )
 #define CANAF_RAM_REG           (*(canaf_ram_reg_t *) CANAF_RAM_BASE)

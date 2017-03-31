@@ -113,6 +113,7 @@ typedef enum {
 #define I2C0_BASE_ADDRESS               (0x4001C000ul)
 #define I2C1_BASE_ADDRESS               (0x4005C000ul)
 #define I2C2_BASE_ADDRESS               (0x400A0000ul)
+#define RTC_BASE_ADDRESS                (0x40024000ul)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
