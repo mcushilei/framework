@@ -240,13 +240,17 @@ uint32_t string_len(const uint8_t *s)
 
 bool string_cmp(const uint8_t *s1, const uint8_t *s2)
 {
-    if (s1 && s2) {
-        while (*s1 || *s2) {
+    if ((*s1 == '\0') && (*s2 == '\0')) {
+        return false;
+    }
+    
+    if (*s1 && *s2) {
+        while (*s1 && *s2) {
             if (*s1++ != *s2++) {
                 return true;
             }
         }
-    } else if (s1 || s2) {
+    } else {
         return true;
     }
 
