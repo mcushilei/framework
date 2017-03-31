@@ -39,15 +39,6 @@
 #endif
 //! @}
 
-//! ALU integer width in byte
-# define INTEGER_BYTE_SIZE          4
-
-//! \brief The mcu memory align mode
-# define MEM_ALIGN_SIZE             INTEGER_BYTE_SIZE
-
-//! \brief The mcu memory endian mode
-# define __BIG_ENDIAN__             0
-
 //! anonymous struct
 #if     __IS_COMPILER_MDK__
     #pragma anon_unions

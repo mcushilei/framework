@@ -34,15 +34,6 @@
 #endif
 //! @}
 
-//! ALU integer width in byte
-#define INTEGER_SIZE                4
-
-//! \brief The mcu memory align mode
-#define MEM_ALIGN_SIZE              INTEGER_SIZE
-
-//! \brief The mcu memory endian mode
-#define __BIG_ENDIAN__              false
-
 //! \brief none standard memory types
 #if     __IS_COMPILER_VS__
 #   define NO_INIT          
