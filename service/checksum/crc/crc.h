@@ -23,7 +23,24 @@
 #include ".\app_cfg.h"
 
 /*============================ MACROS ========================================*/
-#define CRC32_IEEE802_3_CHECKSUM_INIT   (0xFFFFFFFFul)
+#define CRC7_POLY_TELECOM       (0x09)
+
+#define CRC8_POLY_STAND         (0xD5)
+#define CRC8_POLY_CCITT         (0x07)
+#define CRC8_POLY_DALLAS_MAXIM  (0x31)
+#define CRC8_POLY_SAE_J1850     (0x1D)
+#define CRC8_POLY_WCDMA         (0x9B)
+
+#define CRC16_POLY_ARINC        (0xA02B)
+#define CRC16_POLY_CCITT        (0x1021)
+#define CRC16_POLY_CDMA2000     (0xC867)
+#define CRC16_POLY_DECT         (0x0589)
+#define CRC16_POLY_T10_DIF      (0x8BB7)
+#define CRC16_POLY_DNP          (0x3D65)
+#define CRC16_POLY_IBM          (0x8005)
+
+#define CRC32_POLY_IEEE802_3    (0x04C11DB7u)
+
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define CRC7(__CRCVAL, __NEWCHAR)       crc7_calculator(CRC7_POLY, (__CRCVAL), (__NEWCHAR))
