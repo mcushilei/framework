@@ -16,70 +16,28 @@
 *******************************************************************************/
 
 
-#ifndef __KERNEL_OS_H__
-#define __KERNEL_OS_H__
+#ifndef __WINDOWS_API_OS_H__
+#define __WINDOWS_API_OS_H__
 
 /*============================ INCLUDES ======================================*/
-#include ".\source\os.h"
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <Windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#pragma comment(lib, "Ws2_32.lib")
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 /*============================ MACROS ========================================*/
-#define INFINITE                            (0ul)
-
-
-#define OS_CRITICAL_TYPE                    uint8_t
-#define OS_CRITICAL_INIT(__CRITICAL)        
-#define OS_CRITICAL_DEINIT(__CRITICAL)      
-#define OS_CRITICAL_ENTER(__CRITICAL)       OS_ENTER_CRITICAL(__CRITICAL)
-#define OS_CRITICAL_EXIT(__CRITICAL)        OS_EXIT_CRITICAL(__CRITICAL)
-
-
-#define OS_MUTEX_TYPE                       OS_HANDLE
-
-#define OS_MUTEX_CREATE(__MUTEX, __OWNER) do {\
-                osMutexCreate(&__MUTEX);\
-            } while (0)
-
-#define OS_MUTEX_DELETE(__MUTEX) do {\
-                osMutexDelete(__MUTEX, OS_DEL_ALWAYS);\
-            } while (0)
-
-#define OS_MUTEX_WAIT(__MUTEX, __TIME, __RES)  do {\
-                osMutexPend(__MUTEX, __TIME);\
-            } while (0)
-
-#define OS_MUTEX_RELEASE(__MUTEX)   do {\
-                osMutexPost(__MUTEX);\
-            } while (0)
-
-
-#define OS_FLAG_TYPE                        OS_HANDLE
-
-#define OS_FLAG_CREATE(__EVENT, __BMANUAL, __BINITVAL) do {\
-                osFlagCreate(&__EVENT, __BINITVAL, __BMANUAL);\
-            } while (0)
-
-#define OS_FLAG_DELETE(__EVENT)    do {\
-                osFlagDelete(__EVENT, OS_DEL_ALWAYS);\
-            } while (0)
-
-#define OS_FLAG_SET(__EVENT)   do {\
-                osFlagSet(__EVENT);\
-            } while (0)
-
-#define OS_FLAG_RESET(__EVENT) do {\
-                osFlagReset(__EVENT);\
-            } while (0)
-
-#define OS_FLAG_WAIT(__EVENT, __TIME, __RES) do {\
-                __RES = osFlagPend(__EVENT, __TIME);\
-            } while (0)
-
- 
-#define OS_TIME_GET()                   OSTimeGet()
-
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
+/*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
 
 #endif
