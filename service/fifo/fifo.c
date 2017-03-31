@@ -165,47 +165,47 @@ bool fifo8_out(void *fifoObj, uint8_t *pBuffer)
     return true;
 }
 
-//bool fifo8_in_burst(void *fifoObj, const uint8_t *pBuffer, __fifo_uint_t Size)
+//__fifo_uint_t fifo8_in_burst(void *fifoObj, const uint8_t *pBuffer, __fifo_uint_t bufferSize)
 //{
 //    CLASS(fifo_t) *FIFO = (CLASS(fifo_t) *)fifoObj;
 //    __fifo_uint_t L1, L2;
 //
 //    if (NULL == FIFO || NULL == pBuffer) {
-//        return false;
+//        return 0;
 //    }
 //
 //    L1 = FIFO->fifoSize - (FIFO->In - FIFO->Out);
 //    L2 = FIFO->fifoSize - (FIFO->In & (FIFO->fifoSize - 1u));
 //    if (L1 == 0u) {     //!< fifo is full.
-//        return false;
+//        return 0;
 //    }
 //
-//    L1 = MIN(Size, L1); //!< all those without data, include back around
+//    L1 = MIN(bufferSize, L1); //!< all those without data, include back around
 //    L2 = MIN(L1, L2);   //!< those can be access at once.
 //
 //    memcpy(FIFO->pBuffer + (FIFO->In & (FIFO->fifoSize - 1u)), pBuffer, L2);
 //    memcpy(FIFO->pBuffer, pBuffer + L2, L1 - L2);
 //    FIFO->In += L1;
 //
-//    return true;
+//    return L1;
 //}
 //
-//bool fifo8_out_burst(void *fifoObj, uint8_t *pBuffer, __fifo_uint_t Size)
+//__fifo_uint_t fifo8_out_burst(void *fifoObj, uint8_t *pBuffer, __fifo_uint_t bufferSize)
 //{
 //    CLASS(fifo_t) *FIFO = (CLASS(fifo_t) *)fifoObj;
 //    __fifo_uint_t L1, L2;
 //
 //    if (NULL == FIFO) {
-//        return false;
+//        return 0;
 //    }
 //
 //    L1 = FIFO->In - FIFO->Out;
 //    L2 = FIFO->fifoSize - (FIFO->Out & (FIFO->fifoSize - 1u));
 //    if (L1 == 0u) {     //!< fifo is empty.
-//        return false;
+//        return 0;
 //    }
 //
-//    L1 = MIN(Size, L1); //!< all those with data, include back around
+//    L1 = MIN(bufferSize, L1); //!< all those with data, include back around
 //    L2 = MIN(L1, L2);   //!< those can be access at once.
 //
 //    if (NULL != pBuffer) {
@@ -214,7 +214,7 @@ bool fifo8_out(void *fifoObj, uint8_t *pBuffer)
 //    }
 //    FIFO->Out += L1;
 //
-//    return true;
+//    return L1;
 //}
 
 /* EOF */
