@@ -24,13 +24,14 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef void fn_softtimer_handler_t(uint8_t Timer);
+typedef void timer_routine_t(void *pArg);
 
 DEF_STRUCTURE(softtimer_t)
     uint32_t        Count;
     uint32_t        Reload;
     uint8_t         Flag;
-    fn_softtimer_handler_t *pHandler;
+    timer_routine_t *pRoutine;
+    void            *pRoutineArg;
 END_DEF_STRUCTURE(softtimer_t)
 
 /*============================ PROTOTYPES ====================================*/
@@ -42,14 +43,16 @@ static softtimer_t  softTimers[SOFTTIMER_MAX_TIMERS];
 void softtimer_init(uint8_t     Timer,
                     uint32_t    Value,
                     uint32_t    Reload,
-                    fn_softtimer_handler_t *pHandler)
+                    timer_routine_t *pRoutine,
+                    void            *pArg)
 {
     if (Timer < SOFTTIMER_MAX_TIMERS) {
     __SOFTTIMER_SAFE_ATOME_CODE(
         softTimers[Timer].Count  = Value;
         softTimers[Timer].Reload = Reload;
         softTimers[Timer].Flag   = 0;
-        softTimers[Timer].pHandler = pHandler;
+        softTimers[Timer].pRoutine = pRoutine;
+        softTimers[Timer].pRoutineArg = pArg;
     )
     }
 }
@@ -65,8 +68,8 @@ void softtimer_tick(void)
             if (softTimers[n].Count == 0) {
                 softTimers[n].Flag = 1;
                 softTimers[n].Count = softTimers[n].Reload;
-                if (softTimers[n].pHandler != NULL) {
-                    softTimers[n].pHandler(n);
+                if (softTimers[n].pRoutine != NULL) {
+                    softTimers[n].pRoutine(softTimers[n].pRoutineArg);
                 }
             }
         }

@@ -26,13 +26,14 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef void fn_softtimer_handler_t(uint8_t Timer);
+typedef void timer_routine_t(void *pArg);
 
 DEF_STRUCTURE(softtimer_t)
-    uint32_t        Reload;
     uint32_t        Count;
+    uint32_t        Reload;
     uint8_t         Flag;
-    fn_softtimer_handler_t *pHandler;
+    timer_routine_t *pRoutine;
+    void            *pRoutineArg;
 END_DEF_STRUCTURE(softtimer_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
@@ -40,7 +41,8 @@ END_DEF_STRUCTURE(softtimer_t)
 void softtimer_init(uint8_t     Timer,
                     uint32_t    Value,
                     uint32_t    Reload,
-                    fn_softtimer_handler_t *pHandler);
+                    timer_routine_t *pRoutine,
+                    void            *pArg);
 void softtimer_tick(void);
 void softtimer_start(uint8_t Timer, uint32_t Value);
 void softtimer_stop(uint8_t Timer);
