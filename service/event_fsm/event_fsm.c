@@ -76,10 +76,11 @@ static fn_event_state_t *event_fsm_get_current_state(event_fsm_t *EFSM)
 bool event_fsm_transfer_to_current(event_fsm_t *EFSM)
 {
     EFSM->SP = EFSM->CurrentSP;             //!< POP stack to current level.
+    
     return true;
 }
 
-//! transfer to specified state that locate in the same level(This is called in current level obviously).
+//! transfer to specified state that locate in the same level wihtout level change.(This is called in current level obviously).
 bool event_fsm_current_transfer_to(event_fsm_t *EFSM, fn_event_state_t *State)
 {
     EFSM->Stack[EFSM->CurrentSP] = State;   //!< transfer to State.
@@ -88,10 +89,11 @@ bool event_fsm_current_transfer_to(event_fsm_t *EFSM, fn_event_state_t *State)
 }
 
 //! transfer to specified state that locate in the same level(This is called in current level obviously).
+//! This function is eaually call event_fsm_transfer_to_current and then event_fsm_current_transfer_to.
 bool event_fsm_transfer_to(event_fsm_t *EFSM, fn_event_state_t *State)
 {
     EFSM->SP = EFSM->CurrentSP;             //!< POP stack to current level.
-    EFSM->Stack[EFSM->CurrentSP] = State;   //!< transfer to State.
+    EFSM->Stack[EFSM->SP] = State;          //!< transfer to State.
     
     return true;
 }
@@ -103,10 +105,9 @@ bool event_fsm_transfer_to_uper(event_fsm_t *EFSM, fn_event_state_t *State)
         return false;
     }
 
-    //! PUSH stack.
     EFSM->CurrentSP++;
-    EFSM->SP = EFSM->CurrentSP;
-    EFSM->Stack[EFSM->SP] = State;
+    EFSM->SP = EFSM->CurrentSP;             //!< POP stack to current level.
+    EFSM->Stack[EFSM->SP] = State;          //!< transfer to State.
     
     return true;
 }
@@ -114,15 +115,17 @@ bool event_fsm_transfer_to_uper(event_fsm_t *EFSM, fn_event_state_t *State)
 //! transfer to specified state that locate in a lower level.
 bool event_fsm_transfer_to_lower(event_fsm_t *EFSM, fn_event_state_t *State)
 {
-    if (EFSM->CurrentSP == 0) {     //!< avoid overflow.
+    if (EFSM->CurrentSP == 0) {             //!< avoid overflow.
         return false;
     }
     
     //! POP stack.
     EFSM->CurrentSP--;
-    EFSM->SP = EFSM->CurrentSP;
+    EFSM->SP = EFSM->CurrentSP;             //!< POP stack to current level.
     if (State != NULL) {
-        EFSM->Stack[EFSM->SP] = State;
+        EFSM->Stack[EFSM->SP] = State;      //!< transfer to specified state.
+    } else {
+                                            //!< no state transfer.
     }
     
     return true;
