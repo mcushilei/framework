@@ -25,7 +25,7 @@
 /*============================ MACROS ========================================*/
 #define FSM_TASK            fsm_tcb_t *
 #define FSM_TASK_STACK      task_stack_t
-#define FSM_OBJ_EVENT       fsm_event_t *
+#define FSM_OBJ_EVENT       fsm_flag_t *
 #define FSM_OBJ_MUTEX       fsm_mutex_t *
 #define FSM_OBJ_SEMAPHORE   fsm_semaphore_t *
 #define FSM_OBJ             void *
@@ -77,20 +77,20 @@
 #endif      //! #if SAFE_TASK_THREAD_SYNC == ENABLED
 
 
-//! \brief initialize a task event item
+//! \brief initialize a task flag item
 #define FSM_CREATE_EVENT(__PEVENT, __MANUAL_RESET, __INITIAL_STATE)    \
-            fsm_event_create(&(__PEVENT),(__MANUAL_RESET), (__INITIAL_STATE))
+            fsm_flag_create(&(__PEVENT),(__MANUAL_RESET), (__INITIAL_STATE))
 
-//! \brief set task event to active state
+//! \brief set task flag to active state
 #define FSM_SET_EVENT(__EVENT)                   \
-            fsm_event_set((__EVENT))
+            fsm_flag_set((__EVENT))
 
-//! \brief reset task event to inactive state
+//! \brief reset task flag to inactive state
 #define FSM_RESET_EVENT(__EVENT)                 \
-            fsm_event_reset((__EVENT))
+            fsm_flag_reset((__EVENT))
 
-#define FSM_CREATE_MUTEX(__PMUTEX, __INITIAL_OWN)\
-            fsm_mutex_create(&(__PMUTEX), __INITIAL_OWN)
+#define FSM_CREATE_MUTEX(__PMUTEX)\
+            fsm_mutex_create(&(__PMUTEX))
                 
 #define FSM_RELEASE_MUTEX(__PMUTEX)                \
             fsm_mutex_release(__PMUTEX)
@@ -132,15 +132,13 @@ extern void         fsm_time_tick       (void);
 #if SAFE_TASK_THREAD_SYNC == ENABLED
 extern uint_fast8_t fsm_wait_for_single_object(void *Object, uint32_t wTimeout);
 
-extern uint_fast8_t fsm_event_create        (
-                                            fsm_event_t **      pptEvent,
+extern uint_fast8_t fsm_flag_create        (
+                                            fsm_flag_t **      pptEvent,
                                             bool                bManualReset,
                                             bool                bInitialState);
-extern uint_fast8_t fsm_event_set           (fsm_event_t *      ptEvent);
-extern uint_fast8_t fsm_event_reset         (fsm_event_t *      ptEvent);
-extern uint_fast8_t fsm_mutex_create        (
-                                            fsm_mutex_t **      pptMutex,
-                                            bool                bInitialOwner);
+extern uint_fast8_t fsm_flag_set           (fsm_flag_t *      ptEvent);
+extern uint_fast8_t fsm_flag_reset         (fsm_flag_t *      ptEvent);
+extern uint_fast8_t fsm_mutex_create        (fsm_mutex_t **     pptMutex);
 extern uint_fast8_t fsm_mutex_release       (fsm_mutex_t *      ptMutex);
 extern uint_fast8_t fsm_semaphore_create    (
                                             fsm_semaphore_t **  pptSem,

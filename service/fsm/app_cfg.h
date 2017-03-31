@@ -27,7 +27,7 @@
 /*============================ MACROS ========================================*/
 #define SAFE_TASK_THREAD_SYNC   ENABLED
 #define FSM_MAX_TASKS           (8u)
-#define FSM_MAX_EVENTS          (4u)
+#define FSM_MAX_FLAGS           (4u)
 #define FSM_MAX_MUTEXES         (4u)
 #define FSM_MAX_SEMS            (4u)
 

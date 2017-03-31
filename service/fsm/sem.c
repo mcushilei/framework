@@ -70,7 +70,7 @@ uint_fast8_t fsm_semaphore_create(
     //!< get OCB from pool.
     if (NULL == sptSemtList) {
         *pptSem = NULL;
-        return FSM_ERR_OBJ_NO_MORE_OCB;
+        return FSM_ERR_OBJ_DEPLETED;
     }
     
     ptSem        = sptSemtList;
@@ -99,7 +99,7 @@ uint_fast8_t fsm_semaphore_release(fsm_semaphore_t *ptSem, uint16_t hwReleaseCou
     }
     
     if (ptSem->ObjType != FSM_OBJ_TYPE_SEM) {
-        return FSM_ERR_OBJ_TYPE_MISMATCHED;
+        return FSM_ERR_OBJ_TYPE;
     }
     
     SAFE_ATOM_CODE(

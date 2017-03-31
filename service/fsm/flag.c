@@ -25,62 +25,61 @@
 #if SAFE_TASK_THREAD_SYNC == ENABLED
 
 /*============================ MACROS ========================================*/
-#if ((!defined(FSM_MAX_EVENTS)) || (FSM_MAX_EVENTS < 1))
-#   define FSM_MAX_EVENTS           (1u)
-#   warning "FSM_MAX_EVENTS is invalid, use default value 1."
+#if ((!defined(FSM_MAX_FLAGS)) || (FSM_MAX_FLAGS < 1))
+#   define FSM_MAX_FLAGS           (1u)
+#   warning "FSM_MAX_FLAGS is invalid, use default value 1."
 #endif
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
-static fsm_event_t   *sptEventList;              //! Head of event ocb pool
-static fsm_event_t    stEventPool[FSM_MAX_EVENTS];       //! event ocb pool
+static fsm_flag_t   *sptFlagFreeList;               //! Head of event ocb pool
+static fsm_flag_t    stFlagPool[FSM_MAX_FLAGS];    //! event ocb pool
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-void fsm_event_init(void)
+void fsm_flag_init(void)
 {
     uint_fast8_t n;
-    fsm_event_t **p;
+    fsm_flag_t **p;
 
-    MEM_SET_ZERO((void *)stEventPool, sizeof(stEventPool));
-    p = &sptEventList;
+    MEM_SET_ZERO((void *)stFlagPool, sizeof(stFlagPool));
+    p = &sptFlagFreeList;
     
     //! add event OCBs to the free list
-    for (n = 0; n < ARRAY_LENGTH(stEventPool); n++) {
-        *p = &stEventPool[n];
-        p = (fsm_event_t **)&((*p)->ObjNext);
+    for (n = 0; n < ARRAY_LENGTH(stFlagPool); n++) {
+        *p = &stFlagPool[n];
+        p = (fsm_flag_t **)&((*p)->ObjNext);
     }
 }
 
 /*! \brief initialize task event
- *! \param ptEvent event object
+ *! \param pFlag event object
  *! \param bManualReset flag that indicates whether the event should reset to 
  *!        inactived state automatically.
  *! \param bInitialState event initial state, either set or not.
  *! \return pointer for event object
  */
-uint_fast8_t fsm_event_create(
-          fsm_event_t **pptEvent,
-          bool bManualReset,
-          bool bInitialState)
+uint_fast8_t fsm_flag_create   (fsm_flag_t    **pptEvent,
+                                bool            bManualReset,
+                                bool            bInitialState)
 {
     uint8_t Flag;
-    fsm_event_t *ptEvent;
+    fsm_flag_t *pFlag;
     
     if (NULL == pptEvent) {
         return FSM_ERR_INVALID_PARAM;
     }
 
     //!< get OCB from pool.
-    if (NULL == sptEventList) {
+    if (NULL == sptFlagFreeList) {
         *pptEvent = NULL;
-        return FSM_ERR_OBJ_NO_MORE_OCB;
+        return FSM_ERR_OBJ_DEPLETED;
     }
     
-    ptEvent      = sptEventList;
-    sptEventList = (fsm_event_t *)ptEvent->ObjNext;
+    pFlag      = sptFlagFreeList;
+    sptFlagFreeList = (fsm_flag_t *)pFlag->ObjNext;
     
     Flag = 0;
     if (bManualReset) {
@@ -91,48 +90,48 @@ uint_fast8_t fsm_event_create(
     }
     
     SAFE_ATOM_CODE(
-        ptEvent->ObjType      = FSM_OBJ_TYPE_EVENT;
-        ptEvent->ObjNext      = NULL;
-        ptEvent->Head      = NULL;           
-        ptEvent->Tail      = NULL;
-        ptEvent->EventFlag    = Flag;   //!< set initial state
-        fsm_register_object(ptEvent);       //!< register object.
+        pFlag->ObjType      = FSM_OBJ_TYPE_FLAG;
+        pFlag->ObjNext      = NULL;
+        pFlag->Head      = NULL;           
+        pFlag->Tail      = NULL;
+        pFlag->EventFlag    = Flag;   //!< set initial state
+        fsm_register_object(pFlag);       //!< register object.
     )
-    *pptEvent = ptEvent;
+    *pptEvent = pFlag;
 
     return FSM_ERR_NONE;
 }
 
 /*! \brief set task event
- *! \param ptEvent pointer for task event
+ *! \param pFlag pointer for task event
  *! \return none
  */
-uint_fast8_t fsm_event_set(fsm_event_t *ptEvent) 
+uint_fast8_t fsm_flag_set  (fsm_flag_t    *pFlag) 
 {
-    if (NULL == ptEvent) {
+    if (NULL == pFlag) {
         return FSM_ERR_INVALID_PARAM;
     }
     
-    if (ptEvent->ObjType != FSM_OBJ_TYPE_EVENT) {
-        return FSM_ERR_OBJ_TYPE_MISMATCHED;
+    if (pFlag->ObjType != FSM_OBJ_TYPE_FLAG) {
+        return FSM_ERR_OBJ_TYPE;
     }
     
     SAFE_ATOM_CODE(
         fsm_tcb_t *pTask, *pNextTask;
         
-        ptEvent->EventFlag |= FSM_EVENT_SINGNAL_BIT;
-        if (ptEvent->Head != NULL) {
+        pFlag->EventFlag |= FSM_EVENT_SINGNAL_BIT;
+        if (pFlag->Head != NULL) {
             //! wake up all blocked tasks.
-            for (pTask = ptEvent->Head; NULL != pTask; pTask = pNextTask) {
+            for (pTask = pFlag->Head; NULL != pTask; pTask = pNextTask) {
                 pNextTask = pTask->Next;
                 fsm_set_task_ready(pTask);    //!< move task to ready list.
                 pTask->Object = NULL;
                 pTask->Status = FSM_TASK_STATUS_PEND_OK;
             }
-            ptEvent->Head = NULL;
-            ptEvent->Tail = NULL;
-            if (!(ptEvent->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
-                ptEvent->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
+            pFlag->Head = NULL;
+            pFlag->Tail = NULL;
+            if (!(pFlag->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
+                pFlag->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
             }
         }
     )
@@ -141,25 +140,25 @@ uint_fast8_t fsm_event_set(fsm_event_t *ptEvent)
 }
 
 /*! \brief reset specified task event
- *! \param ptEvent task event pointer
+ *! \param pFlag task event pointer
  *! \return none
  */
-uint_fast8_t fsm_event_reset(fsm_event_t *ptEvent)
+uint_fast8_t fsm_flag_reset(fsm_flag_t *pFlag)
 {
-    if (NULL == ptEvent) {
+    if (NULL == pFlag) {
         return FSM_ERR_INVALID_PARAM;
     }
     
-    if (ptEvent->ObjType != FSM_OBJ_TYPE_EVENT) {
-        return FSM_ERR_OBJ_TYPE_MISMATCHED;
+    if (pFlag->ObjType != FSM_OBJ_TYPE_FLAG) {
+        return FSM_ERR_OBJ_TYPE;
     }
     
-    if (!(ptEvent->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
+    if (!(pFlag->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
         return FSM_ERR_OPT_NOT_SUPPORT;
     }
 
     SAFE_ATOM_CODE(
-        ptEvent->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
+        pFlag->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
     )
         
     return FSM_ERR_NONE;

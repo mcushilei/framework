@@ -44,23 +44,23 @@ static bool         fsm_task_stack_push         (
                                                 void *              Arg);
 static bool         fsm_task_stack_pop          (fsm_tcb_t *        Task);
 static void         fsm_tcb_pool_init           (void);
-static fsm_tcb_t *  fsm_tcb_new                 (
+static fsm_tcb_t   *fsm_tcb_new                 (
                                                 state_func_t *      State,
                                                 void *              Arg,
                                                 task_stack_t * Stack,
                                                 uint_fast8_t        StackSize);
 static void         fsm_tcb_free                (fsm_tcb_t *        Task);
 
-extern void         fsm_event_init              (void);
+extern void         fsm_flag_init              (void);
 extern void         fsm_mutex_init              (void);
 extern void         fsm_semaphore_init          (void);
 
 /*============================ LOCAL VARIABLES ===============================*/
-static fsm_tcb_t *  sptTCBFreeList;             //! TCB
-static fsm_tcb_t    stTCBs[FSM_MAX_TASKS];      //! TCB pool
-static scheduler_t  stScheduler;
-static fsm_basis_obj_t *  sObjRegistedList;
-volatile uint8_t    gchFSMIntNesting;
+static fsm_tcb_t        *sptTCBFreeList;             //! TCB
+static fsm_tcb_t        stTCBs[FSM_MAX_TASKS];      //! TCB pool
+static scheduler_t      stScheduler;
+static fsm_basis_obj_t  *sObjRegistedList;
+volatile uint8_t        gchFSMIntNesting;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
@@ -492,20 +492,20 @@ uint_fast8_t fsm_wait_for_single_object(void *Object, uint32_t wTimeout)
         
         chResult = FSM_ERR_OBJ_NOT_SINGLED;
         switch (ObjType) {
-        case FSM_OBJ_TYPE_EVENT: {
-            fsm_event_t *ptEvent = (fsm_event_t *)Object;
+        case FSM_OBJ_TYPE_FLAG: {
+            fsm_flag_t *pFlag = (fsm_flag_t *)Object;
             SAFE_ATOM_CODE(
-                if (ptEvent->EventFlag & FSM_EVENT_SINGNAL_BIT) {
-                    if (!(ptEvent->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
-                        ptEvent->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
+                if (pFlag->EventFlag & FSM_EVENT_SINGNAL_BIT) {
+                    if (!(pFlag->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
+                        pFlag->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
                     }
                     chResult = FSM_ERR_NONE;
                 } else {
                     //! add task to the object's wait queue.
-                    Task->Object = (fsm_basis_obj_t *)ptEvent;
+                    Task->Object = (fsm_basis_obj_t *)pFlag;
                     Task->Delay   = wTimeout;
                     Task->Status = FSM_TASK_STATUS_PEND;
-                    fsm_task_enqueue(&(ptEvent->TaskQueue), Task);
+                    fsm_task_enqueue(&(pFlag->TaskQueue), Task);
                 }
             )
             break;
@@ -587,7 +587,7 @@ void fsm_init(void)
     gchFSMIntNesting = 0;
     fsm_tcb_pool_init();
     MEM_SET_ZERO((void *)&stScheduler, sizeof(stScheduler));
-    fsm_event_init();
+    fsm_flag_init();
     fsm_mutex_init();
     fsm_semaphore_init();
 }

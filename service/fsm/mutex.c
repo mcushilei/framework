@@ -39,7 +39,7 @@ static fsm_mutex_t    stMutexPool[FSM_MAX_MUTEXES];     //! Mutex ocb pool
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-void fsm_mutex_init(void)
+void        fsm_mutex_init      (void)
 {
     uint_fast8_t n;
     fsm_mutex_t **p;
@@ -54,9 +54,7 @@ void fsm_mutex_init(void)
     }
 }
 
-uint_fast8_t fsm_mutex_create(
-          fsm_mutex_t **pptMutex,
-          bool bInitialOwner)
+uint_fast8_t    fsm_mutex_create    (fsm_mutex_t  **pptMutex)
 {
     uint8_t Flag;
     fsm_mutex_t *ptMutex;
@@ -68,16 +66,13 @@ uint_fast8_t fsm_mutex_create(
     //!< get OCB from pool.
     if (NULL == sptMutexList) {
         *pptMutex = NULL;
-        return FSM_ERR_OBJ_NO_MORE_OCB;
+        return FSM_ERR_OBJ_DEPLETED;
     }
     
     ptMutex      = sptMutexList;
     sptMutexList = (fsm_mutex_t *)ptMutex->ObjNext;
     
     Flag = 0;
-    if (bInitialOwner) {
-        Flag |= FSM_MUTEX_OWNED_BIT;
-    }
     
     SAFE_ATOM_CODE(
         ptMutex->ObjType      = FSM_OBJ_TYPE_MUTEX;
@@ -99,7 +94,7 @@ uint_fast8_t fsm_mutex_release(fsm_mutex_t *ptMutex)
     }
     
     if (ptMutex->ObjType != FSM_OBJ_TYPE_MUTEX) {
-        return FSM_ERR_OBJ_TYPE_MISMATCHED;
+        return FSM_ERR_OBJ_TYPE;
     }
     
     SAFE_ATOM_CODE(

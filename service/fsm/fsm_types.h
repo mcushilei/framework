@@ -31,38 +31,37 @@
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef enum {
+enum {
     FSM_ERR_NONE            = 0,
     FSM_ERR_INVALID_PARAM,
-    FSM_ERR_OBJ_NO_MORE_OCB,
+    FSM_ERR_OBJ_DEPLETED,
     FSM_ERR_OBJ_NOT_SINGLED,
     FSM_ERR_OBJ_NOT_WAITABLE,
-    FSM_ERR_OBJ_TYPE_MISMATCHED,
+    FSM_ERR_OBJ_TYPE,
     FSM_ERR_OPT_NOT_SUPPORT,
     FSM_ERR_TASK_NO_MORE_TCB,
     FSM_ERR_TASK_PEND_TIMEOUT,
     FSM_ERR_TASK_STACK_FULL,
     FSM_ERR_PEND_ISR,
     FSM_ERR_SEM_EXCEED,
-} fsm_err_em_t;
+};
 
-typedef enum {
+enum {
     FSM_OBJ_TYPE_INVALID    = 0,
     FSM_OBJ_TYPE_TASK       = 0x01,
     FSM_OBJ_TYPE_WAITABLE   = 0x80,
-    FSM_OBJ_TYPE_EVENT      = 0x80,
+    FSM_OBJ_TYPE_FLAG       = 0x80,
     FSM_OBJ_TYPE_MUTEX      = 0x81,
     FSM_OBJ_TYPE_SEM        = 0x82,
-    FSM_OBJ_TYPE_TIMER      = 0x83,
-} fsm_obj_type_em_t;
+};
 
-typedef enum {
+enum {
     FSM_TASK_STATUS_INVALID = 0,
     FSM_TASK_STATUS_READY,
     FSM_TASK_STATUS_PEND,
     FSM_TASK_STATUS_PEND_OK,
     FSM_TASK_STATUS_PEND_TIMEOUT,
-} fsm_task_status_em_t;
+};
 
 typedef void state_func_t(void *Arg);
 
@@ -88,10 +87,10 @@ DEF_STRUCTURE(fsm_tcb_t)
 
     uint8_t             StackSize;      //!< stack size
     uint8_t             StackPoint;     //!< stack pointer
-    task_stack_t   *Stack;         //!< task call stack
+    task_stack_t       *Stack;         //!< task call stack
     
 #if SAFE_TASK_THREAD_SYNC == ENABLED
-    fsm_basis_obj_t     *Object;        //!< target event
+    fsm_basis_obj_t    *Object;        //!< target event
 #endif
 END_DEF_STRUCTURE(fsm_tcb_t)
 
@@ -108,10 +107,10 @@ DEF_STRUCTURE(fsm_waitable_obj_header_t)
     };
 END_DEF_STRUCTURE(fsm_waitable_obj_header_t)
 
-DEF_STRUCTURE(fsm_event_t)
+DEF_STRUCTURE(fsm_flag_t)
     fsm_waitable_obj_header_t;
     uint8_t             EventFlag;      //!< signal
-END_DEF_STRUCTURE(fsm_event_t)
+END_DEF_STRUCTURE(fsm_flag_t)
 
 DEF_STRUCTURE(fsm_mutex_t)
     fsm_waitable_obj_header_t;
