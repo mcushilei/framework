@@ -34,64 +34,119 @@
 /*============================ TYPES =========================================*/
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
-static fsm_semaphore_t   *sptSemtList;              //! Head of semaphore ocb pool
-static fsm_semaphore_t    stSemPool[FSM_MAX_SEMS];       //! semaphore ocb pool
+static fsm_semaphore_t   *fsmSemtList;              //! Head of semaphore ocb pool
+static fsm_semaphore_t    fsmSemPool[FSM_MAX_SEMS]; //! semaphore ocb pool
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
 void fsm_semaphore_init(void)
 {
-    uint_fast8_t n;
+    uint_fast16_t n;
     fsm_semaphore_t **p;
 
-    MEM_SET_ZERO((void *)stSemPool, sizeof(stSemPool));
-    p = &sptSemtList;
+    MEM_SET_ZERO((void *)fsmSemPool, sizeof(fsmSemPool));
+    p = &fsmSemtList;
     
     //! add semaphore OCBs to the free list
-    for (n = 0; n < ARRAY_LENGTH(stSemPool); n++) {
-        *p = &stSemPool[n];
+    for (n = 0; n < ARRAY_LENGTH(fsmSemPool); n++) {
+        *p = &fsmSemPool[n];
         p = (fsm_semaphore_t **)&((*p)->ObjNext);
     }
 }
 
-uint_fast8_t fsm_semaphore_create(
-          fsm_semaphore_t **pptSem,
-          uint16_t hwInitialCount,
-          uint16_t hwMaximumCount)
+fsm_err_t fsm_semaphore_create(
+          fsm_handle_t     *pptSem,
+          uint16_t          hwInitialCount)
 {
     fsm_semaphore_t *ptSem;
     
-    if ((NULL == pptSem)
-    ||  (0 == hwMaximumCount)
-    ||  (hwMaximumCount < hwInitialCount)) {
+    if (NULL == pptSem) {
         return FSM_ERR_INVALID_PARAM;
     }
     
+    if (fsmIntNesting != 0) {
+        return FSM_ERR_CREATE_ISR;
+    }
+    
     //!< get OCB from pool.
-    if (NULL == sptSemtList) {
+    if (NULL == fsmSemtList) {
         *pptSem = NULL;
         return FSM_ERR_OBJ_DEPLETED;
     }
     
-    ptSem        = sptSemtList;
-    sptSemtList = (fsm_semaphore_t *)ptSem->ObjNext;
+    ptSem        = fsmSemtList;
+    fsmSemtList = (fsm_semaphore_t *)ptSem->ObjNext;
     
     SAFE_ATOM_CODE(
         ptSem->ObjType      = FSM_OBJ_TYPE_SEM;
-        ptSem->ObjNext      = NULL;
-        ptSem->Head      = NULL;           
-        ptSem->Tail      = NULL;
+        ptSem->ObjFlag      = 0u;
+        ptSem->Head         = NULL;           
+        ptSem->Tail         = NULL;
         ptSem->SemCounter   = hwInitialCount; //!< set initial state
-        ptSem->SemMaximum   = hwMaximumCount; //!< set initial state
-        fsm_register_object(ptSem);             //!< register object.
     )
     *pptSem = ptSem;
 
     return FSM_ERR_NONE;
 }
 
-uint_fast8_t fsm_semaphore_release(fsm_semaphore_t *ptSem, uint16_t hwReleaseCount)
+/*! \brief  wait for a specified task event
+ *! \param  pObject target event item
+ *! \param  Task parasitifer task
+ *! \retval true event raised
+ *! \retval false event haven't raised yet.
+ */
+fsm_err_t fsm_semaphore_wait(fsm_handle_t hObject, uint32_t wTimeout)
 {
+    uint8_t     chResult;
+    uint8_t     ObjType;
+    fsm_tcb_t  *Task = fsmScheduler.CurrentTask;
+
+    if (NULL == hObject) {
+        return FSM_ERR_INVALID_PARAM;
+    }
+    
+    if (fsmIntNesting != 0) {
+        return FSM_ERR_PEND_ISR;
+    }
+    
+    if (Task->Status == FSM_TASK_STATUS_READY) {
+        ObjType = ((fsm_basis_obj_t *)hObject)->ObjType;
+        if (!(ObjType & FSM_OBJ_TYPE_WAITABLE)) {
+            return FSM_ERR_OBJ_NOT_WAITABLE;
+        }
+        if (ObjType != FSM_OBJ_TYPE_SEM) {
+            return FSM_ERR_OBJ_TYPE;
+        }
+        
+        chResult = FSM_ERR_OBJ_NOT_SINGLED;
+        fsm_semaphore_t *ptSem = (fsm_semaphore_t *)hObject;
+        SAFE_ATOM_CODE(
+            if (ptSem->SemCounter == 0) {
+                //! add task to the object's wait queue.
+                Task->Object = hObject;
+                Task->Delay  = wTimeout;
+                Task->Status = FSM_TASK_STATUS_PEND;
+                fsm_task_enqueue(&(ptSem->TaskQueue), Task);
+            } else {
+                ptSem->SemCounter--;
+                chResult = FSM_ERR_NONE;
+            }
+        )
+    } else if (Task->Status == FSM_TASK_STATUS_PEND_OK) {
+        Task->Status    = FSM_TASK_STATUS_READY;
+        Task->Delay     = 0;
+        chResult        = FSM_ERR_NONE;
+    } else if (Task->Status == FSM_TASK_STATUS_PEND_TIMEOUT) {
+        Task->Status    = FSM_TASK_STATUS_READY;
+        chResult        = FSM_ERR_TASK_PEND_TIMEOUT;
+    }
+
+    return chResult;
+}
+
+fsm_err_t fsm_semaphore_release(fsm_handle_t hObject, uint16_t hwReleaseCount)
+{
+    fsm_semaphore_t *ptSem = (fsm_semaphore_t *)hObject;
     uint8_t chError = FSM_ERR_NONE;
     
     if ((NULL == ptSem) || (0 == hwReleaseCount)) {
@@ -106,11 +161,9 @@ uint_fast8_t fsm_semaphore_release(fsm_semaphore_t *ptSem, uint16_t hwReleaseCou
     do {
         fsm_tcb_t *pTask, *pNextTask;
         
-        if ((ptSem->SemMaximum - ptSem->SemCounter) < hwReleaseCount) {
-            chError = FSM_ERR_SEM_EXCEED;
-            break;
+        if (hwReleaseCount <= (65535u - ptSem->SemCounter)) {
+            ptSem->SemCounter += hwReleaseCount;
         }
-        ptSem->SemCounter += hwReleaseCount;
         
         if (ptSem->Head != NULL) {
             //! wake up blocked tasks.

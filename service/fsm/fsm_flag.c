@@ -34,22 +34,22 @@
 /*============================ TYPES =========================================*/
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
-static fsm_flag_t   *sptFlagFreeList;               //! Head of event ocb pool
-static fsm_flag_t    stFlagPool[FSM_MAX_FLAGS];    //! event ocb pool
+static fsm_flag_t   *fsmFlagFreeList;               //! Head of event ocb pool
+static fsm_flag_t    fsmFlagPool[FSM_MAX_FLAGS];    //! event ocb pool
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
 void fsm_flag_init(void)
 {
-    uint_fast8_t n;
+    uint_fast16_t n;
     fsm_flag_t **p;
 
-    MEM_SET_ZERO((void *)stFlagPool, sizeof(stFlagPool));
-    p = &sptFlagFreeList;
+    MEM_SET_ZERO((void *)fsmFlagPool, sizeof(fsmFlagPool));
+    p = &fsmFlagFreeList;
     
     //! add event OCBs to the free list
-    for (n = 0; n < ARRAY_LENGTH(stFlagPool); n++) {
-        *p = &stFlagPool[n];
+    for (n = 0; n < ARRAY_LENGTH(fsmFlagPool); n++) {
+        *p = &fsmFlagPool[n];
         p = (fsm_flag_t **)&((*p)->ObjNext);
     }
 }
@@ -61,9 +61,9 @@ void fsm_flag_init(void)
  *! \param bInitialState event initial state, either set or not.
  *! \return pointer for event object
  */
-uint_fast8_t fsm_flag_create   (fsm_flag_t    **pptEvent,
-                                bool            bManualReset,
-                                bool            bInitialState)
+fsm_err_t fsm_flag_create  (fsm_handle_t   *pptEvent,
+                            bool            bManualReset,
+                            bool            bInitialState)
 {
     uint8_t Flag;
     fsm_flag_t *pFlag;
@@ -71,15 +71,19 @@ uint_fast8_t fsm_flag_create   (fsm_flag_t    **pptEvent,
     if (NULL == pptEvent) {
         return FSM_ERR_INVALID_PARAM;
     }
+    
+    if (fsmIntNesting != 0) {
+        return FSM_ERR_CREATE_ISR;
+    }
 
     //!< get OCB from pool.
-    if (NULL == sptFlagFreeList) {
+    if (NULL == fsmFlagFreeList) {
         *pptEvent = NULL;
         return FSM_ERR_OBJ_DEPLETED;
     }
     
-    pFlag      = sptFlagFreeList;
-    sptFlagFreeList = (fsm_flag_t *)pFlag->ObjNext;
+    pFlag      = fsmFlagFreeList;
+    fsmFlagFreeList = (fsm_flag_t *)pFlag->ObjNext;
     
     Flag = 0;
     if (bManualReset) {
@@ -91,23 +95,84 @@ uint_fast8_t fsm_flag_create   (fsm_flag_t    **pptEvent,
     
     SAFE_ATOM_CODE(
         pFlag->ObjType      = FSM_OBJ_TYPE_FLAG;
-        pFlag->ObjNext      = NULL;
-        pFlag->Head      = NULL;           
-        pFlag->Tail      = NULL;
+        pFlag->ObjFlag      = 0u;
+        pFlag->Head         = NULL;           
+        pFlag->Tail         = NULL;
         pFlag->EventFlag    = Flag;   //!< set initial state
-        fsm_register_object(pFlag);       //!< register object.
     )
     *pptEvent = pFlag;
 
     return FSM_ERR_NONE;
 }
 
+/*! \brief  wait for a specified task event
+ *! \param  pObject target event item
+ *! \param  Task parasitifer task
+ *! \retval true event raised
+ *! \retval false event haven't raised yet.
+ */
+fsm_err_t fsm_flag_wait(fsm_handle_t hObject, uint32_t wTimeout)
+{
+    uint8_t         chResult;
+    uint8_t         ObjType;
+    fsm_tcb_t      *Task = fsmScheduler.CurrentTask;
+
+    if (NULL == hObject) {
+        return FSM_ERR_INVALID_PARAM;
+    }
+    
+    if (fsmIntNesting != 0) {
+        return FSM_ERR_PEND_ISR;
+    }
+    
+    if (Task->Status == FSM_TASK_STATUS_READY) {
+        ObjType = ((fsm_basis_obj_t *)hObject)->ObjType;
+        if (!(ObjType & FSM_OBJ_TYPE_WAITABLE)) {
+            return FSM_ERR_OBJ_NOT_WAITABLE;
+        }
+        if (ObjType != FSM_OBJ_TYPE_FLAG) {
+            return FSM_ERR_OBJ_TYPE;
+        }
+        fsm_flag_t *pFlag = (fsm_flag_t *)hObject;
+        SAFE_ATOM_CODE(
+            if (pFlag->EventFlag & FSM_EVENT_SINGNAL_BIT) {
+                if (!(pFlag->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
+                    pFlag->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
+                }
+                chResult = FSM_ERR_NONE;
+            } else {
+                if (wTimeout == 0u) {
+                    chResult = FSM_ERR_TASK_PEND_TIMEOUT;
+                } else {
+                    //! add task to the object's wait queue.
+                    Task->Object = hObject;
+                    Task->Delay  = wTimeout;
+                    Task->Status = FSM_TASK_STATUS_PEND;
+                    fsm_task_enqueue(&(pFlag->TaskQueue), Task);
+                    chResult = FSM_ERR_OBJ_NOT_SINGLED;
+                }
+            }
+        )
+    } else if (Task->Status == FSM_TASK_STATUS_PEND_OK) {
+        Task->Status    = FSM_TASK_STATUS_READY;
+        Task->Delay     = 0;
+        chResult        = FSM_ERR_NONE;
+    } else if (Task->Status == FSM_TASK_STATUS_PEND_TIMEOUT) {
+        Task->Status    = FSM_TASK_STATUS_READY;
+        chResult        = FSM_ERR_TASK_PEND_TIMEOUT;
+    }
+
+    return chResult;
+}
+
 /*! \brief set task event
  *! \param pFlag pointer for task event
  *! \return none
  */
-uint_fast8_t fsm_flag_set  (fsm_flag_t    *pFlag) 
+fsm_err_t fsm_flag_set  (fsm_handle_t hObject) 
 {
+    fsm_flag_t *pFlag = (fsm_flag_t *)hObject;
+    
     if (NULL == pFlag) {
         return FSM_ERR_INVALID_PARAM;
     }
@@ -143,8 +208,10 @@ uint_fast8_t fsm_flag_set  (fsm_flag_t    *pFlag)
  *! \param pFlag task event pointer
  *! \return none
  */
-uint_fast8_t fsm_flag_reset(fsm_flag_t *pFlag)
+fsm_err_t fsm_flag_reset(fsm_handle_t hObject)
 {
+    fsm_flag_t *pFlag = (fsm_flag_t *)hObject;
+
     if (NULL == pFlag) {
         return FSM_ERR_INVALID_PARAM;
     }
