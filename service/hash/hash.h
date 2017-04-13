@@ -15,9 +15,9 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-#ifndef __SERVICE_CHECKSUM_C__
-#ifndef __SERVICE_CHECKSUM_H__
-#define __SERVICE_CHECKSUM_H__
+#ifndef __SERVICE_HASH_C__
+#ifndef __SERVICE_HASH_H__
+#define __SERVICE_HASH_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
@@ -32,6 +32,6 @@
 /*============================ PROTOTYPES ====================================*/
 extern uint16_t rfc1145_checksum(void *pData, uint32_t wLength);
 
-#endif  //!< #ifndef __SERVICE_CHECKSUM_H__
+#endif  //!< #ifndef __SERVICE_HASH_H__
 #endif
 /* EOF */

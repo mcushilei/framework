@@ -16,7 +16,7 @@
 *******************************************************************************/
 
 //! \note do not move this pre-processor statement to other places
-#define __SERVICE_CHECKSUM_C__
+#define __SERVICE_HASH_C__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
