@@ -70,7 +70,7 @@
 #if DEBUG_FOMART_STRING == ENABLED
 #   define __DEBUG_PRINT(...)                   printf(__VA_ARGS__);
 #else
-#   define __DEBUG_PRINT(string, arg, ...)      string_printf(string, (uint32_t)(arg));
+#   define __DEBUG_PRINT(string, ...)           string_printf("%s", (uint32_t)string);
 #endif
 
 #define __DEBUG_ASSERT(condition, line, ...)    do {\

@@ -24,27 +24,33 @@
 #include ".\api\com\com.h"
 
 /*============================ MACROS ========================================*/
-#define OS_CRITICAL_TYPE                        CRITICAL_SECTION
-#define OS_CRITICAL_INIT(__ATOM)                InitializeCriticalSectionAndSpinCount(&(__ATOM), 0x00000400)
-#define OS_CRITICAL_DEINIT(__ATOM)              DeleteCriticalSection(&(__ATOM))
+#define OS_ERR                                  DWORD
+
+#define OS_INFINITE                             INFINITE
+
+#define OS_CRITICAL_DEFINE(__ATOM)              CRITICAL_SECTION __ATOM;
+#define OS_CRITICAL_INIT(__ATOM)                do {InitializeCriticalSectionAndSpinCount(&(__ATOM), 0x00000400);} while (0)
+#define OS_CRITICAL_DEINIT(__ATOM)              do {DeleteCriticalSection(&(__ATOM));} while (0)
 #define OS_CRITICAL_ENTER(__ATOM)               EnterCriticalSection(&(__ATOM))
 #define OS_CRITICAL_EXIT(__ATOM)                LeaveCriticalSection(&(__ATOM))
 
 #define OS_MUTEX_TYPE                           HANDLE
 #define OS_MUTEX_CREATE(__MUTEX)                __MUTEX = CreateMutex(NULL, FALSE, NULL)
 #define OS_MUTEX_DELETE(__MUTEX)                CloseHandle(__MUTEX)
-#define OS_MUTEX_WAIT(__MUTEX, __TIME, __RES)   __RES = WaitForSingleObject(__MUTEX, __TIME)
+#define OS_MUTEX_WAIT(__MUTEX, __TIME)          WaitForSingleObject(__MUTEX, __TIME)
 #define OS_MUTEX_RELEASE(__MUTEX)               ReleaseMutex(__MUTEX)
 
-#define OS_FLAG_TYPE                           HANDLE
-#define OS_FLAG_CREATE(__FLAG, __BMANUAL, __BINITVAL)\
-                                                __FLAG = CreateEvent(NULL, __BMANUAL, __BINITVAL, NULL)
+#define OS_FLAG_TYPE                            HANDLE
+#define OS_FLAG_CREATE(__FLAG, __BMANUAL, __BINITVAL) __FLAG = CreateEvent(NULL, __BMANUAL, __BINITVAL, NULL)
 #define OS_FLAG_DELETE(__FLAG)                  CloseHandle(__FLAG)
 #define OS_FLAG_SET(__FLAG)                     SetEvent(__FLAG)
 #define OS_FLAG_RESET(__FLAG)                   ResetEvent(__FLAG)
-#define OS_FLAG_WAIT(__FLAG, __TIME, __RES)     __RES = WaitForSingleObject(__FLAG, __TIME)
+#define OS_FLAG_WAIT(__FLAG, __TIME)            WaitForSingleObject(__FLAG, __TIME)
 
 #define OS_TIME_GET()                           GetTickCount()
+
+#define OS_TASK_DEFINE_BEGIN(__TASK_NAME, __ARG_NAME)   DWORD WINAPI __TASK_NAME(void *__ARG_NAME) {
+#define OS_TASK_DEFINE_END(__TASK_NAME)                 return 0;}
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/

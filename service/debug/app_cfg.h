@@ -63,19 +63,11 @@
 //-------------------------------------------------------
 // Char Support
 //-------------------------------------------------------
-#define _CHAR       uint8_t
+typedef uint8_t _CHAR;
 
 //-------------------------------------------------------
 // Int Support
 //-------------------------------------------------------
-typedef uint8_t     _UU8;
-typedef uint16_t    _UU16;
-typedef uint32_t    _UU32;
-typedef uint64_t    _UU64;
-typedef int8_t      _US8;
-typedef int16_t     _US16;
-typedef int32_t     _US32;
-typedef int64_t     _US64;
 
 #if   (DEBUG_INT_WIDTH == 64)
     typedef uint64_t _UINT;

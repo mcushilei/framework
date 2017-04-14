@@ -34,11 +34,13 @@ DEF_STRUCTURE(softtimer_t)
     uint8_t         Flag;
     timer_routine_t *pRoutine;
     void            *pRoutineArg;
-END_DEF_STRUCTURE(softtimer_t)
+    END_DEF_STRUCTURE(softtimer_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-void softtimer_init(uint8_t     Timer,
+bool softtimer_init(void);
+void softtimer_config(
+                    uint8_t     Timer,
                     uint32_t    Value,
                     uint32_t    Reload,
                     timer_routine_t *pRoutine,

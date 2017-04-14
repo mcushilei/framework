@@ -36,29 +36,29 @@
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
 /*============================ IMPLEMENTATION ================================*/
-bool mem_cmpn(const void *m1, const void *m2, uint32_t n)
+bool mem_cmpn(const void *m1, const void *m2, size_t n)
 {
     if ((NULL == m1) || (NULL == m2) || (0 == n)) {
         return false;
     }
 
     for (; n; --n) {
-        if (*(uint8_t*)m1 != *(uint8_t*)m2) {
+        if (*(uint8_t *)m1 != *(uint8_t *)m2) {
             return true;
         }
-        m1 = (uint8_t*)m1 + 1;
-        m2 = (uint8_t*)m2 + 1;
+        m1 = (uint8_t *)m1 + 1;
+        m2 = (uint8_t *)m2 + 1;
     }
 
     return false;
 }
 
-void *mem_copy(void *d, const volatile void *s, uint32_t n)
+void *mem_copy(void *d, const void *s, size_t n)
 {
     void* pRet = d;
 
     for (; n; --n) {
-        *(uint8_t*)d = *(uint8_t*)s;
+        *(uint8_t *)d = *(uint8_t *)s;
         d = (uint8_t*)d + 1;
         s = (uint8_t*)s + 1;
     }
@@ -68,7 +68,7 @@ void *mem_copy(void *d, const volatile void *s, uint32_t n)
 
 //! this function is not transplantable.
 #if defined(__CPU_ARM__) || defined(__CPU_X86__)
-void *mem_set(void *m, uint32_t v, uint32_t n)
+void *mem_set(void *m, uint32_t v, size_t n)
 {
     if (n < 20) {
         uint8_t *p = (uint8_t *)m;
@@ -120,11 +120,6 @@ void *mem_set(void *m, uint32_t v, uint32_t n)
     }
 
     return m;
-}
-
-void *mem_zero(void *m, uint32_t n)
-{
-    return mem_set(m, 0u, n);
 }
 #endif
 
@@ -227,15 +222,15 @@ float dec_str2float(const uint8_t *DecimalString)
     return (IsNegative? -(Integer + Decimal) : Integer + Decimal); 
 } 
 
-uint32_t string_len(const uint8_t *s)
+size_t string_len(const uint8_t *s)
 {
-    uint8_t *end = (uint8_t*)s;
+    size_t len = 0;
 
-    while (*end) {
-        end++;
+    for (; *s != '\0'; s++) {
+        len++;
     }
 
-    return (end - s);
+    return len;
 }
 
 bool string_cmp(const uint8_t *s1, const uint8_t *s2)

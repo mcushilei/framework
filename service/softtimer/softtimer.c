@@ -27,9 +27,9 @@
 typedef void timer_routine_t(void *pArg);
 
 DEF_STRUCTURE(softtimer_t)
+    uint8_t         Flag;
     uint32_t        Count;
     uint32_t        Reload;
-    uint8_t         Flag;
     timer_routine_t *pRoutine;
     void            *pRoutineArg;
 END_DEF_STRUCTURE(softtimer_t)
@@ -37,16 +37,27 @@ END_DEF_STRUCTURE(softtimer_t)
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
 static softtimer_t  softTimers[SOFTTIMER_MAX_TIMERS];
+static OS_CRITICAL_DEFINE(softtimerCriticalSection)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-void softtimer_init(uint8_t     Timer,
+
+bool softtimer_init(void)
+{
+    OS_CRITICAL_INIT(softtimerCriticalSection);
+    return true;
+}
+
+bool softtimer_config(
+                    uint8_t     Timer,
                     uint32_t    Value,
                     uint32_t    Reload,
                     timer_routine_t *pRoutine,
                     void            *pArg)
 {
-    if (Timer < SOFTTIMER_MAX_TIMERS) {
+    if (Timer >= SOFTTIMER_MAX_TIMERS) {
+        return false;
+    }
     __SOFTTIMER_SAFE_ATOME_CODE(
         softTimers[Timer].Count  = Value;
         softTimers[Timer].Reload = Reload;
@@ -54,7 +65,8 @@ void softtimer_init(uint8_t     Timer,
         softTimers[Timer].pRoutine = pRoutine;
         softTimers[Timer].pRoutineArg = pArg;
     )
-    }
+
+    return true;
 }
 
 //! This function should be called periodly.
@@ -63,16 +75,18 @@ void softtimer_tick(void)
     uint_fast8_t n;
 
     for (n = 0; n < ARRAY_LENGTH(softTimers); n++) {
-        if (softTimers[n].Count) {
-            softTimers[n].Count--;
-            if (softTimers[n].Count == 0) {
-                softTimers[n].Flag = 1;
-                softTimers[n].Count = softTimers[n].Reload;
-                if (softTimers[n].pRoutine != NULL) {
-                    softTimers[n].pRoutine(softTimers[n].pRoutineArg);
+        __SOFTTIMER_SAFE_ATOME_CODE(
+            if (softTimers[n].Count) {
+                softTimers[n].Count--;
+                if (softTimers[n].Count == 0) {
+                    softTimers[n].Flag |= BIT(0);
+                    softTimers[n].Count = softTimers[n].Reload;
+                    if (softTimers[n].pRoutine != NULL) {
+                        softTimers[n].pRoutine(softTimers[n].pRoutineArg);
+                    }
                 }
             }
-        }
+        )
     }
 }
 
@@ -100,7 +114,7 @@ bool softtimer_check_timeout(uint8_t Timer)
     if (Timer < SOFTTIMER_MAX_TIMERS) {
         if (softTimers[Timer].Flag) {
             __SOFTTIMER_SAFE_ATOME_CODE(
-                softTimers[Timer].Flag = 0;
+                softTimers[Timer].Flag &= ~BIT(0);
             )
             return true;
         }

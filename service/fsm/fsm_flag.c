@@ -65,7 +65,7 @@ fsm_err_t fsm_flag_create  (fsm_handle_t   *pptEvent,
                             bool            bManualReset,
                             bool            bInitialState)
 {
-    uint8_t Flag;
+    uint8_t     flag;
     fsm_flag_t *pFlag;
     
     if (NULL == pptEvent) {
@@ -76,30 +76,27 @@ fsm_err_t fsm_flag_create  (fsm_handle_t   *pptEvent,
         return FSM_ERR_CREATE_ISR;
     }
 
-    //!< get OCB from pool.
     if (NULL == fsmFlagFreeList) {
         *pptEvent = NULL;
         return FSM_ERR_OBJ_DEPLETED;
     }
-    
-    pFlag      = fsmFlagFreeList;
+    pFlag           = fsmFlagFreeList;
     fsmFlagFreeList = (fsm_flag_t *)pFlag->ObjNext;
     
-    Flag = 0;
+    flag = 0;
     if (bManualReset) {
-        Flag |= FSM_EVENT_MANUAL_RESET_BIT;
+        flag |= FSM_EVENT_MANUAL_RESET_BIT;
     }
     if (bInitialState) {
-        Flag |= FSM_EVENT_SINGNAL_BIT;
+        flag |= FSM_EVENT_SINGNAL_BIT;
     }
     
-    SAFE_ATOM_CODE(
-        pFlag->ObjType      = FSM_OBJ_TYPE_FLAG;
-        pFlag->ObjFlag      = 0u;
-        pFlag->Head         = NULL;           
-        pFlag->Tail         = NULL;
-        pFlag->EventFlag    = Flag;   //!< set initial state
-    )
+    pFlag->ObjType      = FSM_OBJ_TYPE_FLAG;
+    pFlag->ObjFlag      = 0u;
+    pFlag->Head         = NULL;           
+    pFlag->Tail         = NULL;
+    pFlag->EventFlag    = flag;
+
     *pptEvent = pFlag;
 
     return FSM_ERR_NONE;
@@ -115,7 +112,8 @@ fsm_err_t fsm_flag_wait(fsm_handle_t hObject, uint32_t wTimeout)
 {
     uint8_t         chResult;
     uint8_t         ObjType;
-    fsm_tcb_t      *Task = fsmScheduler.CurrentTask;
+    fsm_tcb_t      *pTask = fsmScheduler.CurrentTask;
+    fsm_flag_t     *pFlag = (fsm_flag_t *)hObject;
 
     if (NULL == hObject) {
         return FSM_ERR_INVALID_PARAM;
@@ -125,41 +123,50 @@ fsm_err_t fsm_flag_wait(fsm_handle_t hObject, uint32_t wTimeout)
         return FSM_ERR_PEND_ISR;
     }
     
-    if (Task->Status == FSM_TASK_STATUS_READY) {
-        ObjType = ((fsm_basis_obj_t *)hObject)->ObjType;
-        if (!(ObjType & FSM_OBJ_TYPE_WAITABLE)) {
-            return FSM_ERR_OBJ_NOT_WAITABLE;
-        }
-        if (ObjType != FSM_OBJ_TYPE_FLAG) {
-            return FSM_ERR_OBJ_TYPE;
-        }
-        fsm_flag_t *pFlag = (fsm_flag_t *)hObject;
-        SAFE_ATOM_CODE(
-            if (pFlag->EventFlag & FSM_EVENT_SINGNAL_BIT) {
-                if (!(pFlag->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
-                    pFlag->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
-                }
-                chResult = FSM_ERR_NONE;
-            } else {
-                if (wTimeout == 0u) {
-                    chResult = FSM_ERR_TASK_PEND_TIMEOUT;
-                } else {
-                    //! add task to the object's wait queue.
-                    Task->Object = hObject;
-                    Task->Delay  = wTimeout;
-                    Task->Status = FSM_TASK_STATUS_PEND;
-                    fsm_task_enqueue(&(pFlag->TaskQueue), Task);
-                    chResult = FSM_ERR_OBJ_NOT_SINGLED;
-                }
+    switch (pTask->Status) {
+        case FSM_TASK_STATUS_READY:
+            ObjType = ((fsm_basis_obj_t *)hObject)->ObjType;
+            if (!(ObjType & FSM_OBJ_TYPE_WAITABLE)) {
+                return FSM_ERR_OBJ_NOT_WAITABLE;
             }
-        )
-    } else if (Task->Status == FSM_TASK_STATUS_PEND_OK) {
-        Task->Status    = FSM_TASK_STATUS_READY;
-        Task->Delay     = 0;
-        chResult        = FSM_ERR_NONE;
-    } else if (Task->Status == FSM_TASK_STATUS_PEND_TIMEOUT) {
-        Task->Status    = FSM_TASK_STATUS_READY;
-        chResult        = FSM_ERR_TASK_PEND_TIMEOUT;
+            if (ObjType != FSM_OBJ_TYPE_FLAG) {
+                return FSM_ERR_OBJ_TYPE;
+            }
+            
+            SAFE_ATOM_CODE(
+                if (pFlag->EventFlag & FSM_EVENT_SINGNAL_BIT) {
+                    if (!(pFlag->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
+                        pFlag->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
+                    }
+                    chResult = FSM_ERR_NONE;
+                } else {
+                    if (wTimeout == 0u) {
+                        chResult = FSM_ERR_TASK_PEND_TIMEOUT;
+                    } else {
+                        //! add task to the object's wait queue.
+                        pTask->Object = hObject;
+                        fsm_set_task_pend(wTimeout);
+                        fsm_waitable_obj_add_task(hObject, pTask);
+                        chResult = FSM_ERR_OBJ_NOT_SINGLED;
+                    }
+                }
+            )
+            break;
+            
+        case FSM_TASK_STATUS_PEND_OK:
+            pTask->Status    = FSM_TASK_STATUS_READY;
+            chResult         = FSM_ERR_NONE;
+            break;
+        
+        case FSM_TASK_STATUS_PEND_TIMEOUT:
+            pTask->Status    = FSM_TASK_STATUS_READY;
+            chResult         = FSM_ERR_TASK_PEND_TIMEOUT;
+            break;
+        
+        case FSM_TASK_STATUS_PEND:
+        default:
+            chResult = FSM_ERR_OBJ_NOT_SINGLED;
+            break;
     }
 
     return chResult;
@@ -171,7 +178,8 @@ fsm_err_t fsm_flag_wait(fsm_handle_t hObject, uint32_t wTimeout)
  */
 fsm_err_t fsm_flag_set  (fsm_handle_t hObject) 
 {
-    fsm_flag_t *pFlag = (fsm_flag_t *)hObject;
+    fsm_flag_t  *pFlag = (fsm_flag_t *)hObject;
+    fsm_tcb_t   *pTask;
     
     if (NULL == pFlag) {
         return FSM_ERR_INVALID_PARAM;
@@ -182,21 +190,15 @@ fsm_err_t fsm_flag_set  (fsm_handle_t hObject)
     }
     
     SAFE_ATOM_CODE(
-        fsm_tcb_t *pTask, *pNextTask;
-        
         pFlag->EventFlag |= FSM_EVENT_SINGNAL_BIT;
-        if (pFlag->Head != NULL) {
-            //! wake up all blocked tasks.
-            for (pTask = pFlag->Head; NULL != pTask; pTask = pNextTask) {
-                pNextTask = pTask->Next;
-                fsm_set_task_ready(pTask);    //!< move task to ready list.
-                pTask->Object = NULL;
-                pTask->Status = FSM_TASK_STATUS_PEND_OK;
-            }
-            pFlag->Head = NULL;
-            pFlag->Tail = NULL;
+        if (pFlag->TaskQueue.Head != NULL) {
             if (!(pFlag->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
                 pFlag->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
+            }
+            //! wake up all blocked tasks.
+            while (pFlag->TaskQueue.Head != NULL) {
+                pTask = fsm_waitable_obj_get_task(hObject);
+                fsm_set_task_ready(pTask, FSM_TASK_STATUS_PEND_OK);
             }
         }
     )
@@ -220,10 +222,6 @@ fsm_err_t fsm_flag_reset(fsm_handle_t hObject)
         return FSM_ERR_OBJ_TYPE;
     }
     
-    if (!(pFlag->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
-        return FSM_ERR_OPT_NOT_SUPPORT;
-    }
-
     SAFE_ATOM_CODE(
         pFlag->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
     )

@@ -32,24 +32,28 @@
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ PROTOTYPES ====================================*/
-static bool         fsm_task_stack_push         (
-                                                fsm_tcb_t          *Task,
-                                                fsm_state_t       *State,
+static bool         fsm_task_stack_push        (fsm_tcb_t          *Task,
+                                                fsm_state_t        *State,
                                                 void               *Arg);
-static bool         fsm_task_stack_pop          (fsm_tcb_t         *Task);
-static void         fsm_tcb_pool_init           (void);
-static fsm_tcb_t   *fsm_tcb_new                 (void);
-static void         fsm_tcb_free                (fsm_tcb_t         *Task);
-static void         fsm_tcb_init                (
-                                                fsm_tcb_t          *pTCB,
+static bool         fsm_task_stack_pop         (fsm_tcb_t          *Task);
+static void         fsm_tcb_pool_init          (void);
+static fsm_tcb_t   *fsm_tcb_new                (void);
+static void         fsm_tcb_free               (fsm_tcb_t          *Task);
+static void         fsm_tcb_init               (fsm_tcb_t          *pTCB,
                                                 fsm_state_t        *State,
                                                 void               *Arg,
                                                 task_stack_t       *Stack,
                                                 uint8_t             StackSize);
+static bool         fsm_task_enqueue           (fsm_task_list_t    *pTaskQueue,
+                                                fsm_tcb_t          *pTask);
+static fsm_tcb_t   *fsm_task_dequeue           (fsm_task_list_t    *pTaskQueue);
+static bool         fsm_task_remove_from_queue (fsm_task_list_t    *pTaskQueue,
+                                                fsm_tcb_t          *pTask);
+static fsm_tcb_t   *fsm_get_next_ready_task    (void);
 
-extern void         fsm_flag_init               (void);
-extern void         fsm_mutex_init              (void);
-extern void         fsm_semaphore_init          (void);
+extern void         fsm_flag_init              (void);
+extern void         fsm_mutex_init             (void);
+extern void         fsm_semaphore_init         (void);
 
 /*============================ LOCAL VARIABLES ===============================*/
 static fsm_tcb_t       *fsmTCBFreeList;                 //! TCB
@@ -231,7 +235,7 @@ static void fsm_tcb_init(
     pTCB->Prev              = NULL;
     
     pTCB->Flag              = 0;
-    pTCB->Status            = FSM_TASK_STATUS_INVALID;
+    pTCB->Status            = FSM_TASK_STATUS_READY;
 
     pTCB->Stack             = Stack;        //!< set stack buffer
     pTCB->StackSize         = StackSize;   //!< set stack size
@@ -269,16 +273,16 @@ fsm_err_t fsm_task_create(
         return FSM_ERR_INVALID_PARAM;
     }
     
-    /*! try to get a TCB */
-    ptTask = fsm_tcb_new();
+    ptTask = fsm_tcb_new();         /*! try to get a TCB */
     if (NULL == ptTask) {
         return FSM_ERR_TASK_NO_MORE_TCB;
     }
     
     fsm_tcb_init(ptTask, State, Arg, Stack, StackSize);
     
-    /*! Let this task to run. */
-    fsm_set_task_ready(ptTask);
+    SAFE_ATOM_CODE(
+        fsm_set_task_ready(ptTask, FSM_TASK_STATUS_READY);     /*! Let this task to run. */
+    )
 
     if (NULL != pptTask) {
         *pptTask = ptTask;
@@ -287,25 +291,81 @@ fsm_err_t fsm_task_create(
     return FSM_ERR_NONE;
 }
 
+fsm_err_t fsm_time_delay(uint32_t wTimeout)
+{
+    uint8_t         chResult;
+    fsm_tcb_t      *pTask = fsmScheduler.CurrentTask;
+
+    if (fsmIntNesting != 0) {
+        return FSM_ERR_PEND_ISR;
+    }
+    
+    switch (pTask->Status) {
+        case FSM_TASK_STATUS_READY:
+            SAFE_ATOM_CODE(
+                if (wTimeout == 0u) {
+                    chResult = FSM_ERR_TASK_PEND_TIMEOUT;
+                } else {
+                    //! add task to the object's wait queue.
+                    pTask->Object = NULL;
+                    fsm_set_task_pend(wTimeout);
+                    chResult = FSM_ERR_OBJ_NOT_SINGLED;
+                }
+            )
+            break;
+            
+        case FSM_TASK_STATUS_PEND_OK:
+        case FSM_TASK_STATUS_PEND_TIMEOUT:
+            pTask->Status    = FSM_TASK_STATUS_READY;
+            chResult         = FSM_ERR_TASK_PEND_TIMEOUT;
+            break;
+        
+        case FSM_TASK_STATUS_PEND:
+        default:
+            chResult = FSM_ERR_OBJ_NOT_SINGLED;
+            break;
+    }
+
+    return chResult;
+}
+
+void fsm_time_tick(void)
+{
+    fsm_tcb_t      *pTask;
+        
+    SAFE_ATOM_CODE(
+       for (pTask = fsmScheduler.PendList.Head; pTask != NULL; pTask = pTask->Next) {
+           if ((pTask->Delay != 0) && (pTask->Delay != FSM_INFINITE)) {
+               pTask->Delay--;
+               if (pTask->Delay == 0) {
+                   if (pTask->Object != NULL) {
+                       fsm_waitable_obj_remove_task(pTask->Object, pTask);
+                   }
+                   fsm_set_task_ready(pTask, FSM_TASK_STATUS_PEND_TIMEOUT);
+               }
+           }
+       }
+    )
+}
+
+
 /*! \brief add a task control block to a specified task control queue
  *  \param pTaskQueue a pointer of a task queue control block
  *  \param Task a pointer of a task control block
  *  \retval false failed to add task to queue
  *  \retval true succeeded in adding task to queue
  */
-bool fsm_task_enqueue(fsm_task_list_t *pTaskQueue, fsm_tcb_t *Task)
+static bool fsm_task_enqueue(fsm_task_list_t *pTaskQueue, fsm_tcb_t *pTask)
 {
-    SAFE_ATOM_CODE(
-        Task->Next = NULL;
-        Task->Prev = NULL;
-        if (pTaskQueue->Tail == NULL) {         //!< is this queue empty?
-            pTaskQueue->Head = Task;            //!< add this new task to head
-        } else {                                //!< if queue is not empty
-            pTaskQueue->Tail->Next = Task;      //!< add this new task to tail
-            Task->Prev             = pTaskQueue->Tail;
-        }
-        pTaskQueue->Tail = Task;                //!< move tail to next.
-    )
+    pTask->Next = NULL;
+    pTask->Prev = NULL;
+    if (pTaskQueue->Tail == NULL) {         //!< is this queue empty?
+        pTaskQueue->Head = pTask;            //!< add this new task to head
+    } else {                                //!< if queue is not empty
+        pTaskQueue->Tail->Next = pTask;      //!< add this new task to tail
+        pTask->Prev             = pTaskQueue->Tail;
+    }
+    pTaskQueue->Tail = pTask;                //!< move tail to next.
 
     return true;
 }
@@ -316,81 +376,144 @@ bool fsm_task_enqueue(fsm_task_list_t *pTaskQueue, fsm_tcb_t *Task)
  *  \retval NULL failed to get a task from queue
  *  \retval true succeeded to get a task from queue
  */
-fsm_tcb_t *fsm_task_dequeue(fsm_task_list_t *pTaskQueue)
+static fsm_tcb_t *fsm_task_dequeue(fsm_task_list_t *pTaskQueue)
 {
-    fsm_tcb_t *Task;
+    fsm_tcb_t *pTask;
 
-    SAFE_ATOM_CODE(
-        Task = pTaskQueue->Head;
-        if (Task != NULL) {                     //!< is this queue empty?
-            pTaskQueue->Head = Task->Next;      //!< move head to next.
-            if (pTaskQueue->Head == NULL) {     //!< is the queue empty?
-                pTaskQueue->Tail = NULL;        //!< terminate tail.
-            } else {
-                pTaskQueue->Head->Prev = NULL;
-            }
-            
-            Task->Next = NULL;
-            Task->Prev = NULL;
+    pTask = pTaskQueue->Head;
+    if (pTask != NULL) {                     //!< is this queue empty?
+        pTaskQueue->Head = pTask->Next;      //!< move head to next.
+        if (pTaskQueue->Head == NULL) {     //!< is the queue empty?
+            pTaskQueue->Tail = NULL;        //!< terminate tail.
+        } else {
+            pTaskQueue->Head->Prev = NULL;
         }
-    )
+        
+        pTask->Next = NULL;
+        pTask->Prev = NULL;
+    }
 
-    return Task;
+    return pTask;
 }
 
-bool fsm_remove_task_from_queue(fsm_task_list_t *pTaskQueue, fsm_tcb_t *pTask)
+static bool fsm_task_remove_from_queue(fsm_task_list_t *pTaskQueue, fsm_tcb_t *pTask)
 {
     fsm_tcb_t *pPrev, *pNext;
     
-    SAFE_ATOM_CODE(
-        pPrev = pTask->Prev;
-        pNext = pTask->Next;
+    pPrev = pTask->Prev;
+    pNext = pTask->Next;
 
-        if (pPrev != NULL) {
-            pPrev->Next = pNext;
-        }
-        if (pNext != NULL) {
-            pNext->Prev = pPrev;
-        }
-                   
-        if (pTask == pTaskQueue->Head) {
-            pTaskQueue->Head = pNext;
-        }
-        if (pTask == pTaskQueue->Tail) {
-            pTaskQueue->Tail = pPrev;
-        }
-                   
-        pTask->Next = NULL;
-        pTask->Prev = NULL;
-    )
+    if (pPrev != NULL) {
+        pPrev->Next = pNext;
+    }
+    if (pNext != NULL) {
+        pNext->Prev = pPrev;
+    }
+               
+    if (pTask == pTaskQueue->Head) {
+        pTaskQueue->Head = pNext;
+    }
+    if (pTask == pTaskQueue->Tail) {
+        pTaskQueue->Tail = pPrev;
+    }
+               
+    pTask->Next = NULL;
+    pTask->Prev = NULL;
     
     return true;
 }
 
+/*! \brief  add a task to ready list queue.
+ *  \param  Task task control block
+ */
+void fsm_set_task_ready(fsm_tcb_t *pTask, uint8_t pendStat)
+{
+    SAFE_ATOM_CODE(
+        pTask->Status = pendStat;
+        pTask->Object = NULL;
+        fsm_task_remove_from_queue(&fsmScheduler.PendList, pTask);
+        fsm_task_enqueue(&fsmScheduler.ReadyList, pTask);
+    )
+}
+
+void fsm_set_task_pend (uint32_t timeDelay)
+{
+    SAFE_ATOM_CODE(
+        fsmScheduler.CurrentTask->Delay    = timeDelay;
+        fsmScheduler.CurrentTask->Status   = FSM_TASK_STATUS_PEND;
+        fsm_task_enqueue(&fsmScheduler.PendList, fsmScheduler.CurrentTask);
+    )
+}
+
+static fsm_tcb_t *fsm_get_next_ready_task(void)
+{
+    fsm_tcb_t *pTask;
+    
+    SAFE_ATOM_CODE(
+        pTask = fsm_task_dequeue(&fsmScheduler.ReadyList);
+    )
+        
+    return pTask;
+}
+
+
 void fsm_waitable_obj_add_task(fsm_waitable_obj_t *pObj, fsm_tcb_t *pTask)
 {
+    pTask->WaitNodeNext = NULL;
+    pTask->WaitNodePrev = NULL;
+    if (pObj->TaskQueue.Tail == NULL) {         //!< is this queue empty?
+        pObj->TaskQueue.Head = pTask;            //!< add this new task to head
+    } else {                                //!< if queue is not empty
+        pObj->TaskQueue.Tail->Next  = pTask;      //!< add this new task to tail
+        pTask->WaitNodePrev         = pObj->TaskQueue.Tail;
+    }
+    pObj->TaskQueue.Tail = pTask;                //!< move tail to next.
+}
+
+fsm_tcb_t *fsm_waitable_obj_get_task(fsm_waitable_obj_t *pObj)
+{
+    fsm_tcb_t *pTask;
+
+    pTask = pObj->TaskQueue.Head;
+    if (pTask != NULL) {                     //!< is this queue empty?
+        pObj->TaskQueue.Head = pTask->WaitNodeNext;      //!< move head to next.
+        if (pObj->TaskQueue.Head == NULL) {     //!< is the queue empty?
+            pObj->TaskQueue.Tail = NULL;        //!< terminate tail.
+        } else {
+            pObj->TaskQueue.Head->WaitNodePrev = NULL;
+        }
+        
+        pTask->WaitNodeNext = NULL;
+        pTask->WaitNodePrev = NULL;
+    }
+
+    return pTask;
 }
 
 void fsm_waitable_obj_remove_task(fsm_waitable_obj_t *pObj, fsm_tcb_t *pTask)
 {
-}
+    fsm_tcb_t *pPrev, *pNext;
+    
+    pPrev = pTask->WaitNodePrev;
+    pNext = pTask->WaitNodeNext;
 
-/*! \brief  add a task to ready table(list queue).
- *  \param  Task task control block
- *  \retval false failed to add a task control block
- *  \retval true succeeded in add a task
- */
-void fsm_set_task_ready(fsm_tcb_t *pTask)
-{
-    pTask->Status = FSM_TASK_STATUS_READY;
-    fsm_task_enqueue(&fsmScheduler.ReadyList, pTask);  //!< just enqueue.
-}
-
-void fsm_set_task_pend (fsm_tcb_t          *pTask,
-                        fsm_handle_t        hObj)
-{
-    pTask->Object = hObj;
-    fsm_task_enqueue(&fsmScheduler.PendList, pTask);
+    if (pPrev != NULL) {
+        pPrev->WaitNodeNext = pNext;
+    }
+    if (pNext != NULL) {
+        pNext->WaitNodePrev = pPrev;
+    }
+               
+    if (pTask == pObj->TaskQueue.Head) {
+        pObj->TaskQueue.Head = pNext;
+    }
+    if (pTask == pObj->TaskQueue.Tail) {
+        pObj->TaskQueue.Tail = pPrev;
+    }
+               
+    pTask->WaitNodeNext = NULL;
+    pTask->WaitNodePrev = NULL;
+    pTask->Object       = NULL;
 }
 
 /*! \brief  fsm_scheduler function
@@ -399,48 +522,34 @@ void fsm_set_task_pend (fsm_tcb_t          *pTask,
  */
 bool fsm_scheduler(void)
 {  
-    fsm_tcb_t      *Task;
+    fsm_tcb_t      *pTask;
     task_stack_t   *ptRoutine;
 
-    /* get a task from queue */
-    Task = fsm_task_dequeue(&fsmScheduler.ReadyList);
-    if (NULL == Task) {
+    pTask = fsm_get_next_ready_task();
+    if (NULL == pTask) {
         return false;
     }
-    fsmScheduler.CurrentTask = Task;
+    fsmScheduler.CurrentTask = pTask;
 
-    ptRoutine = Task->Stack + Task->StackPoint;
-
-    /* run task routine */
-    ptRoutine->State(ptRoutine->Arg);
+    ptRoutine = pTask->Stack + pTask->StackPoint;
+    ptRoutine->State(ptRoutine->Arg);                   //!< run state routine.
 
     do {
-    #if SAFE_TASK_THREAD_SYNC == ENABLED
-        /* Is task waitting synchronization object to set? */
-        if (NULL != Task->Object) {           //!< task is waitting synchronization object
-            break;
-        }
-    #endif
-        
-        /* check whether this fsm is complete. */
-        if (ptRoutine->State != NULL) {       
-            fsm_set_task_ready(Task);          //!< re-add this task to queue
-            break;
-        } else {                                //!< it has returned from a sub-fsm.
-            if (fsm_task_stack_pop(Task)) {    //!< has parent fsm?
-                fsm_set_task_ready(Task);      //!< re-add this task to queue
-                break;
-            }
+        if (pTask->Status == FSM_TASK_STATUS_PEND) {    //!< Task has been pended?
+            break;                                      //!< Yes, this task has been moved to pend list.
         }
         
-        fsm_tcb_free(Task);            //!< this task finished, free task
+                                                        //!< No.
+        if (ptRoutine->State != NULL) {                         //!< Whether this fsm is complete.
+            fsm_set_task_ready(pTask, FSM_TASK_STATUS_READY);   //!< No.
+        } else if (fsm_task_stack_pop(pTask)) {                 //!< Yes, Has parent fsm?
+            fsm_set_task_ready(pTask, FSM_TASK_STATUS_READY);   //!< Yes, re-add this task to queue
+        } else {
+            fsm_tcb_free(pTask);                                //!< No, this task finished, free task
+        }
     } while (0);
 
     return true;
-}
-
-void fsm_time_tick(void)
-{
 }
 
 /*! \brief  add task control blocks to the task pool

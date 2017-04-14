@@ -24,7 +24,7 @@
 #include ".\app_cfg.h"
 #include ".\string\string.h"
 #include ".\debug\debug.h"
-#include ".\checksum\checksum.h"
+#include ".\hash\hash.h"
 #include ".\queue\queue.h"
 #include ".\fifo\fifo.h"
 #include ".\pool\pool.h"
@@ -32,7 +32,6 @@
 #include ".\softtimer\softtimer.h"
 #include ".\event_fsm\event_fsm.h"
 #include ".\fsm\fsm.h"
-#include ".\key\key.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/

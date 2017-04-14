@@ -16,14 +16,20 @@
 *******************************************************************************/
 
 
-#ifndef __OS_H__
-#define __OS_H__
+#ifndef __OS_OS_H__
+#define __OS_OS_H__
 
 /*============================ INCLUDES ======================================*/
 #if     defined(__OS_WINDOWS__)
     #include ".\windows\os.h"
 #elif   defined(__OS_RTOS__)
     #include ".\rtos\os.h"
+#else
+#define OS_CRITICAL_DEFINE(__CRITICAL)      
+#define OS_CRITICAL_INIT(__CRITICAL)        do {} while (0)
+#define OS_CRITICAL_DEINIT(__CRITICAL)      do {} while (0)
+#define OS_CRITICAL_ENTER(__CRITICAL)       do {} while (0)
+#define OS_CRITICAL_EXIT(__CRITICAL)        do {} while (0)
 #endif
 
 /*============================ MACROS ========================================*/

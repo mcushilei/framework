@@ -68,22 +68,19 @@ fsm_err_t fsm_semaphore_create(
         return FSM_ERR_CREATE_ISR;
     }
     
-    //!< get OCB from pool.
     if (NULL == fsmSemtList) {
         *pptSem = NULL;
         return FSM_ERR_OBJ_DEPLETED;
     }
-    
-    ptSem        = fsmSemtList;
+    ptSem       = fsmSemtList;
     fsmSemtList = (fsm_semaphore_t *)ptSem->ObjNext;
     
-    SAFE_ATOM_CODE(
-        ptSem->ObjType      = FSM_OBJ_TYPE_SEM;
-        ptSem->ObjFlag      = 0u;
-        ptSem->Head         = NULL;           
-        ptSem->Tail         = NULL;
-        ptSem->SemCounter   = hwInitialCount; //!< set initial state
-    )
+    ptSem->ObjType      = FSM_OBJ_TYPE_SEM;
+    ptSem->ObjFlag      = 0u;
+    ptSem->Head         = NULL;           
+    ptSem->Tail         = NULL;
+    ptSem->SemCounter   = hwInitialCount;
+    
     *pptSem = ptSem;
 
     return FSM_ERR_NONE;
@@ -97,9 +94,10 @@ fsm_err_t fsm_semaphore_create(
  */
 fsm_err_t fsm_semaphore_wait(fsm_handle_t hObject, uint32_t wTimeout)
 {
-    uint8_t     chResult;
-    uint8_t     ObjType;
-    fsm_tcb_t  *Task = fsmScheduler.CurrentTask;
+    uint8_t             chResult;
+    uint8_t             ObjType;
+    fsm_tcb_t          *pTask = fsmScheduler.CurrentTask;
+    fsm_semaphore_t    *ptSem = (fsm_semaphore_t *)hObject;
 
     if (NULL == hObject) {
         return FSM_ERR_INVALID_PARAM;
@@ -109,36 +107,48 @@ fsm_err_t fsm_semaphore_wait(fsm_handle_t hObject, uint32_t wTimeout)
         return FSM_ERR_PEND_ISR;
     }
     
-    if (Task->Status == FSM_TASK_STATUS_READY) {
-        ObjType = ((fsm_basis_obj_t *)hObject)->ObjType;
-        if (!(ObjType & FSM_OBJ_TYPE_WAITABLE)) {
-            return FSM_ERR_OBJ_NOT_WAITABLE;
-        }
-        if (ObjType != FSM_OBJ_TYPE_SEM) {
-            return FSM_ERR_OBJ_TYPE;
-        }
-        
-        chResult = FSM_ERR_OBJ_NOT_SINGLED;
-        fsm_semaphore_t *ptSem = (fsm_semaphore_t *)hObject;
-        SAFE_ATOM_CODE(
-            if (ptSem->SemCounter == 0) {
-                //! add task to the object's wait queue.
-                Task->Object = hObject;
-                Task->Delay  = wTimeout;
-                Task->Status = FSM_TASK_STATUS_PEND;
-                fsm_task_enqueue(&(ptSem->TaskQueue), Task);
-            } else {
-                ptSem->SemCounter--;
-                chResult = FSM_ERR_NONE;
+    switch (pTask->Status) {
+        case FSM_TASK_STATUS_READY:
+            ObjType = ((fsm_basis_obj_t *)hObject)->ObjType;
+            if (!(ObjType & FSM_OBJ_TYPE_WAITABLE)) {
+                return FSM_ERR_OBJ_NOT_WAITABLE;
             }
-        )
-    } else if (Task->Status == FSM_TASK_STATUS_PEND_OK) {
-        Task->Status    = FSM_TASK_STATUS_READY;
-        Task->Delay     = 0;
-        chResult        = FSM_ERR_NONE;
-    } else if (Task->Status == FSM_TASK_STATUS_PEND_TIMEOUT) {
-        Task->Status    = FSM_TASK_STATUS_READY;
-        chResult        = FSM_ERR_TASK_PEND_TIMEOUT;
+            if (ObjType != FSM_OBJ_TYPE_SEM) {
+                return FSM_ERR_OBJ_TYPE;
+            }
+            
+            SAFE_ATOM_CODE(
+                if (ptSem->SemCounter == 0) {
+                    if (wTimeout == 0u) {
+                        chResult = FSM_ERR_TASK_PEND_TIMEOUT;
+                    } else {
+                        //! add task to the object's wait queue.
+                        pTask->Object = hObject;
+                        fsm_set_task_pend(wTimeout);
+                        fsm_waitable_obj_add_task(hObject, pTask);
+                        chResult = FSM_ERR_OBJ_NOT_SINGLED;
+                    }
+                } else {
+                    ptSem->SemCounter--;
+                    chResult = FSM_ERR_NONE;
+                }
+            )
+            break;
+            
+        case FSM_TASK_STATUS_PEND_OK:
+            pTask->Status   = FSM_TASK_STATUS_READY;
+            chResult        = FSM_ERR_NONE;
+            break;
+        
+        case FSM_TASK_STATUS_PEND_TIMEOUT:
+            pTask->Status   = FSM_TASK_STATUS_READY;
+            chResult        = FSM_ERR_TASK_PEND_TIMEOUT;
+            break;
+        
+        case FSM_TASK_STATUS_PEND:
+        default:
+            chResult = FSM_ERR_OBJ_NOT_SINGLED;
+            break;
     }
 
     return chResult;
@@ -147,7 +157,7 @@ fsm_err_t fsm_semaphore_wait(fsm_handle_t hObject, uint32_t wTimeout)
 fsm_err_t fsm_semaphore_release(fsm_handle_t hObject, uint16_t hwReleaseCount)
 {
     fsm_semaphore_t *ptSem = (fsm_semaphore_t *)hObject;
-    uint8_t chError = FSM_ERR_NONE;
+    fsm_tcb_t       *pTask;
     
     if ((NULL == ptSem) || (0 == hwReleaseCount)) {
         return FSM_ERR_INVALID_PARAM;
@@ -158,32 +168,19 @@ fsm_err_t fsm_semaphore_release(fsm_handle_t hObject, uint16_t hwReleaseCount)
     }
     
     SAFE_ATOM_CODE(
-    do {
-        fsm_tcb_t *pTask, *pNextTask;
-        
         if (hwReleaseCount <= (65535u - ptSem->SemCounter)) {
             ptSem->SemCounter += hwReleaseCount;
         }
         
-        if (ptSem->Head != NULL) {
-            //! wake up blocked tasks.
-            for (pTask = ptSem->Head;
-                (NULL != pTask) && (0 != ptSem->SemCounter);
-                pTask = pNextTask, ptSem->SemCounter--) {
-                pNextTask = pTask->Next;
-                fsm_set_task_ready(pTask);    //!< move task to ready list.
-                pTask->Object = NULL;
-                pTask->Status = FSM_TASK_STATUS_PEND_OK;
-            }
-            ptSem->Head = pTask;
-            if (ptSem->Head == NULL) {
-                ptSem->Tail = NULL;
-            }
+        //! wake up blocked tasks.
+        while ((NULL != ptSem->Head) && (0 != ptSem->SemCounter)) {
+            ptSem->SemCounter--;
+            pTask = fsm_waitable_obj_get_task(hObject);
+            fsm_set_task_ready(pTask, FSM_TASK_STATUS_PEND_OK);
         }
-    } while (0);
     )
         
-    return chError;
+    return FSM_ERR_NONE;
 }
 
 #endif

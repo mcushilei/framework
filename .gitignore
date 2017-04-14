@@ -82,3 +82,4 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 /os/ucos/ucos_ii/source
+/service/fsm/fsm_common.h

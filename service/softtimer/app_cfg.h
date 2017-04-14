@@ -23,14 +23,24 @@
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define SOFTTIMER_MAX_TIMERS    (8u)
+#define SOFTTIMER_MAX_TIMERS    (32u)
 
+#ifdef WIN32
+#define __SOFTTIMER_SAFE_ATOME_CODE(...) {\
+            OS_CRITICAL_ENTER(softtimerCriticalSection);\
+            __VA_ARGS__\
+            OS_CRITICAL_EXIT(softtimerCriticalSection);\
+        }
+#elif defined(__OS_RTOS__)
 #define __SOFTTIMER_SAFE_ATOME_CODE(...) {\
             OS_CPU_SR  cpu_sr = 0u;\
-            OS_ENTER_CRITICAL();\
+            osEnterCriticalSection(cpu_sr);\
             __VA_ARGS__\
-            OS_EXIT_CRITICAL();\
+            osExitCriticalSection(cpu_sr);\
         }
+#else
+#define __SOFTTIMER_SAFE_ATOME_CODE(...)    __VA_ARGS__
+#endif
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
