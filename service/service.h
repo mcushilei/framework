@@ -32,6 +32,8 @@
 #include ".\softtimer\softtimer.h"
 #include ".\event_fsm\event_fsm.h"
 #include ".\fsm\fsm.h"
+#include ".\dsp\dsp.h"
+#include ".\rppp\rppp.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/

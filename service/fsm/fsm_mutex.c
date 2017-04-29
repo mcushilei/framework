@@ -44,7 +44,6 @@ void fsm_mutex_init(void)
     uint_fast16_t n;
     fsm_mutex_t **p;
 
-    MEM_SET_ZERO((void *)fsmMutexPool, sizeof(fsmMutexPool));
     p = &fsmMutexList;
     
     //! add mutex OCBs to the free list

@@ -41,10 +41,9 @@ static fsm_flag_t    fsmFlagPool[FSM_MAX_FLAGS];    //! event ocb pool
 /*============================ IMPLEMENTATION ================================*/
 void fsm_flag_init(void)
 {
-    uint_fast16_t n;
-    fsm_flag_t **p;
+    uint_fast16_t   n;
+    fsm_flag_t    **p;
 
-    MEM_SET_ZERO((void *)fsmFlagPool, sizeof(fsmFlagPool));
     p = &fsmFlagFreeList;
     
     //! add event OCBs to the free list
@@ -133,7 +132,7 @@ fsm_err_t fsm_flag_wait(fsm_handle_t hObject, uint32_t wTimeout)
                 return FSM_ERR_OBJ_TYPE;
             }
             
-            SAFE_ATOM_CODE(
+            FSM_SAFE_ATOM_CODE(
                 if (pFlag->EventFlag & FSM_EVENT_SINGNAL_BIT) {
                     if (!(pFlag->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
                         pFlag->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
@@ -189,7 +188,7 @@ fsm_err_t fsm_flag_set  (fsm_handle_t hObject)
         return FSM_ERR_OBJ_TYPE;
     }
     
-    SAFE_ATOM_CODE(
+    FSM_SAFE_ATOM_CODE(
         pFlag->EventFlag |= FSM_EVENT_SINGNAL_BIT;
         if (pFlag->TaskQueue.Head != NULL) {
             if (!(pFlag->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
@@ -222,7 +221,7 @@ fsm_err_t fsm_flag_reset(fsm_handle_t hObject)
         return FSM_ERR_OBJ_TYPE;
     }
     
-    SAFE_ATOM_CODE(
+    FSM_SAFE_ATOM_CODE(
         pFlag->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
     )
         

@@ -168,13 +168,15 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t *pchDate, uint16
             if (chEvent) {  //!< timeout
                 FRAME_DEQUEUE(&chByte);
                 s_tState1 = WAIT_FOR_HEAD_0;
-                return FSM_RT_ONGOING;
             } else {        //!< byte received
                 if (!FRAME_ENQUEUE(chByte)) {
-                    FRAME_DEQUEUE(&chByte);
+                    uint8_t dummy;
+                    FRAME_DEQUEUE(&dummy);
+                    FRAME_ENQUEUE(chByte)
+                    s_tState1 = WAIT_FOR_HEAD_0;
                 }
-                s_tState0 = RCV_PASER;
             }
+            s_tState0 = RCV_PASER;
             //break;    //!< omitted intentionally.
 
         case RCV_PASER:

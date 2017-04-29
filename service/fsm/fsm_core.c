@@ -218,8 +218,6 @@ static fsm_tcb_t *fsm_tcb_new(void)
  */
 static void fsm_tcb_free(fsm_tcb_t *pTCB)
 {
-    MEM_SET_ZERO((void *)pTCB, sizeof(fsm_tcb_t));
-
     pTCB->Next      = fsmTCBFreeList;        //! add tcb to freelist
     fsmTCBFreeList  = pTCB;
 }
@@ -280,9 +278,7 @@ fsm_err_t fsm_task_create(
     
     fsm_tcb_init(ptTask, State, Arg, Stack, StackSize);
     
-    SAFE_ATOM_CODE(
-        fsm_set_task_ready(ptTask, FSM_TASK_STATUS_READY);     /*! Let this task to run. */
-    )
+    fsm_set_task_ready(ptTask, FSM_TASK_STATUS_READY);     /*! Let this task to run. */
 
     if (NULL != pptTask) {
         *pptTask = ptTask;
@@ -302,16 +298,14 @@ fsm_err_t fsm_time_delay(uint32_t wTimeout)
     
     switch (pTask->Status) {
         case FSM_TASK_STATUS_READY:
-            SAFE_ATOM_CODE(
-                if (wTimeout == 0u) {
-                    chResult = FSM_ERR_TASK_PEND_TIMEOUT;
-                } else {
-                    //! add task to the object's wait queue.
-                    pTask->Object = NULL;
-                    fsm_set_task_pend(wTimeout);
-                    chResult = FSM_ERR_OBJ_NOT_SINGLED;
-                }
-            )
+            if (wTimeout == 0u) {
+                chResult = FSM_ERR_TASK_PEND_TIMEOUT;
+            } else {
+                //! add task to the object's wait queue.
+                pTask->Object = NULL;
+                fsm_set_task_pend(wTimeout);
+                chResult = FSM_ERR_OBJ_NOT_SINGLED;
+            }
             break;
             
         case FSM_TASK_STATUS_PEND_OK:
@@ -331,11 +325,12 @@ fsm_err_t fsm_time_delay(uint32_t wTimeout)
 
 void fsm_time_tick(void)
 {
-    fsm_tcb_t      *pTask;
+    fsm_tcb_t      *pTask, *pNextTask;
         
-    SAFE_ATOM_CODE(
-       for (pTask = fsmScheduler.PendList.Head; pTask != NULL; pTask = pTask->Next) {
-           if ((pTask->Delay != 0) && (pTask->Delay != FSM_INFINITE)) {
+    FSM_SAFE_ATOM_CODE(
+        for (pTask = fsmScheduler.PendList.Head; pTask != NULL; pTask = pNextTask) {
+            pNextTask = pTask->Next;
+            if ((pTask->Delay != 0) && (pTask->Delay != FSM_INFINITE)) {
                pTask->Delay--;
                if (pTask->Delay == 0) {
                    if (pTask->Object != NULL) {
@@ -343,8 +338,8 @@ void fsm_time_tick(void)
                    }
                    fsm_set_task_ready(pTask, FSM_TASK_STATUS_PEND_TIMEOUT);
                }
-           }
-       }
+            }
+        }
     )
 }
 
@@ -428,7 +423,7 @@ static bool fsm_task_remove_from_queue(fsm_task_list_t *pTaskQueue, fsm_tcb_t *p
  */
 void fsm_set_task_ready(fsm_tcb_t *pTask, uint8_t pendStat)
 {
-    SAFE_ATOM_CODE(
+    FSM_SAFE_ATOM_CODE(
         pTask->Status = pendStat;
         pTask->Object = NULL;
         fsm_task_remove_from_queue(&fsmScheduler.PendList, pTask);
@@ -438,7 +433,7 @@ void fsm_set_task_ready(fsm_tcb_t *pTask, uint8_t pendStat)
 
 void fsm_set_task_pend (uint32_t timeDelay)
 {
-    SAFE_ATOM_CODE(
+    FSM_SAFE_ATOM_CODE(
         fsmScheduler.CurrentTask->Delay    = timeDelay;
         fsmScheduler.CurrentTask->Status   = FSM_TASK_STATUS_PEND;
         fsm_task_enqueue(&fsmScheduler.PendList, fsmScheduler.CurrentTask);
@@ -449,7 +444,7 @@ static fsm_tcb_t *fsm_get_next_ready_task(void)
 {
     fsm_tcb_t *pTask;
     
-    SAFE_ATOM_CODE(
+    FSM_SAFE_ATOM_CODE(
         pTask = fsm_task_dequeue(&fsmScheduler.ReadyList);
     )
         
@@ -562,7 +557,6 @@ static void fsm_tcb_pool_init(void)
     uint_fast16_t n;
     fsm_tcb_t **p;
 
-    MEM_SET_ZERO((void *)fsmTCBTbl, sizeof(fsmTCBTbl));
     p = &fsmTCBFreeList;
     
     //! add TCBs to the free list
@@ -577,8 +571,12 @@ static void fsm_tcb_pool_init(void)
 void fsm_init(void)
 {
     fsmIntNesting = 0;
+    fsmScheduler.CurrentTask    = NULL;
+    fsmScheduler.PendList.Head  = NULL;
+    fsmScheduler.PendList.Tail  = NULL;
+    fsmScheduler.ReadyList.Head = NULL;
+    fsmScheduler.ReadyList.Tail = NULL;
     fsm_tcb_pool_init();
-    MEM_SET_ZERO((void *)&fsmScheduler, sizeof(fsmScheduler));
     fsm_flag_init();
     fsm_mutex_init();
     fsm_semaphore_init();

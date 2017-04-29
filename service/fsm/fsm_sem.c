@@ -44,7 +44,6 @@ void fsm_semaphore_init(void)
     uint_fast16_t n;
     fsm_semaphore_t **p;
 
-    MEM_SET_ZERO((void *)fsmSemPool, sizeof(fsmSemPool));
     p = &fsmSemtList;
     
     //! add semaphore OCBs to the free list
@@ -117,7 +116,7 @@ fsm_err_t fsm_semaphore_wait(fsm_handle_t hObject, uint32_t wTimeout)
                 return FSM_ERR_OBJ_TYPE;
             }
             
-            SAFE_ATOM_CODE(
+            FSM_SAFE_ATOM_CODE(
                 if (ptSem->SemCounter == 0) {
                     if (wTimeout == 0u) {
                         chResult = FSM_ERR_TASK_PEND_TIMEOUT;
@@ -167,7 +166,7 @@ fsm_err_t fsm_semaphore_release(fsm_handle_t hObject, uint16_t hwReleaseCount)
         return FSM_ERR_OBJ_TYPE;
     }
     
-    SAFE_ATOM_CODE(
+    FSM_SAFE_ATOM_CODE(
         if (hwReleaseCount <= (65535u - ptSem->SemCounter)) {
             ptSem->SemCounter += hwReleaseCount;
         }
