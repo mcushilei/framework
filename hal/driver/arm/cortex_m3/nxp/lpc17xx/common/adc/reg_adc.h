@@ -15,29 +15,45 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-#ifndef __DRIVER_TIMER_C__
-#ifndef __DRIVER_TIMER_H__
-#define __DRIVER_TIMER_H__
+
+#ifndef __DRIVER_REG_ADC_H__
+#define __DRIVER_REG_ADC_H__
+
 
 /*============================ INCLUDES ======================================*/
-#include ".\app_cfg.h"
-#include "..\device.h"
-#include ".\reg_timer.h"
-
 /*============================ MACROS ========================================*/
-/*============================ MACROFIED FUNCTIONS ===========================*/
-#define __TIMER_EXTERN_FUN(_N, _A)                                              \
-    extern bool timer##_N##_init(void);                                         \
-    extern bool timer##_N##_enable(void);                                       \
-    extern bool timer##_N##_disable(void);                                      \
-    extern bool timer##_N##_start(void);                                        \
-    extern bool timer##_N##_stop(void);                                         \
+#define ADC_REG                         (*(adc_reg_t *)ADC_BASE_ADDRESS)
 
+/*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
+
+//! ADC Register File
+DEF_REGPAGE
+    reg32_t     CR;
+    reg32_t     GDR;
+    REG32_RSVD(1)
+    reg32_t     INTEN;
+    union{
+        reg32_t DR[8];
+        struct{
+            reg32_t DR0;
+            reg32_t DR1;
+            reg32_t DR2;
+            reg32_t DR3;
+            reg32_t DR4;
+            reg32_t DR5;
+            reg32_t DR6;
+            reg32_t DR7;
+        };
+    };
+    reg32_t     STAT;
+    reg32_t     TRM;
+END_DEF_REGPAGE(adc_reg_t)
+
+
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-MREPEAT(TIMER_COUNT, __TIMER_EXTERN_FUN, 0)   //!< this is used by bottom layer
 
-#endif
-#endif
+
+#endif  //! #ifndef __DRIVER_REG_ADC_H__
 /* EOF */

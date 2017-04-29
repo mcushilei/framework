@@ -97,7 +97,7 @@
 #define SC_CLKOUTCFG_ACT_MSK    (1ul << SC_CLKOUTCFG_ACT)
 //! @}
 
-typedef enum {
+enum {
     PCONP_TIM0      = 1,
     PCONP_TIM1,
     PCONP_UART0,
@@ -125,7 +125,7 @@ typedef enum {
     PCONP_GPDMA     = 29,
     PCONP_ENET,
     PCONP_USB,
-} em_pconp_t;
+};
 
 #define SC_PCONP_TIM0_MSK           (1ul << PCONP_TIM0)
 #define SC_PCONP_TIM1_MSK           (1ul << PCONP_TIM1)
@@ -155,7 +155,7 @@ typedef enum {
 #define SC_PCONP_ENET_MSK           (1ul << PCONP_ENET)
 #define SC_PCONP_USB_MSK            (1ul << PCONP_USB)
 
-typedef enum {
+enum {
     PCLK_WDT        = 0,
     PCLK_TIM0       = 2,
     PCLK_TIM1       = 4,
@@ -185,14 +185,14 @@ typedef enum {
     PCLK_RIT        = 0x80 + 26,
     PCLK_SYSCON     = 0x80 + 28,
     PCLK_MC         = 0x80 + 30,
-} em_pclksel_t;
+};
 
-typedef enum {
+enum {
     PCLK_DIV_4      = 0,
     PCLK_DIV_1,
     PCLK_DIV_2,
     PCLK_DIV_8,
-} em_pclk_div_t;
+};
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/

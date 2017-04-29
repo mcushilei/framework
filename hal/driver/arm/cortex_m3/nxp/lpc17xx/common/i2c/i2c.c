@@ -186,7 +186,7 @@ END_DEF_INTERFACE(i_i2c_t)
 //! @{
 DEF_STRUCTURE(__i2c_t)
     i2c_reg_t*  ptREG;         //!< reference to register page
-    em_pconp_t  tPOWER;
+    uint32_t    tPOWER;
 END_DEF_STRUCTURE(__i2c_t)
 //! @}
 

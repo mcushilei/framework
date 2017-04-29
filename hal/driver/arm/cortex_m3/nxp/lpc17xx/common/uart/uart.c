@@ -30,12 +30,12 @@
 #define MODE_LENGTH_MSK         0x0300
 #define MODE_LENGTH_SHIFT       8
 
-#define __SAFE_CLK_CODE(...)                          \
-    {                                               \
-        uint32_t wStatus = PM.Power.GetStatus(ptThis->tPCON);   \
-        PM.Power.Enable(ptThis->tPCON);             \
-        __VA_ARGS__;                               \
-        PM.Power.Resume(ptThis->tPCON, wStatus);    \
+#define __SAFE_CLK_CODE(...)                                            \
+    {                                                                   \
+        uint32_t wStatus = peripheral_clock_get_status(ptThis->tPCON);  \
+        peripheral_clock_enable(ptThis->tPCON);                         \
+        __VA_ARGS__;                                                    \
+        peripheral_clock_resume_status(ptThis->tPCON, wStatus);         \
     }
 
 #define __UART_INTERFACE(__N, __A)                                           \
@@ -56,72 +56,72 @@
 #define __UART_FUNCTION(__N, __A)                                             \
     bool uart##__N##_config(uart_cfg_t *ptUsartCFG)                          \
     {                                                                       \
-        return uart_config(__N, ptUsartCFG);           \
+        return uart_config(__N, ptUsartCFG);                                \
     }                                                                       \
                                                                             \
     bool uart##__N##_idle(void)                                             \
     {                                                                       \
-        return uart_idle(__N);                       \
+        return uart_idle(__N);                                              \
     }                                                                       \
                                                                             \
     bool uart##__N##_enable(void)                                           \
     {                                                                       \
-        return uart_enable(__N);                     \
+        return uart_enable(__N);                                            \
     }                                                                       \
                                                                             \
     bool uart##__N##_disable(void)                                          \
     {                                                                       \
-        return uart_disable(__N);                    \
+        return uart_disable(__N);                                           \
     }                                                                       \
                                                                             \
     bool uart##__N##_write_byte(uint8_t chByte)                             \
     {                                                                       \
-        return uart_write_byte(__N, chByte);         \
+        return uart_write_byte(__N, chByte);                                \
     }                                                                       \
                                                                             \
     bool uart##__N##_read_byte(uint8_t *pchByte)                            \
     {                                                                       \
-        return uart_read_byte(__N, pchByte);         \
+        return uart_read_byte(__N, pchByte);                                \
     }                                                                       \
                                                                             \
-    bool uart##__N##_baudrate_set(uint32_t wBaudrate)                                \
+    bool uart##__N##_baudrate_set(uint32_t wBaudrate)                       \
     {                                                                       \
-        return uart_baudrate_set(__N, wBaudrate);             \
+        return uart_baudrate_set(__N, wBaudrate);                           \
     }                                                                       \
                                                                             \
-    uint32_t uart##__N##_baudrate_get(void)                                          \
+    uint32_t uart##__N##_baudrate_get(void)                                 \
     {                                                                       \
-        return uart_baudrate_get(__N);                        \
+        return uart_baudrate_get(__N);                                      \
     }                                                                       \
                                                                             \
     bool uart##__N##_int_enable(uint32_t wMask)                             \
     {                                                                       \
-        return uart_int_enable(__N, wMask);          \
+        return uart_int_enable(__N, wMask);                                 \
     }                                                                       \
                                                                             \
     bool uart##__N##_int_disable(uint32_t wMask)                            \
     {                                                                       \
-        return uart_int_disable(__N, wMask);         \
+        return uart_int_disable(__N, wMask);                                \
     }
 
 
-#define __UART_FUNCTION_PROTOTYPES(__N, __A)                                             \
-    extern bool uart##__N##_config(uart_cfg_t *ptUsartCFG);                  \
+#define __UART_FUNCTION_PROTOTYPES(__N, __A)                                \
+    extern bool uart##__N##_config(uart_cfg_t *ptUsartCFG);                 \
     extern bool uart##__N##_idle(void);                                     \
     extern bool uart##__N##_enable(void);                                   \
     extern bool uart##__N##_disable(void);                                  \
     extern bool uart##__N##_write_byte(uint8_t chByte);                     \
     extern bool uart##__N##_read_byte(uint8_t *pchByte);                    \
-    extern bool uart##__N##_baudrate_set(uint32_t wBaudrate);              \
-    extern uint32_t uart##__N##_baudrate_get(void);                        \
+    extern bool uart##__N##_baudrate_set(uint32_t wBaudrate);               \
+    extern uint32_t uart##__N##_baudrate_get(void);                         \
     extern bool uart##__N##_int_enable(uint32_t wMask);                     \
     extern bool uart##__N##_int_disable(uint32_t wMask);                    \
     
-#define __UART_OBJ(__N, __A)                                            \
+#define __UART_OBJ(__N, __A)                                                \
     {                                                                       \
-        ((uart_reg_t *)(UART##__N##_BASE)),                        \
-        PCONP_UART##__N,                                                   \
-        PCLK_UART##__N,                                                   \
+        ((uart_reg_t *)(UART##__N##_BASE_ADDRESS)),                         \
+        PCONP_UART##__N,                                                    \
+        PCLK_UART##__N,                                                     \
     },
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
@@ -189,8 +189,8 @@ END_DEF_INTERFACE(i_uart_t)
 //! @{
 DEF_CLASS(__uart_t)
     uart_reg_t *const   ptREG;
-    const em_pconp_t    tPCON;
-    const em_pclksel_t  tPCLK;
+    const uint32_t      tPCON;
+    const uint32_t      tPCLK;
     uint32_t            wBaundRate;
 END_DEF_CLASS(__uart_t)
 //! @}
@@ -429,7 +429,7 @@ static bool uart_enable(uint32_t wUsart)
     }
     
     //! Enable Peripheral Clock
-    PM.Power.Enable(ptThis->tPCON);
+    peripheral_clock_enable(ptThis->tPCON);
     
     //! Transmit enable
     ptThis->ptREG->TER = (1u << 7); 
@@ -454,7 +454,7 @@ static bool uart_disable(uint32_t wUsart)
     ptThis->ptREG->TER = (0u << 7); 
 
     //! Disable Peripheral Clock
-    PM.Power.Disable(ptThis->tPCON);
+    peripheral_clock_disable(ptThis->tPCON);
     
     return true;
 }    

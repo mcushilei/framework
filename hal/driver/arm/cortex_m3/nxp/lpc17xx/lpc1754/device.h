@@ -99,21 +99,30 @@ typedef enum {
 #define PIO_PORTE
 //! @}
 
-#define FLASH_PAGE_SIZE                 (512ul)
+#define FLASH_PAGE_SIZE                 (512u)
 
 //! \note IRC and RTC frequency
 //! @{
-#define IRC_CLK_FREQ            (4000000ul)
-#define RTC_CLK_FREQ            (32768ul)
+#define IRC_CLK_FREQ            (4000000u)
+#define RTC_CLK_FREQ            (32768u)
 //! @}
 
-#define SSP0_BASE_ADDRESS               (0x40088000ul)
-#define SSP1_BASE_ADDRESS               (0x40030000ul)
-#define SPI_BASE_ADDRESS                (0x40020000ul)
-#define I2C0_BASE_ADDRESS               (0x4001C000ul)
-#define I2C1_BASE_ADDRESS               (0x4005C000ul)
-#define I2C2_BASE_ADDRESS               (0x400A0000ul)
-#define RTC_BASE_ADDRESS                (0x40024000ul)
+#define UART0_BASE_ADDRESS              (0x4000C000u)
+#define UART1_BASE_ADDRESS              (0x40010000u)
+#define UART2_BASE_ADDRESS              (0x40009800u)
+#define UART3_BASE_ADDRESS              (0x40009C00u)
+#define SSP0_BASE_ADDRESS               (0x40088000u)
+#define SSP1_BASE_ADDRESS               (0x40030000u)
+#define SPI_BASE_ADDRESS                (0x40020000u)
+#define I2C0_BASE_ADDRESS               (0x4001C000u)
+#define I2C1_BASE_ADDRESS               (0x4005C000u)
+#define I2C2_BASE_ADDRESS               (0x400A0000u)
+#define RTC_BASE_ADDRESS                (0x40024000u)
+#define ADC_BASE_ADDRESS                (0x40034000u)
+#define TIM0_BASE_ADDRESS               (0x40004000u)
+#define TIM1_BASE_ADDRESS               (0x40008000u)
+#define TIM2_BASE_ADDRESS               (0x40010000u)
+#define TIM3_BASE_ADDRESS               (0x40014000u)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/

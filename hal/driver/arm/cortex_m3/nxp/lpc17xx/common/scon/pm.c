@@ -86,18 +86,18 @@ END_DEF_INTERFACE(i_core_clk_t)
 //! \name peripheral clock interface
 //! @{
 DEF_INTERFACE(i_pclk_t)
-    bool                        (*Config)(em_pclksel_t tPer, em_pclk_div_t tDiv);
-    uint32_t                    (*Get)(em_pclksel_t tPer);
+    bool                        (*Config)(uint32_t tPer, uint32_t tDiv);
+    uint32_t                    (*Get)(uint32_t tPer);
 END_DEF_INTERFACE(i_pclk_t)
 //! @}
 
 //! \brief power interface
 //! @{
 DEF_INTERFACE(i_power_t)
-    bool                        (*Enable)(em_pconp_t tIndex);
-    bool                        (*Disable)(em_pconp_t tIndex);
-    uint32_t                    (*GetStatus)(em_pconp_t tIndex);
-    bool                        (*Resume)(em_pconp_t tIndex, uint32_t tStatus);
+    bool                        (*Enable)(uint32_t tIndex);
+    bool                        (*Disable)(uint32_t tIndex);
+    uint32_t                    (*GetStatus)(uint32_t tIndex);
+    bool                        (*Resume)(uint32_t tIndex, uint32_t tStatus);
 END_DEF_INTERFACE(i_power_t)
 //! @}
 
@@ -129,12 +129,12 @@ extern uint32_t pll_get_out_clock(void);
 extern uint32_t main_clock_get(void);
 extern bool     core_clock_cfg(em_main_clk_src_t tSrc, uint32_t wDiv);
 extern uint32_t core_clock_get(void);
-extern bool     peripheral_clock_enable(em_pconp_t tIndex);
-extern bool     peripheral_clock_disable(em_pconp_t tIndex);
-extern uint32_t peripheral_clock_get_status(em_pconp_t tIndex);
-extern bool     peripheral_clock_resume_status(em_pconp_t tIndex, uint32_t wStatus);
-extern bool     peripheral_clock_config(em_pclksel_t tPer , em_pclk_div_t tDiv);
-extern uint32_t peripheral_clock_get(em_pclksel_t tPer);
+extern bool     peripheral_clock_enable         (uint32_t tIndex);
+extern bool     peripheral_clock_disable        (uint32_t tIndex);
+extern uint32_t peripheral_clock_get_status     (uint32_t tIndex);
+extern bool     peripheral_clock_resume_status  (uint32_t tIndex, uint32_t wStatus);
+extern bool     peripheral_clock_config         (uint32_t tPer, uint32_t tDiv);
+extern uint32_t peripheral_clock_get            (uint32_t tPer);
 extern bool     clock_out_config(em_out_clk_src_t tSrc, uint32_t wDiv);
 
 /*============================ LOCAL VARIABLES ===============================*/
@@ -225,10 +225,6 @@ uint32_t core_clock_get(void)
     return main_clock_get() / ((SC_REG.CCLKCFG & SC_CCLKCFG_CCLKSEL_MSK) + 1);
 }
 
-uint32_t ahb_clock_get(void)
-{
-    return core_clock_get();
-}
 
 /*! \brief  Fet main clock frequency.
  *! \param  None
@@ -352,7 +348,7 @@ bool clock_out_config(em_out_clk_src_t tSrc, uint32_t wDiv)
 }
 
 //! \brief enable specified peripheral clock supply
-bool peripheral_clock_enable(em_pconp_t tIndex)
+bool peripheral_clock_enable(uint32_t tIndex)
 {
     if (tIndex > 31) {
         return false;
@@ -364,7 +360,7 @@ bool peripheral_clock_enable(em_pconp_t tIndex)
 }
 
 //! \brief disable specified peripheral clock supply
-bool peripheral_clock_disable(em_pconp_t tIndex)
+bool peripheral_clock_disable(uint32_t tIndex)
 {
     if (tIndex > 31) {
         return false;
@@ -376,7 +372,7 @@ bool peripheral_clock_disable(em_pconp_t tIndex)
 }
 
 //! \brief get specified peripheral clock supply status
-uint32_t peripheral_clock_get_status(em_pconp_t tIndex)
+uint32_t peripheral_clock_get_status(uint32_t tIndex)
 {
     if (tIndex > 31) {
         return 0;
@@ -386,7 +382,7 @@ uint32_t peripheral_clock_get_status(em_pconp_t tIndex)
 }
 
 //! \brief Resume specified peripheral clock supply status
-bool peripheral_clock_resume_status(em_pconp_t tIndex, uint32_t wStatus)
+bool peripheral_clock_resume_status(uint32_t tIndex, uint32_t wStatus)
 {
     if (tIndex > 31) {
         return false;
@@ -400,7 +396,7 @@ bool peripheral_clock_resume_status(em_pconp_t tIndex, uint32_t wStatus)
  *! \param  config struct
  *! \return the main clock
  */
-bool peripheral_clock_config(em_pclksel_t tPer, em_pclk_div_t tDiv)
+bool peripheral_clock_config(uint32_t tPer, uint32_t tDiv)
 {
     if (tPer > 0x80){
         SC_REG.PCLKSEL1 |= (0x03 & tDiv) << (tPer - 0x80);
@@ -415,7 +411,7 @@ bool peripheral_clock_config(em_pclksel_t tPer, em_pclk_div_t tDiv)
 *! \param config struct
 *! \return the main clock
 */
-static uint32_t get_peripheral_clock_div(em_pclksel_t tPer)
+static uint32_t get_peripheral_clock_div(uint32_t tPer)
 {
     if (tPer > 0x80){
         return 0x03ul & (SC_REG.PCLKSEL1 >> ((uint32_t)tPer - 0x80));
@@ -428,7 +424,7 @@ static uint32_t get_peripheral_clock_div(em_pclksel_t tPer)
 *! \param config struct
 *! \return the main clock
 */
-uint32_t peripheral_clock_get(em_pclksel_t tPer)
+uint32_t peripheral_clock_get(uint32_t tPer)
 {
     uint32_t wCClk;
     uint32_t wDiv;

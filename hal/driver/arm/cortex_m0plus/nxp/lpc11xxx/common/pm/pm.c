@@ -276,7 +276,7 @@ bool ahb_clock_resume_status(uint32_t Part, uint32_t Status)
         ahb_clock_resume_status(AHBCLK_FLASHREG, Status);                \
     }
 
-bool ahb_clock_config(uint32_t Source, uint32_t Div)
+bool core_clock_config(uint32_t Source, uint32_t Div)
 {
     if (0 == Div) {
         return false;
@@ -370,7 +370,7 @@ uint32_t main_clock_get(void)
     return wResult;
 }
 
-uint32_t ahb_clock_get(void)
+uint32_t core_clock_get(void)
 {
     return main_clock_get() / SYSCON_REG.SYSAHBCLKDIV;
 }

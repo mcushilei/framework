@@ -32,10 +32,12 @@
 //! \name i2c bus status
 //! @{
 typedef enum {
-    //! i2c works as master transmitter
     I2C_BUS_ERROR                    =0x00,
+    
     I2C_BUS_M_START                  =0x08,
     I2C_BUS_M_RESTART                =0x10,
+    
+    //! i2c works as master transmitter
     I2C_BUS_M_T_SLA_W_ACK            =0x18,
     I2C_BUS_M_T_SLA_W_NACK           =0x20,
     I2C_BUS_M_T_DAT_ACK              =0x28,

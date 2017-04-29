@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -19,19 +19,19 @@
 //! \note do not move this pre-processor statement to other places
 #include "..\app_cfg.h"
 
-#ifndef __COM_APP_CFG_H__
-#define __COM_APP_CFG_H__
+#ifndef __RPPP_APP_CFG_H__
+#define __RPPP_APP_CFG_H__
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define COM_OUT_BUF_LENGTH                  (2048ul)
-#define COM_DEVICE_BUFFER_SIZE              (2048ul)
+#define RPPP_PAYLOAD_MAX_SIZE   (128u)
+
+#define RPPP_DEBUG              DEBUG_ON
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 
-
-#endif
+#endif  //! #ifndef __RPPP_APP_CFG_H__
 /* EOF */

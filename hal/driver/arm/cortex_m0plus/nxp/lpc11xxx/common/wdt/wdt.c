@@ -77,12 +77,12 @@ extern bool wdt_osc_cfg(uint8_t chDIV, uint8_t chFRQ);
 /*============================ IMPLEMENTATION ================================*/
 void wdt_osc_stop(void)
 {
-    power_config_disable(POWER_WDTOSC);
+    power_disable(POWER_WDTOSC);
 }
 
 void wdt_osc_run(void)
 {
-    power_config_enable(POWER_WDTOSC);
+    power_enable(POWER_WDTOSC);
 }
 
 bool wdt_osc_init(void)
@@ -157,7 +157,7 @@ static bool watchdog_config(wdt_cfg_t *tCfg)
         wdt_osc_cfg(0, 7);
         wdt_osc_run();
     } else {
-        power_config_enable(POWER_IRC);
+        power_enable(POWER_IRC);
     }
     
     SAFE_CLK_CODE(

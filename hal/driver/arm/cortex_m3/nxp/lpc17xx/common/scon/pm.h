@@ -78,18 +78,18 @@ END_DEF_INTERFACE(i_core_clk_t)
 //! \name peripheral clock interface
 //! @{
 DEF_INTERFACE(i_pclk_t)
-    bool                        (*Config)(em_pclksel_t tPer, em_pclk_div_t tDiv);
-    uint32_t                    (*Get)(em_pclksel_t tPer);
+    bool                        (*Config)(uint32_t tPer, uint32_t tDiv);
+    uint32_t                    (*Get)(uint32_t tPer);
 END_DEF_INTERFACE(i_pclk_t)
 //! @}
 
 //! \brief power interface
 //! @{
 DEF_INTERFACE(i_power_t)
-    bool                        (*Enable)(em_pconp_t tIndex);
-    bool                        (*Disable)(em_pconp_t tIndex);
-    uint32_t                    (*GetStatus)(em_pconp_t tIndex);
-    bool                        (*Resume)(em_pconp_t tIndex, uint32_t tStatus);
+    bool                        (*Enable)(uint32_t tIndex);
+    bool                        (*Disable)(uint32_t tIndex);
+    uint32_t                    (*GetStatus)(uint32_t tIndex);
+    bool                        (*Resume)(uint32_t tIndex, uint32_t tStatus);
 END_DEF_INTERFACE(i_power_t)
 //! @}
 
@@ -123,13 +123,12 @@ extern uint32_t pll_get_out_clock(void);
 extern uint32_t main_clock_get(void);
 extern bool     core_clock_cfg(em_main_clk_src_t tSrc, uint32_t wDiv);
 extern uint32_t core_clock_get(void);
-extern uint32_t ahb_clock_get(void);
-extern bool     peripheral_clock_enable(em_pconp_t tIndex);
-extern bool     peripheral_clock_disable(em_pconp_t tIndex);
-extern uint32_t peripheral_clock_get_status(em_pconp_t tIndex);
-extern bool     peripheral_clock_resume_status(em_pconp_t tIndex, uint32_t wStatus);
-extern bool     peripheral_clock_config(em_pclksel_t tPer, em_pclk_div_t tDiv);
-extern uint32_t peripheral_clock_get(em_pclksel_t tPer);
+extern bool     peripheral_clock_enable         (uint32_t tIndex);
+extern bool     peripheral_clock_disable        (uint32_t tIndex);
+extern uint32_t peripheral_clock_get_status     (uint32_t tIndex);
+extern bool     peripheral_clock_resume_status  (uint32_t tIndex, uint32_t wStatus);
+extern bool     peripheral_clock_config         (uint32_t tPer, uint32_t tDiv);
+extern uint32_t peripheral_clock_get            (uint32_t tPer);
 extern bool     clock_out_config(em_out_clk_src_t tSrc, uint32_t wDiv);
 
 #endif

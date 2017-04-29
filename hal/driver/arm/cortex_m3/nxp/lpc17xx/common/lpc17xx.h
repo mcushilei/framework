@@ -31,29 +31,6 @@
 /*                Device Specific Peripheral registers structures             */
 /******************************************************************************/
 
-/*------------- Timer (TIM) --------------------------------------------------*/
-/** @brief Timer (TIM) register structure definition */
-typedef struct
-{
-      reg32_t IR;
-      reg32_t TCR;
-      reg32_t TC;
-      reg32_t PR;
-      reg32_t PC;
-      reg32_t MCR;
-      reg32_t MR0;
-      reg32_t MR1;
-      reg32_t MR2;
-      reg32_t MR3;
-      reg32_t CCR;
-      reg32_t CR0;
-      reg32_t CR1;
-      reg32_t RESERVED0[2];
-      reg32_t EMR;
-      reg32_t RESERVED1[12];
-      reg32_t CTCR;
-} tim_reg_t;
-
 /*------------- Pulse-Width Modulation (PWM) ---------------------------------*/
 /** @brief Pulse-Width Modulation (PWM) register structure definition */
 typedef struct
@@ -115,26 +92,6 @@ typedef struct
       reg32_t RICOUNTER;
 } rit_reg_t;
 
-
-/*------------- Analog-to-Digital Converter (ADC) ----------------------------*/
-/** @brief  Analog-to-Digital Converter (ADC) register structure definition */
-typedef struct
-{
-      reg32_t ADCR;
-      reg32_t ADGDR;
-      reg32_t RESERVED0;
-      reg32_t ADINTEN;
-      reg32_t ADDR0;
-      reg32_t ADDR1;
-      reg32_t ADDR2;
-      reg32_t ADDR3;
-      reg32_t ADDR4;
-      reg32_t ADDR5;
-      reg32_t ADDR6;
-      reg32_t ADDR7;
-      reg32_t ADSTAT;
-      reg32_t ADTRM;
-} adc_reg_t;
 
 /*------------- Digital-to-Analog Converter (DAC) ----------------------------*/
 /** @brief  Digital-to-Analog Converter (DAC) register structure definition */
@@ -486,33 +443,18 @@ typedef struct
 
 /* APB0 peripherals                                                           */
 #define WDT_BASE            (APB0_BASE + 0x00000)
-#define TIM0_BASE           (APB0_BASE + 0x04000)
-#define TIM1_BASE           (APB0_BASE + 0x08000)
-#define UART0_BASE          (APB0_BASE + 0x0C000)
-#define UART1_BASE          (APB0_BASE + 0x10000)
 #define PWM1_BASE           (APB0_BASE + 0x18000)
-#define I2C0_BASE           (APB0_BASE + 0x1C000)
 #define SPI_BASE            (APB0_BASE + 0x20000)
-#define RTC_BASE            (APB0_BASE + 0x24000)
 #define GPIOINT_BASE        (APB0_BASE + 0x28080)
 #define PINCON_BASE         (APB0_BASE + 0x2C000)
-#define SSP1_BASE           (APB0_BASE + 0x30000)
-#define ADC_BASE            (APB0_BASE + 0x34000)
 #define CANAF_RAM_BASE      (APB0_BASE + 0x38000)
 #define CANAF_BASE          (APB0_BASE + 0x3C000)
 #define CANCR_BASE          (APB0_BASE + 0x40000)
 #define CAN1_BASE           (APB0_BASE + 0x44000)
 #define CAN2_BASE           (APB0_BASE + 0x48000)
-#define I2C1_BASE           (APB0_BASE + 0x5C000)
 
 /* APB1 peripherals                                                           */
-#define SSP0_BASE           (APB1_BASE + 0x08000)
 #define DAC_BASE            (APB1_BASE + 0x0C000)
-#define TIM2_BASE           (APB1_BASE + 0x10000)
-#define TIM3_BASE           (APB1_BASE + 0x14000)
-#define UART2_BASE          (APB1_BASE + 0x18000)
-#define UART3_BASE          (APB1_BASE + 0x1C000)
-#define I2C2_BASE           (APB1_BASE + 0x20000)
 #define I2S_BASE            (APB1_BASE + 0x28000)
 #define RIT_BASE            (APB1_BASE + 0x30000)
 #define MCPWM_BASE          (APB1_BASE + 0x38000)
@@ -542,14 +484,9 @@ typedef struct
 /******************************************************************************/
 /*                         Peripheral declaration                             */
 /******************************************************************************/
-#define TIM0_REG                (*(tim_reg_t       *) TIM0_BASE     )
-#define TIM1_REG                (*(tim_reg_t       *) TIM1_BASE     )
-#define TIM2_REG                (*(tim_reg_t       *) TIM2_BASE     )
-#define TIM3_REG                (*(tim_reg_t       *) TIM3_BASE     )
 #define RIT_REG                 (*(rit_reg_t       *) RIT_BASE      )
 #define PWM1_REG                (*(pwm_reg_t       *) PWM1_BASE     )
 #define I2S_REG                 (*(i2s_reg_t       *) I2S_BASE      )
-#define ADC_REG                 (*(adc_reg_t       *) ADC_BASE      )
 #define DAC_REG                 (*(dac_reg_t       *) DAC_BASE      )
 #define CANAF_RAM_REG           (*(canaf_ram_reg_t *) CANAF_RAM_BASE)
 #define CANAF_REG               (*(canaf_reg_t     *) CANAF_BASE    )

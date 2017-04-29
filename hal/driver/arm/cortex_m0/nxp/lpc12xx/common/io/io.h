@@ -52,11 +52,11 @@
 
 #define IO_CFG(...)                     do {                            \
             io_cfg_t tCFG[] = {__VA_ARGS__};                            \
-            uint32_t wSize = 0;                                         \
-            for (; wSize != ARRAY_LENGTH(tCFG); ++wSize) {                    \
-                uint32_t wPinIndex  = tCFG[wSize].tPIN;                 \
-                uint32_t wIOCTRL    = tCFG[wSize].wMode ^ IOCTRL_PIN_ADMOD_MSK \
-                                    | IOCTRL_PIN_FUNSEL(tCFG[wSize].wFunction);\
+            uint32_t i = 0;                                         \
+            for (; i != ARRAY_LENGTH(tCFG); ++i) {                    \
+                uint32_t wPinIndex  = tCFG[i].tPIN;                 \
+                uint32_t wIOCTRL    = tCFG[i].wMode ^ IOCTRL_PIN_ADMOD_MSK \
+                                    | IOCTRL_PIN_FUNSEL(tCFG[i].wFunction);\
                 if (wPinIndex >= IO_PIN_COUNT) {                        \
                     break;                                              \
                 }                                                       \

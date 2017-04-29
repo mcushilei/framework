@@ -52,16 +52,6 @@ typedef enum {
 } em_out_clk_src_t;
 //! @}
 
-//! \name the lowpower mode
-//! @{
-typedef enum {
-    WAIT            = 0,
-    SLEEP           = 1,
-    DEEP_SLEEP      = 2,
-    POWER_DOWN      = 3,
-} em_lowpower_mode_t;
-//! @}
-
 //! \name pll struct type
 //! @{
 DEF_INTERFACE(i_pll_t)
@@ -129,7 +119,6 @@ END_DEF_INTERFACE(i_power_t)
 DEF_INTERFACE(i_pm_t)   
     i_power_t                   Power;
     i_clk_t                     Clock;
-    bool                        (*Sleep)(em_lowpower_mode_t tSleep);
 END_DEF_INTERFACE(i_pm_t)
 //! @}
 
@@ -149,9 +138,9 @@ extern bool     pll_clk_sel(em_pll_clk_src_t tClk);
 extern bool     pll_cfg(uint32_t chMsel, uint32_t chPsel);
 extern uint32_t pll_get_in_clock(void);
 extern uint32_t pll_get_out_clock(void);
-extern uint32_t main_clk_get(void);
-extern bool     core_clk_cfg(em_main_clk_src_t tSrc, uint32_t wDiv);
-extern uint32_t core_clk_get(void);
+extern uint32_t main_clock_get(void);
+extern bool     core_clock_config(em_main_clk_src_t tSrc, uint32_t wDiv);
+extern uint32_t core_clock_get(void);
 extern bool     ahb_clk_enable(em_ahb_clk_t tIndex);
 extern bool     ahb_clk_disable(em_ahb_clk_t tIndex);
 extern uint32_t ahb_clk_get_status(em_ahb_clk_t tIndex);
@@ -160,7 +149,6 @@ extern bool     clock_out_config(em_out_clk_src_t tSrc, uint32_t wDiv);
 extern bool     peripheral_clk_config(uint8_t chIndex , uint8_t chDiv);
 extern uint32_t peripheral_clk_get_div(uint8_t chIndex);
 extern uint32_t peripheral_clk_get(uint8_t chIndex);
-extern bool     enter_lowpower_mode(em_lowpower_mode_t tSleep);
 
 /*============================ GLOBAL VARIABLES ==============================*/
 //! \brief define the CMC
@@ -181,8 +169,8 @@ const i_pm_t PM = {
             &pll_get_in_clock           //!< get the input clock of pll
         },
         .Core = {
-            &core_clk_cfg,                //!< 
-            &core_clk_get,              //!< get core clock
+            &core_clock_config,                //!< 
+            &core_clock_get,              //!< get core clock
         },
         .AHB = {
             &ahb_clk_enable,            //!< enable specified ahb clock supply
@@ -196,11 +184,9 @@ const i_pm_t PM = {
             &peripheral_clk_get_div,    //!< get status
             &peripheral_clk_config    //!< resume status
         },  
-        &main_clk_get,
+        &main_clock_get,
         &clock_out_config,
     },
-    &enter_lowpower_mode,           //!< enter sleep mode
-
 };
 
 /*============================ IMPLEMENTATION ================================*/
@@ -295,7 +281,7 @@ bool ahb_clk_resume_status(em_ahb_clk_t tIndex, uint32_t tStatus)
         ahb_clk_resume_status(AHBCLK_FLASHREG, tStatus);                \
     }
 
-bool core_clk_cfg(em_main_clk_src_t tSrc, uint32_t wDiv)
+bool core_clock_config(em_main_clk_src_t tSrc, uint32_t wDiv)
 {
     if (0 == wDiv) {
         return false;
@@ -349,16 +335,16 @@ bool core_clk_cfg(em_main_clk_src_t tSrc, uint32_t wDiv)
 *! \param void
 *! \return the system clock
 */
-uint32_t core_clk_get(void)
+uint32_t core_clock_get(void)
 {
-    return main_clk_get()/SYSCON_REG.SYSAHBCLKDIV.Value;
+    return main_clock_get()/SYSCON_REG.SYSAHBCLKDIV.Value;
 }
 
 /*!\brief 
 *! \param void
 *! \return the main clock
 */
-uint32_t main_clk_get(void)
+uint32_t main_clock_get(void)
 {
     uint32_t wResult = 0;
     
@@ -539,46 +525,6 @@ uint32_t peripheral_clk_get(uint8_t chIndex)
         return 0;
     }
 
-    return  main_clk_get()/chDiv;
+    return  main_clock_get()/chDiv;
 }
 
-
-
-
-
-
-
-
-
-/*!\brief enter the lowpower mode
- *! \param the lowpower mode
- */
-bool enter_lowpower_mode(em_lowpower_mode_t tSleep)
-{
-    SAFE_ATOM_CODE (
-        switch (tSleep) {
-            case WAIT:
-            case SLEEP:
-                PMU_REG.PCON.DPDEN = 0;
-                SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
-                ENABLE_GLOBAL_INTERRUPT();
-                __WFI();
-                break;
-            case DEEP_SLEEP:
-                PMU_REG.PCON.DPDEN = 0;
-                SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-                ENABLE_GLOBAL_INTERRUPT();
-                __WFI();
-                break;
-            case POWER_DOWN:                //! enter power-down mode
-                PMU_REG.PCON.DPDEN = 1;
-                SYSCON_REG.PDRUNCFG.IRC = 0;
-                SYSCON_REG.PDRUNCFG.IRCOUT = 0;
-                SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-                __WFI();
-                break;
-        }
-    )
-
-    return true;
-}

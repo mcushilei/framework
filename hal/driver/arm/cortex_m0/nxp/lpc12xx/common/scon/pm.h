@@ -24,8 +24,8 @@
 
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#define PM_MAIN_CLK_GET()                   main_clk_get()
-#define PM_CORE_CLK_GET()                   core_clk_get()
+#define PM_MAIN_CLK_GET()                   main_clock_get()
+#define PM_CORE_CLK_GET()                   core_clock_get()
 #define PM_AHB_CLK_GET_STATUS(__INDEX)      ahb_clk_get_status((__INDEX))
 #define PM_AHB_CLK_ENABLE(__INDEX)          ahb_clk_enable((__INDEX))
 #define PM_AHB_CLK_DISABLE(__INDEX)         ahb_clk_disable((__INDEX))
@@ -74,16 +74,6 @@ typedef enum {
     CLKOUT_CLKSRC_WDOSC     = 0x2,      //!< Clockout source is Watchdog OSC
     CLKOUT_CLKSRC_MCLK      = 0x3,      //!< Clockout source is Main Clock
 } em_out_clk_src_t;
-//! @}
-
-//! \name the lowpower mode
-//! @{
-typedef enum {
-    WAIT            = 0,
-    SLEEP           = 1,
-    DEEP_SLEEP      = 2,
-    POWER_DOWN      = 3,
-} em_lowpower_mode_t;
 //! @}
 
 //! \name pll struct type
@@ -153,7 +143,6 @@ END_DEF_INTERFACE(i_power_t)
 DEF_INTERFACE(i_pm_t)   
     i_power_t                   Power;
     i_clk_t                     Clock;
-    bool                        (*Sleep)(em_lowpower_mode_t tSleep);
 END_DEF_INTERFACE(i_pm_t)
 //! @}
 /*============================ GLOBAL VARIABLES ==============================*/
@@ -171,9 +160,9 @@ extern bool     pll_clk_sel(em_pll_clk_src_t tClk);
 extern bool     pll_cfg(uint32_t wMsel, uint32_t wPsel);
 extern uint32_t pll_get_in_clock(void);
 extern uint32_t pll_get_out_clock(void);
-extern uint32_t main_clk_get(void);
-extern bool     core_clk_cfg(em_main_clk_src_t tSrc, uint32_t wDiv);
-extern uint32_t core_clk_get(void);
+extern uint32_t main_clock_get(void);
+extern bool     core_clock_config(em_main_clk_src_t tSrc, uint32_t wDiv);
+extern uint32_t core_clock_get(void);
 extern bool     ahb_clk_enable(em_ahb_clk_t tIndex);
 extern bool     ahb_clk_disable(em_ahb_clk_t tIndex);
 extern uint32_t ahb_clk_get_status(em_ahb_clk_t tIndex);
@@ -182,6 +171,5 @@ extern bool     clock_out_config(em_out_clk_src_t tSrc, uint32_t wDiv);
 extern bool     peripheral_clk_config(uint8_t chIndex , uint8_t chDiv);
 extern uint32_t peripheral_clk_get_div(uint8_t chIndex);
 extern uint32_t peripheral_clk_get(uint8_t chIndex);
-extern bool     enter_lowpower_mode(em_lowpower_mode_t tSleep);
 
 #endif

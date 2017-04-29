@@ -30,7 +30,7 @@
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define PM_MAIN_CLK_GET()                   main_clk_get()
-#define PM_CORE_CLK_GET()                   ahb_clock_get()
+#define PM_CORE_CLK_GET()                   core_clock_get()
 #define PM_AHB_CLK_GET_STATUS(__INDEX)      ahb_clock_get_status((__INDEX))
 #define PM_AHB_CLK_ENABLE(__INDEX)          ahb_clock_enable((__INDEX))
 #define PM_AHB_CLK_DISABLE(__INDEX)         ahb_clock_disable((__INDEX))
@@ -57,8 +57,9 @@ extern bool     ahb_clock_enable(uint32_t Part);
 extern bool     ahb_clock_disable(uint32_t Part);
 extern uint32_t ahb_clock_get_status(uint32_t Part);
 extern bool     ahb_clock_resume_status(uint32_t Part, uint32_t Status);
-extern bool     ahb_clock_config(uint32_t Source, uint32_t Div);
-extern uint32_t ahb_clock_get(void);
+
+extern bool     core_clock_config(uint32_t Source, uint32_t Div);
+extern uint32_t core_clock_get(void);
 extern uint32_t main_clock_get(void);
 
 extern bool     scon_usart_clock_enable(void);

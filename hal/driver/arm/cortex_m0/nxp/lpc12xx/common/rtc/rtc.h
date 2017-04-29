@@ -18,10 +18,10 @@
 typedef enum {
     DISABLE_RTC             = 0x00,     //! Enable the RTC
     ENABLE_RTC              = 0x01,     //! Enable the RTC
-    RTC_SRC_32KOSC_1HZ      = 0x00,     //! Select 1HZ 32KOSC output
-    RTC_SRC_32KOSC_1KHZ     = 0x0Au << 1,     //! Select 1KHz 32KOSC output
-    RTC_SRC_RTC_PCLK        = 0x04u << 1,     //! Select RTC PLCK clock source
-    RTC_INTERRUPT_DISABLE   = 0x00,     //! Enable the RTC interrupt
+    RTC_SRC_32KOSC_1HZ      = 0x00,             //! Select 1HZ 32KOSC output
+    RTC_SRC_32KOSC_1KHZ     = 0x0Au << 1,       //! Select 1KHz 32KOSC output
+    RTC_SRC_RTC_PCLK        = 0x04u << 1,       //! Select RTC PLCK clock source
+    RTC_INTERRUPT_DISABLE   = 0x00,     //! Disable the RTC interrupt
     RTC_INTERRUPT_ENABLE    = 0x80,     //! Enable the RTC interrupt
 } em_rtc_cfg_mode_t;
 //! @}
@@ -29,7 +29,7 @@ typedef enum {
 //! \name RTC config struct
 //! @{
 typedef struct {
-    uint8_t         chMode;                      //!< Watchdog config ward
+    uint8_t         chMode;
     uint32_t        wMatchValue;
 }rtc_cfg_t;
 //! @}

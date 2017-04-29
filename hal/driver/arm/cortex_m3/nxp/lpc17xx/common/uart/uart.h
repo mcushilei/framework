@@ -31,12 +31,12 @@
 #define UART3       UART[3]
 
 #define UART_EXTERN_FUN(_N, _A)                                            \
-    extern bool uart##_N_init(uart_cfg_t *ptUsartCFG);                    \
-    extern bool uart##_N_idle(void);                                       \
-    extern bool uart##_N_enable(void);                                     \
-    extern bool uart##_N_disable(void);                                    \
-    extern bool uart##_N_write_byte(uint8_t chByte);                       \
-    extern bool uart##_N_read_byte(uint8_t *pchByte);                      \
+    extern bool uart##_N##_init(uart_cfg_t *ptUsartCFG);                    \
+    extern bool uart##_N##_idle(void);                                       \
+    extern bool uart##_N##_enable(void);                                     \
+    extern bool uart##_N##_disable(void);                                    \
+    extern bool uart##_N##_write_byte(uint8_t chByte);                       \
+    extern bool uart##_N##_read_byte(uint8_t *pchByte);                      \
     extern bool uart##_N##_set(uint32_t wBaudrate);                        \
     extern uint32_t uart##_N##_get(void);                                  
 
@@ -44,16 +44,6 @@
         do {                                                                \
             uart_cfg_t tCFG = {__VA_ARGS__};                               \
             __UART.Config(&tCFG);                                            \
-        } while(0)
-
-#define UART_INT_ENABLE(__UART, __MSK)                                    \
-        do {                                                                \
-            __UART.Interrupt.Enable(__MSK);                                \
-        } while(0)
-
-#define UART_INT_DISABLE(__UART, __MSK)                                   \
-        do {                                                                \
-            __UART.Interrupt.Disable(__MSK);                               \
         } while(0)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/

@@ -174,8 +174,8 @@ END_DEF_INTERFACE(i_spi_t)
 //! @{
 DEF_STRUCTURE(__spi_t)
     ssp_reg_t       *ptREG;                 //!< reference to register page
-    em_pconp_t      tPOWER;
-    em_pclksel_t    tPClk;
+    uint32_t      tPOWER;
+    uint32_t    tPClk;
 END_DEF_STRUCTURE(__spi_t)
 //! @}
 

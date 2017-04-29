@@ -15,29 +15,20 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-#ifndef __DRIVER_TIMER_C__
-#ifndef __DRIVER_TIMER_H__
-#define __DRIVER_TIMER_H__
+
+#include "..\app_cfg.h"
+
+#ifndef __DSP_APP_CFG_H__
+#define __DSP_APP_CFG_H__
 
 /*============================ INCLUDES ======================================*/
-#include ".\app_cfg.h"
-#include "..\device.h"
-#include ".\reg_timer.h"
-
 /*============================ MACROS ========================================*/
-/*============================ MACROFIED FUNCTIONS ===========================*/
-#define __TIMER_EXTERN_FUN(_N, _A)                                              \
-    extern bool timer##_N##_init(void);                                         \
-    extern bool timer##_N##_enable(void);                                       \
-    extern bool timer##_N##_disable(void);                                      \
-    extern bool timer##_N##_start(void);                                        \
-    extern bool timer##_N##_stop(void);                                         \
+#define FFT_BIT_LEN         (10u)
 
+/*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-MREPEAT(TIMER_COUNT, __TIMER_EXTERN_FUN, 0)   //!< this is used by bottom layer
 
-#endif
-#endif
+#endif /* #ifndef __DSP_APP_CFG_H__ */
 /* EOF */

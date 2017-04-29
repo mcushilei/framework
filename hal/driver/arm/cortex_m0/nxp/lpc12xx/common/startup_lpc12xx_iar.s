@@ -97,12 +97,11 @@ __vector_table_0x1c
 ;; Default interrupt handlers.
 ;;------------------------------------------------------------------------------
 
-    SECTION .text:CODE:REORDER(1)
+    SECTION .text:CODE:NOROOT(2)
     THUMB
 Reset_Handler
-        CPSID   i                       ; mask interrupts
-        BX      __iar_program_start     ; call the C code
-        B       Reset_Handler
+        LDR     R0, = __iar_program_start
+        BX      R0
 
       
 NMI_Handler

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -16,57 +16,30 @@
 *******************************************************************************/
 
 
-#ifndef __COM_H__
-#define __COM_H__
+#ifndef __DRIVER_ADC_C__
+#ifndef __DRIVER_ADC_H__
+#define __DRIVER_ADC_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
+#include "..\device.h"
+#include ".\reg_adc.h"
 
 /*============================ MACROS ========================================*/
+#define ADC_MAX_CHANNELs    (8u)
+
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-//! \name usart working mode 
-//! @{
-typedef enum {
-    UART_NO_PARITY          = 0x0000,
-    UART_EVEN_PARITY        = 0x0001,
-    UART_ODD_PARITY         = 0x0002,
-    UART_FORCE_1_PARITY     = 0x0003,
-    UART_FORCE_0_PARITY     = 0x0004,
-
-    UART_1_STOPBIT          = 0x0010,
-    UART_2_STOPBIT          = 0x0020,
-
-    UART_5_BIT_LENGTH       = 0x0500,
-    UART_6_BIT_LENGTH       = 0x0600,
-    UART_7_BIT_LENGTH       = 0x0700,
-    UART_8_BIT_LENGTH       = 0x0800,
-} em_com_mode_t;
-//! @}
-
-//! \name usart configuration
-//! @{
-typedef struct {
-    uint16_t            hwMode;
-    uint32_t            wBaudrate;
-} com_cfg_t;
-//! @}
-
-
-typedef struct {
-    HANDLE          hCom;
-    bool            bIsOpened;
-} com_t;
-
-
 /*============================ GLOBAL VARIABLES ==============================*/
-/*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
-extern uint32_t enum_all_comm(void);
-extern bool com_open(com_t *ptThis, const uint8_t *pchCom, com_cfg_t *ptCfg);
-extern bool com_close(com_t *ptThis);
-extern uint32_t com_write(com_t *ptThis, uint8_t *pchData, uint32_t wLen);
-extern uint32_t com_read(com_t *ptThis, uint8_t *pchData, uint32_t wLen);
+extern bool adc_init(void);
+extern bool adc_enable(void);
+extern bool adc_disable(void);
+extern bool adc_trige_single_convert(uint32_t wChannel);
+extern bool adc_stop_convert(void);
+extern bool adc_check_channel_statue(uint32_t wChannel);
+extern uint32_t adc_get_channel_resault(uint32_t wChannel);
 
-#endif
+#endif  //! #ifndef __DRIVER_ADC_H__
+#endif  //! #ifndef __DRIVER_ADC_C__
 /* EOF */

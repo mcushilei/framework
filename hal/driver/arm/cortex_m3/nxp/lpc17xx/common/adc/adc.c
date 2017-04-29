@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -26,53 +26,37 @@
 #include "..\scon\pm.h"
 
 /*============================ MACROS ========================================*/
-#define ADC_CHANNEL_COUNT               (8u)
-#define ADC_CHANNEL_COUNT_MSK           (ADC_CHANNEL_COUNT - 1)
-
-#define ADC_MAX_CLOCK_FRQ               (9MHz)
+#if (!defined(ADC_CLOCK_FRQ)) || (ADC_CLOCK_FRQ > (13MHz))
+#define ADC_CLOCK_FRQ       (13MHz)
+#endif
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#define SAFE_CLK_CODE(...)  \
-    {\
-        uint32_t tStatus   = PM_AHB_CLK_GET_STATUS(AHBCLK_ADC);        \
-        PM_AHB_CLK_ENABLE(AHBCLK_ADC);                                 \
+#define SAFE_CLK_CODE(...)  {\
+        uint32_t tStatus = peripheral_clock_get_status(PCONP_ADC);        \
+        peripheral_clock_enable(PCONP_ADC);                                 \
         __VA_ARGS__;                                                        \
-        PM_AHB_CLK_RESUME(AHBCLK_ADC, tStatus);                        \
+        peripheral_clock_resume_status(PCONP_ADC, tStatus);                        \
     }
+
 /*============================ TYPES =========================================*/
-typedef enum {
-    ADC_CHANNEL_0   = 0,
-    ADC_CHANNEL_1   = 1,
-    ADC_CHANNEL_2   = 2,
-    ADC_CHANNEL_3   = 3,
-    ADC_CHANNEL_4   = 4,
-    ADC_CHANNEL_5   = 5,
-    ADC_CHANNEL_6   = 6,
-    ADC_CHANNEL_7   = 7,
-} em_adc_channel_t;
-
 /*============================ PROTOTYPES ====================================*/
-extern bool adc_enable(void);
-
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
 bool adc_init(void)
 {
-    uint32_t wCoreClock = PM_CORE_CLK_GET();
+    uint32_t wPClock;
+    
+    wPClock = peripheral_clock_get(PCLK_ADC);
 
-    //!< ADC peripheral clock divide
-    if (wCoreClock > ADC_MAX_CLOCK_FRQ) {
-        wCoreClock = (wCoreClock + ADC_MAX_CLOCK_FRQ - 1) / ADC_MAX_CLOCK_FRQ;
-        wCoreClock--;
-    } else {
-        wCoreClock = 0;
+    wPClock = (wPClock + ADC_CLOCK_FRQ - 1) / ADC_CLOCK_FRQ;//!< ADC clock divide
+    if (wPClock != 0) {
+        wPClock--;
     }
     
     SAFE_CLK_CODE(
-        ADC_REG.INTEN.Value = 0;
-        ADC_REG.CR.CLKDIV = wCoreClock;
-        ADC_REG.CR.PDN = 1;
+        ADC_REG.INTEN   = 0;
+        ADC_REG.CR      = (wPClock << 8);    //!< config ADC clock divisor.
     )
     
     return true;
@@ -80,53 +64,46 @@ bool adc_init(void)
 
 bool adc_enable(void)
 {
-    PM.Power.Enable(POWER_ADC);
-    PM_AHB_CLK_ENABLE(AHBCLK_ADC);
+    peripheral_clock_enable(PCONP_ADC);
+    
+    ADC_REG.CR = ADC_REG.CR
+                | (1u << 21)        //!< to enable power ADC.
+                & (~((0x0Fu << 17) | (0x3u << 22) | (0x0Fu << 28)));    //!< clear reserved bits.
 
     return true;
 }
 
 bool adc_disable(void)
 {
-    PM_AHB_CLK_DISABLE(AHBCLK_ADC);
-    PM.Power.Disable(POWER_ADC);
+    ADC_REG.CR = ADC_REG.CR
+                & (~(1u << 21))     //!< to disable power ADC.
+                & (~((0x0Fu << 17) | (0x3u << 22) | (0x0Fu << 28)));    //!< clear reserved bits.
 
+    peripheral_clock_disable(PCONP_ADC);
+    
     return true;
 }
 
 bool adc_trige_single_convert(uint32_t wChannel)
 {
-    if (wChannel >= ADC_CHANNEL_COUNT) {
-        return false;
-    }
-
-    ADC_REG.CR.START = 0;       //!< stop conversion
-    ADC_REG.CR.BURST = 0;       //!< single mode
-    ADC_REG.CR.SEL = BIT(wChannel);     //!< select channel
-    ADC_REG.CR.START = 1;       //!< start conversion
     
     return true;
 }
 
 bool adc_stop_convert(void)
 {
-    ADC_REG.CR.START = 0;       //!< stop conversion
     
     return true;
 }
 
 bool adc_check_channel_statue(uint32_t wChannel)
 {
-    if (ADC_REG.DR[wChannel & ADC_CHANNEL_COUNT_MSK].DONE) {
-        return true;
-    }
-
     return false;
 }
 
 uint32_t adc_get_channel_resault(uint32_t wChannel)
 {
-    return ADC_REG.DR[wChannel & ADC_CHANNEL_COUNT_MSK].RESULT;
+    return ADC_REG.DR[wChannel];
 }
 
 

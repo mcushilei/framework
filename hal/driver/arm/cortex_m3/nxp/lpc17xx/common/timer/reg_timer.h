@@ -15,29 +15,44 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-#ifndef __DRIVER_TIMER_C__
-#ifndef __DRIVER_TIMER_H__
-#define __DRIVER_TIMER_H__
+#ifndef __REG_TIMER_H__
+#define __REG_TIMER_H__
+
 
 /*============================ INCLUDES ======================================*/
-#include ".\app_cfg.h"
-#include "..\device.h"
-#include ".\reg_timer.h"
-
 /*============================ MACROS ========================================*/
-/*============================ MACROFIED FUNCTIONS ===========================*/
-#define __TIMER_EXTERN_FUN(_N, _A)                                              \
-    extern bool timer##_N##_init(void);                                         \
-    extern bool timer##_N##_enable(void);                                       \
-    extern bool timer##_N##_disable(void);                                      \
-    extern bool timer##_N##_start(void);                                        \
-    extern bool timer##_N##_stop(void);                                         \
+#define TIMER0_REG                (*(tmr_reg_t *) TIM0_BASE_ADDRESS)
+#define TIMER1_REG                (*(tmr_reg_t *) TIM1_BASE_ADDRESS)
+#define TIMER2_REG                (*(tmr_reg_t *) TIM2_BASE_ADDRESS)
+#define TIMER3_REG                (*(tmr_reg_t *) TIM3_BASE_ADDRESS)
 
+/*============================ MACROFIED FUNCTIONS ===========================*/     
 /*============================ TYPES =========================================*/
+
+//! \brief system control block register page
+//! @{
+typedef volatile struct {
+    reg32_t IR;
+    reg32_t TCR;
+    reg32_t TC;
+    reg32_t PR;
+    reg32_t PC;
+    reg32_t MCR;
+    reg32_t MR0;
+    reg32_t MR1;
+    reg32_t MR2;
+    reg32_t MR3;
+    reg32_t CCR;
+    reg32_t CR0;
+    reg32_t CR1;
+    REG32_RSVD(2)
+    reg32_t EMR;
+    REG32_RSVD(12)
+    reg32_t CTCR;
+} tmr_reg_t;
+//! @}
+
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-MREPEAT(TIMER_COUNT, __TIMER_EXTERN_FUN, 0)   //!< this is used by bottom layer
 
 #endif
-#endif
-/* EOF */

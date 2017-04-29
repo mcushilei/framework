@@ -15,29 +15,22 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-#ifndef __DRIVER_TIMER_C__
-#ifndef __DRIVER_TIMER_H__
-#define __DRIVER_TIMER_H__
+#ifndef __RPPP_C__
+#ifndef __RPPP_H__
+#define __RPPP_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include "..\device.h"
-#include ".\reg_timer.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#define __TIMER_EXTERN_FUN(_N, _A)                                              \
-    extern bool timer##_N##_init(void);                                         \
-    extern bool timer##_N##_enable(void);                                       \
-    extern bool timer##_N##_disable(void);                                      \
-    extern bool timer##_N##_start(void);                                        \
-    extern bool timer##_N##_stop(void);                                         \
-
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-MREPEAT(TIMER_COUNT, __TIMER_EXTERN_FUN, 0)   //!< this is used by bottom layer
+extern bool     rppp_ini(void);
+extern uint16_t rppp_rcv_fsm(uint8_t byte, uint8_t timeout, uint8_t *pPort, uint8_t **ppData);
+extern uint16_t rppp_snd_fsm(uint8_t port, const uint8_t *pData, uint16_t dataLength);
 
-#endif
-#endif
+#endif  //! #ifndef __RPPP_H__
+#endif  //! #ifndef __RPPP_C__
 /* EOF */
