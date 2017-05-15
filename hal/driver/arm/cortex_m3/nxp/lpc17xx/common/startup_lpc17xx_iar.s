@@ -1,13 +1,10 @@
 
 ReWrite_CRP     EQU     0
 CRP_Value       EQU     0xFFFFFFFF
-NVIC_VECTTBL    EQU     0xE000ED08
-    
 
 
     EXTERN  __iar_program_start
     PUBLIC  __vector_table
-    PUBLIC  __vector_table_0x1c
                         
     PUBLIC  Reset_Handler
     PUBWEAK NMI_Handler         
@@ -55,13 +52,14 @@ NVIC_VECTTBL    EQU     0xE000ED08
     PUBWEAK PLL1_IRQHandler     
     PUBWEAK USBActivity_IRQHandler
     PUBWEAK CANActivity_IRQHandler
+    
 
     SECTION CSTACK:DATA:NOROOT(3)
     SECTION HEAP:DATA:NOROOT(3)
+    
 
     SECTION .intvec:CODE:NOROOT (2)               
     DATA
-;Vector Table
 __vector_table  
         DCD     SFE(CSTACK)               ; Top of Stack
         DCD     Reset_Handler             ; Reset Handler
@@ -117,33 +115,22 @@ __vector_table_0x1c
         DCD     PLL1_IRQHandler           ; 48: PLL1 Lock (USB PLL)
         DCD		USBActivity_IRQHandler	  ; 49: USB Activity interrupt to wakeup
         DCD		CANActivity_IRQHandler	  ; 50: CAN Activity interrupt to wakeup
-__Vectors_End
-
-__Vectors       EQU     __vector_table
-__Vectors_Size 	EQU 	__Vectors_End - __Vectors
 
 
-    IF      ReWrite_CRP
+    IF      ReWrite_CRP != 0
     SECTION .crp :CODE:ROOT(2)
     DATA
         DCD     CRP_Value
     ENDIF
     
-    
 
     SECTION .text:CODE:NOROOT(2)
     THUMB
     PRESERVE8
-
-; Reset Handler
 Reset_Handler   
-        ;LDR     R0, = NVIC_VECTTBL
-        ;LDR     R1, = __vector_table
-        ;STR     R1, [R0]
         LDR     R0, = __iar_program_start
         BX      R0
 
-; Dummy Exception Handlers (infinite loops which can be modified)
 HardFault_Handler
     IMPORT  err_log
         TST     LR, #0x04 
@@ -203,7 +190,6 @@ SVC_Handler
 DebugMon_Handler
 PendSV_Handler  
 SysTick_Handler 
-
 WDT_IRQHandler
 TIMER0_IRQHandler
 TIMER1_IRQHandler
@@ -239,11 +225,12 @@ QEI_IRQHandler
 PLL1_IRQHandler
 USBActivity_IRQHandler
 CANActivity_IRQHandler
-
 Default_Handler
 #ifdef __DEBUG__
         B       Default_Handler
 #else
         B       Reset_Handler
 #endif
+
+
         END

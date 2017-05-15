@@ -1,10 +1,11 @@
+
 #ifndef __GSP_SPI_DRIVER_H__
 #define __GSP_SPI_DRIVER_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\device.h"
-#include ".\i_io_spi.h"
+#include ".\reg_spi.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/

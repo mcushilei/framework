@@ -1,17 +1,23 @@
+
 #ifndef __WDT_H__
 #define __WDT_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\device.h"
-#include ".\i_io_wdt.h"
+#include ".\reg_wdt.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
+#define WDT_CFG(...)    do{                     \
+        wdt_cfg_t tCfg = {__VA_ARGS__};         \
+        wdt_config(&tCfg);                    \
+    } while (0)
+
 /*============================ TYPES =========================================*/
 //! \name watchdog initialization arguments defination
 //! @{
-typedef enum {
+enum {
     //! A watchdog time-out will not cause reset
     WDT_CASE_INT        = 0x00,
     //! A watchdog time-out will cause reset
@@ -29,45 +35,35 @@ typedef enum {
     
     WDT_CLK_SEL_IRC         = 0x00,
     WDT_CLK_SEL_WDT_OSC     = 0x01,
-} em_wdt_cfg_mode_t;
+};
 //! @}
 
 
 //! \name wdt config struct
 //! @{
 typedef struct {
-    uint32_t    wTCCount;       //!< Watchdog time-out value.
+    uint8_t     chMode;                 //!< Watchdog config ward
+    uint8_t     chClockSource;
+    uint32_t    wReload;               //!< Watchdog time-out value.
     uint32_t    wWarnIntCmpValue;       //!< Watchdog warning interrupt compare value.
-    uint32_t    wWindowCmpValue;       //!< Watchdog window value.
-    uint32_t    chMode;                          //!< Watchdog config ward
-    uint8_t     chCLKSEL;
+    uint32_t    wWindowCmpValue;        //!< Watchdog window value.
 } wdt_cfg_t;
 //! @}
 
-//! \name wdt struct
-//! @{
-typedef struct {
-    bool        (*Init)(void);         //!< initialize the wdt
-    bool        (*Enable)(void);                    //!< enable the watchdog
-    bool        (*Disable)(void);                   //!< disable the watchdog
-    void        (*Feed)(void);                      //!< reset the watchdog
-    uint32_t    (*GetCountValue)(void);             //!< get the time count value
-} wdt_t;
-//! @}
-/*============================ GLOBAL VARIABLES ==============================*/
-//! \brief declare the PMU
-extern const wdt_t WDT;
 
+/*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool watchdog_disable(void);
-extern bool watchdog_enable(void);
-extern bool watchdog_init(void);
-extern bool watchdog_cfg(wdt_cfg_t *tCfg);
-extern void watchdog_feed(void);
-extern uint32_t watchdog_get_count_value(void);
-extern void wdt_osc_stop(void);
-extern void wdt_osc_run(void);
-extern bool wdt_osc_cfg(uint8_t chDIV, uint8_t chFRQ);
+extern bool     wdt_config(wdt_cfg_t *tCfg);
+extern bool     wdt_disable(void);
+extern bool     wdt_enable(void);
+extern bool     wdt_start(void);
+extern bool     wdt_stop(void);
+extern void     wdt_feed(void);
+extern uint32_t wdt_get_count_value(void);
+extern void     wdt_osc_disable(void);
+extern void     wdt_osc_enable(void);
+extern bool     wdt_osc_config(uint8_t chDIV, uint8_t chFRQ);
+extern void     wdt_clear_int_flag(void);
 
 #endif

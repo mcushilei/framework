@@ -1,7 +1,8 @@
+
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\device.h"
-#include ".\i_io_wdt.h"
+#include ".\reg_wdt.h"
 #include "..\scon\pm.h"
 
 /*============================ MACROS ========================================*/
@@ -17,7 +18,7 @@
 /*============================ TYPES =========================================*/
 //! \name watchdog initialization arguments defination
 //! @{
-typedef enum {
+enum {
     //! A watchdog time-out will not cause reset
     WDT_CASE_INT        = 0x00,
     //! A watchdog time-out will cause reset
@@ -35,71 +36,35 @@ typedef enum {
     
     WDT_CLK_SEL_IRC         = 0x00,
     WDT_CLK_SEL_WDT_OSC     = 0x01,
-} em_wdt_cfg_mode_t;
+};
 //! @}
-
 
 //! \name wdt config struct
 //! @{
 typedef struct {
-    uint32_t    wTCCount;       //!< Watchdog time-out value.
+    uint8_t     chMode;                 //!< Watchdog config ward
+    uint8_t     chClockSource;
+    uint32_t    wReload;               //!< Watchdog time-out value.
     uint32_t    wWarnIntCmpValue;       //!< Watchdog warning interrupt compare value.
-    uint32_t    wWindowCmpValue;       //!< Watchdog window value.
-    uint32_t    chMode;                          //!< Watchdog config ward
-    uint8_t     chCLKSEL;
+    uint32_t    wWindowCmpValue;        //!< Watchdog window value.
 } wdt_cfg_t;
 //! @}
 
-//! \name wdt struct
-//! @{
-typedef struct {
-    bool        (*Init)(void);         //!< initialize the wdt
-    bool        (*Enable)(void);                    //!< enable the watchdog
-    bool        (*Disable)(void);                   //!< disable the watchdog
-    void        (*Feed)(void);                     //!< reset the watchdog
-    uint32_t    (*GetCountValue)(void);             //!< get the time count value
-} wdt_t;
-//! @}
-
 /*============================ PROTOTYPES ====================================*/
-extern bool watchdog_disable(void);
-extern bool watchdog_enable(void);
-extern bool watchdog_init(void);
-extern bool watchdog_cfg(wdt_cfg_t *tCfg);
-extern void watchdog_feed(void);
-extern uint32_t watchdog_get_count_value(void);
-extern void wdt_osc_stop(void);
-extern void wdt_osc_run(void);
-extern bool wdt_osc_cfg(uint8_t chDIV, uint8_t chFRQ);
-
 /*============================ GLOBAL VARIABLES ==============================*/
-
-//! \brief define the WDT
-const wdt_t WDT = {
-    &watchdog_init,                                 //!< initialize the wdt
-    &watchdog_enable,                               //!< enable the watchdog
-    &watchdog_disable,                              //!< disable the watchdog
-    &watchdog_feed,                                 //!< reset the watchdog
-    &watchdog_get_count_value,                               //!< get the time count value
-};
-
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ IMPLEMENTATION ================================*/
-/*! \brief pause the wdtosc
- */
-void wdt_osc_stop(void)
+void wdt_osc_disable(void)
 {
     power_config_disable(POWER_WDTOSC);
 }
 
-/*! \brief  the wdtosc continue
- */
-void wdt_osc_run(void)
+void wdt_osc_enable(void)
 {
     power_config_enable(POWER_WDTOSC);
 }
 
-bool wdt_osc_cfg(uint8_t chDIV, uint8_t chFRQ)
+bool wdt_osc_config(uint8_t chDIV, uint8_t chFRQ)
 {
     SYSCON_REG.WDTOSCCTRL.DIVSEL    = chDIV;
     SYSCON_REG.WDTOSCCTRL.FREQSEL   = chFRQ;
@@ -107,36 +72,27 @@ bool wdt_osc_cfg(uint8_t chDIV, uint8_t chFRQ)
     return true;
 }
 
-/*! \brief disable watchdog
- *! \param void
- *! \retval true : succeed
- *! \retval false: failed
- */
-bool watchdog_disable(void)
+bool wdt_start(void)
 {
-    SAFE_ATOM_CODE (
-        PM_AHB_CLK_ENABLE(AHBCLK_WDT);
-        WDT_REG.MOD.Value = WDT_REG.MOD.Value & (~(WDT_MOD_WDEN_MSK | WDT_MOD_WDTOF_MSK));
-        WDT_REG.FEED = 0x000000AA;
-        WDT_REG.FEED = 0x00000055;
-        PM_AHB_CLK_DISABLE(AHBCLK_WDT);
+    SAFE_CLK_CODE (
+        WDT_REG.MOD.Value |= WDT_MOD_WDEN_MSK;
+        SAFE_ATOM_CODE (
+            WDT_REG.FEED = 0x000000AA;
+            WDT_REG.FEED = 0x00000055;
+        )
     )
-        
+    
     return true;
 }
 
-/*!\brief ensable watchdog
- *! \param void
- *! \retval true : succeed
- *! \retval false: failed
- */
-bool watchdog_enable(void)
+bool wdt_stop(void)
 {
-    SAFE_ATOM_CODE (
-        PM_AHB_CLK_ENABLE(AHBCLK_WDT);
-        WDT_REG.MOD.Value |= WDT_MOD_WDEN_MSK;
-        WDT_REG.FEED = 0x000000AA;
-        WDT_REG.FEED = 0x00000055;
+    SAFE_CLK_CODE (
+        WDT_REG.MOD.Value = WDT_REG.MOD.Value & (~(WDT_MOD_WDEN_MSK | WDT_MOD_WDTOF_MSK));
+        SAFE_ATOM_CODE (
+            WDT_REG.FEED = 0x000000AA;
+            WDT_REG.FEED = 0x00000055;
+        )
     )
         
     return true;
@@ -147,46 +103,39 @@ bool watchdog_enable(void)
  *! \retval true : succeed
  *! \retval false: failed
  */
-bool watchdog_init(void)
+bool wdt_config(wdt_cfg_t *tCfg)
 {
-    wdt_cfg_t tWDTCfg;
-#ifdef __DEBUG__
-    tWDTCfg.chMode   = WDT_FEED_ANYTIME | WDT_CASE_INT;
-#else
-    tWDTCfg.chMode   = WDT_FEED_ANYTIME | WDT_CASE_RESET;
-#endif
-    tWDTCfg.chCLKSEL = WDT_CLK_SEL_WDT_OSC; //WDT_CLK_SEL_IRC
-    tWDTCfg.wTCCount = 1000000;    // 1s
-    tWDTCfg.wWarnIntCmpValue    = 0;
-    tWDTCfg.wWindowCmpValue     = 0xFFFFFF;
-    
-    return watchdog_cfg(&tWDTCfg);
-}
-
-bool watchdog_cfg(wdt_cfg_t *tCfg)
-{
-    if ((tCfg->wWindowCmpValue > 0x00FFFFFF) || (tCfg->wWindowCmpValue < 0x100)) {
-        return false;
-    }
-    
-    if (tCfg->wWarnIntCmpValue > 0x3FF) {
-        return false;
-    }
-    
-    if (tCfg->chCLKSEL) {
-        wdt_osc_cfg(0, 7);  //!< 1MHz WDT OSC
-        wdt_osc_run();
-    } else {
-        power_config_enable(POWER_IRC);
-    }
-    
     SAFE_CLK_CODE(
         WDT_REG.MOD.Value     = tCfg->chMode;
-        WDT_REG.TC.Value      = tCfg->wTCCount;
-        WDT_REG.CLKSEL.Value  = tCfg->chCLKSEL;
+        WDT_REG.CLKSEL.Value  = tCfg->chClockSource;
+        WDT_REG.TC.Value      = tCfg->wReload;
         WDT_REG.WARNINT.Value = tCfg->wWarnIntCmpValue;
         WDT_REG.WINDOW.Value  = tCfg->wWindowCmpValue;
     )
+    
+    return true;
+}
+
+/*!\brief ensable watchdog
+ *! \param void
+ *! \retval true : succeed
+ *! \retval false: failed
+ */
+bool wdt_enable(void)
+{
+    PM_AHB_CLK_ENABLE(AHBCLK_WDT);
+    
+    return true;
+}
+
+/*! \brief disable watchdog
+ *! \param void
+ *! \retval true : succeed
+ *! \retval false: failed
+ */
+bool wdt_disable(void)
+{
+    PM_AHB_CLK_DISABLE(AHBCLK_WDT);
     
     return true;
 }
@@ -195,7 +144,7 @@ bool watchdog_cfg(wdt_cfg_t *tCfg)
  *! \param void
  *! \retval none
  */
-void watchdog_feed(void)
+void wdt_feed(void)
 {
     SAFE_CLK_CODE(
         SAFE_ATOM_CODE (
@@ -205,11 +154,20 @@ void watchdog_feed(void)
     )
 }
 
+void wdt_clear_int_flag(void)
+{
+    SAFE_CLK_CODE(
+        WDT_REG.MOD.Value = WDT_REG.MOD.Value
+                        & (~(1u << 2))      //!< clear WDTOF
+                        | (1u << 3);        //!< clear WDINT
+    )
+}
+
 /*! \brief get count value
  *! \param void
  *! \retval return geh time count value
  */
-uint32_t watchdog_get_count_value(void)
+uint32_t wdt_get_count_value(void)
 {
     uint32_t wTmp = 0;
     

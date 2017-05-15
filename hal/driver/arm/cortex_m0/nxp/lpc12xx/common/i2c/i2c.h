@@ -5,7 +5,7 @@
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\device.h"
-#include ".\i_io_i2c.h"
+#include ".\reg_i2c.h"
 
 /*============================ MACROS ========================================*/
 //! \brief Macro for i2c interface function

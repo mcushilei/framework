@@ -18,7 +18,7 @@
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include ".\i_io_uart.h"
+#include ".\reg_uart.h"
 #include "..\device.h"
 #include "..\scon\pm.h"
 

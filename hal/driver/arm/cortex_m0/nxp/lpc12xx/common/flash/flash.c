@@ -1,25 +1,7 @@
-/*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
- *                                                                            *
- *  This program is free software; you can redistribute it and/or modify it   *
- *  under the terms of the GNU Lesser General Public License as published     *
- *  by the Free Software Foundation; either version 3 of the License, or      *
- *  (at your option) any later version.                                       *
- *                                                                            *
- *  This program is distributed in the hope that it will be useful, but       *
- *  WITHOUT ANY WARRANTY; without even the implied warranty of                *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU          *
- *  General Public License for more details.                                  *
- *                                                                            *
- *  You should have received a copy of the GNU Lesser General Public License  *
- *  along with this program; if not, see http://www.gnu.org/licenses/.        *
-*******************************************************************************/
-
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\scon\pm.h"
-#include "..\..\..\..\..\..\..\..\service\debug\debug.h"
 
 /*============================ MACROS ========================================*/
 #define IAP_LOCATION                (0x1FFF1FF1u)
@@ -62,8 +44,6 @@
 typedef void fn_iap_t(uint32_t [], uint32_t []);
 
 /*============================ LOCAL VARIABLES ===============================*/
-DEBUG_DEFINE_THIS_FILE("flash");
-
 /*============================ PROTOTYPES ====================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
@@ -387,25 +367,21 @@ uint32_t flash_write(uint32_t wDstAddr, uint32_t wSrcAddr, uint32_t wLen)
     wStartSector = wStartPage >> 3; //!< / 8
     
     wErrorCode = IAP_PrepareSectors(wStartSector, wStartSector);
-    DEBUG_ASSERT_EQUAL_UINT(0, wErrorCode);
 	if (IAP_RET_CMD_SUCCESS != wErrorCode) {
         return (wErrorCode);
     }
 
     wErrorCode = IAP_ErasePages(wStartPage, wStartPage);
-    DEBUG_ASSERT_EQUAL_UINT(0, wErrorCode);
     if (IAP_RET_CMD_SUCCESS != wErrorCode) {
         return (wErrorCode);
     }
 
     wErrorCode = IAP_PrepareSectors(wStartSector, wStartSector);
-    DEBUG_ASSERT_EQUAL_UINT(0, wErrorCode);
 	if (IAP_RET_CMD_SUCCESS != wErrorCode) {
         return (wErrorCode);
     }
 
     wErrorCode = IAP_CopyRAMToFlash(wDstAddr, wSrcAddr, wLen);
-    DEBUG_ASSERT_EQUAL_UINT(0, wErrorCode);
     return (wErrorCode);
 }
 

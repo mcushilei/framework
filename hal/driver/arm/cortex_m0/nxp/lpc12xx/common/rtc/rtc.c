@@ -1,7 +1,8 @@
+
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\device.h"
-#include ".\i_io_rtc.h"
+#include ".\reg_rtc.h"
 #include "..\scon\pm.h"
 
 /*============================ MACROS ========================================*/
@@ -17,87 +18,27 @@
 /*============================ TYPES =========================================*/
 //! \name RTC initialization arguments defination
 //! @{
-typedef enum {
-    DISABLE_RTC             = 0x00,     //! Enable the RTC
-    ENABLE_RTC              = 0x01,     //! Enable the RTC
-    RTC_SRC_32KOSC_1HZ      = 0x00,     //! Select 1HZ 32KOSC output
-    RTC_SRC_32KOSC_1KHZ     = 0x0Au << 1,     //! Select 1KHz 32KOSC output
-    RTC_SRC_RTC_PCLK        = 0x04u << 1,     //! Select RTC PLCK clock source
-    RTC_INTERRUPT_DISABLE   = 0x00,     //! Enable the RTC interrupt
+enum {
+    RTC_STOP                = 0x00,     //! Enable the RTC
+    RTC_START               = 0x01,     //! Enable the RTC
+    RTC_SRC_32KOSC_1HZ      = 0x00,             //! Select 1HZ 32KOSC output
+    RTC_SRC_32KOSC_1KHZ     = 0x0Au << 11,      //! Select 1KHz 32KOSC output
+    RTC_SRC_RTC_PCLK        = 0x04u << 11,      //! Select RTC PLCK clock source
+    RTC_INTERRUPT_DISABLE   = 0x00,     //! Disable the RTC interrupt
     RTC_INTERRUPT_ENABLE    = 0x80,     //! Enable the RTC interrupt
-} em_rtc_cfg_mode_t;
+};
 //! @}
 
 //! \name RTC config struct
 //! @{
 typedef struct {
-    uint8_t         chMode;                      //!< Watchdog config ward
+    uint32_t        chMode;
     uint32_t        wMatchValue;
-}rtc_cfg_t;
-//! @}
-
-DEF_INTERFACE(i_rtc_count_t)
-    bool        (*Set)(uint32_t wValue);
-    uint32_t    (*Get)(void);
-END_DEF_INTERFACE(i_rtc_count_t)
-
-DEF_INTERFACE(i_rtc_match_t)
-    bool        (*Set)(uint32_t wValue);
-    uint32_t    (*Get)(void);
-END_DEF_INTERFACE(i_rtc_match_t)
-
-//! \name rtc property type
-//! @{
-DEF_INTERFACE(i_rtc_flag_t)
-    bool        (*Get)(void);
-    void        (*Clear)(void);  
-END_DEF_INTERFACE(i_rtc_flag_t)
-//! @}
-
-
-//! \name rtc struct
-//! @{
-DEF_INTERFACE(i_rtc_t)
-    bool                (*Config)(rtc_cfg_t *ptCfg);   //!< initialize the RTC
-    bool                (*Enable)(void);            //!< enable the ahbclk
-    bool                (*Disable)(void);           //!< disable the ahbclk
-    i_rtc_count_t       Count;        //!<  count value
-    i_rtc_match_t       Match;                 //!<  match value
-    i_rtc_flag_t        Flag;                       //!<  interrupt flag
-END_DEF_INTERFACE(i_rtc_t)
+} rtc_cfg_t;
 //! @}
 
 /*============================ PROTOTYPES ====================================*/
-static bool rtc_cfg(rtc_cfg_t *tCfg);
-static bool rtc_enable(void);
-static bool rtc_disable(void);
-static void rtc_clear_flag(void);
-static bool rtc_get_flag(void);
-static uint32_t rtc_get_time_value(void);
-static bool     rtc_set_time_value(uint32_t wValue);
-static uint32_t rtc_get_match_value(void);
-static bool     rtc_set_match_value(uint32_t wValue);
-
 /*============================ GLOBAL VARIABLES ==============================*/
-//! \brief define the RTC
-const i_rtc_t RTC = {    
-    &rtc_cfg,                       //!< initialize the RTC
-    &rtc_enable,                                //!< enable the ahbclk
-    &rtc_disable,                               //!< disable the ahbclk
-    {
-        &rtc_set_time_value,                    //!< set count value
-        &rtc_get_time_value,                    //!< get count value
-    },
-    {
-        &rtc_set_match_value,                   //!< set match value
-        &rtc_get_match_value,                  //!< get match value
-    },
-    {
-        &rtc_get_flag,
-        &rtc_clear_flag,                        //!< clear interrupt flag
-    },
-};
-
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ IMPLEMENTATION ================================*/
 /*! \brief init real-time clock
@@ -105,11 +46,15 @@ const i_rtc_t RTC = {
  *! \retval true : succeed
  *! \retval false: failed
  */
-static bool rtc_cfg(rtc_cfg_t *tCfg)
+bool rtc_config(rtc_cfg_t *tCfg)
 {
-    PM_AHB_CLK_DISABLE(AHBCLK_RTC);
-    PMU_REG.SYSCFG.RTCCLK = (tCfg->chMode >> 1) & 0x0Fu;
     SAFE_CLK_CODE (
+        RTC_REG.CR.Value = 0;
+        if (((tCfg->chMode >> 11) & 0x0Fu) == 0x04u) {
+            SYSCON_REG.RTCCLKDIV.Value = 255;
+        }
+        PMU_REG.SYSCFG.RTCCLK = tCfg->chMode >> 11;
+        
         RTC_REG.CR.Value    = tCfg->chMode & 0x01u;
         RTC_REG.IMSC.Value  = tCfg->chMode >> 7;
         RTC_REG.MATCH       = tCfg->wMatchValue;
@@ -123,7 +68,7 @@ static bool rtc_cfg(rtc_cfg_t *tCfg)
  *! \param none
  *! \retval none
  */
-static bool rtc_enable(void)
+bool rtc_enable(void)
 {
     PM_AHB_CLK_ENABLE(AHBCLK_RTC);
     
@@ -134,7 +79,7 @@ static bool rtc_enable(void)
  *! \param none
  *! \retval none
  */
-static bool rtc_disable(void)
+bool rtc_disable(void)
 {
     PM_AHB_CLK_DISABLE(AHBCLK_RTC);
     
@@ -145,7 +90,7 @@ static bool rtc_disable(void)
  *! \param none
  *! \retval none
  */
-static void rtc_clear_flag(void)
+void rtc_clear_int_flag(void)
 {
     SAFE_CLK_CODE (
         RTC_REG.ICR.Value = 0x01u;
@@ -156,7 +101,7 @@ static void rtc_clear_flag(void)
  *! \param none
  *! \retval none
  */
-static bool rtc_get_flag(void)
+bool rtc_get_int_flag(void)
 {
     bool bResult;
     
@@ -171,7 +116,7 @@ static bool rtc_get_flag(void)
  *! \param void
  *! \retval return geh time count value
  */
-static uint32_t rtc_get_time_value(void)
+uint32_t rtc_get_time_value(void)
 {
     uint32_t wResult;
     
@@ -186,7 +131,7 @@ static uint32_t rtc_get_time_value(void)
  *! \param void
  *! \retval return geh time count value
  */
-static bool rtc_set_time_value(uint32_t wValue)
+bool rtc_set_time_value(uint32_t wValue)
 {
     SAFE_CLK_CODE (
         RTC_REG.LOAD = wValue;
@@ -199,7 +144,7 @@ static bool rtc_set_time_value(uint32_t wValue)
  *! \param time match value
  *! \retval none
  */
-static bool rtc_set_match_value(uint32_t wValue)
+bool rtc_set_match_value(uint32_t wValue)
 {
     SAFE_CLK_CODE(
         RTC_REG.MATCH = wValue;
@@ -212,7 +157,7 @@ static bool rtc_set_match_value(uint32_t wValue)
  *! \param void
  *! \retval return match value
  */
-static uint32_t rtc_get_match_value(void)
+uint32_t rtc_get_match_value(void)
 {
     uint32_t wResult;
     

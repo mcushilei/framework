@@ -14,7 +14,7 @@ typedef struct {
     bool                (*Init)(void);   //!< initialize the RTC
     void                (*Enable)(void);            //!< enable the ahbclk
     void                (*Disable)(void);           //!< disable the ahbclk
-    u32_property_t      Count;        //!<  count value
+    u32_property_t      Count;                      //!<  count value
     u32_property_t      Match;                 //!<  match value
 } rtc_t;
 //! @}

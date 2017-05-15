@@ -17,11 +17,11 @@
 //! \name rtc struct
 //! @{
 typedef struct {    
-    bool                (*Init)(void);   //!< initialize the RTC
-    void                (*Enable)(void);            //!< enable the ahbclk
-    void                (*Disable)(void);           //!< disable the ahbclk
-    u32_property_t      Count;        //!<  count value
-    u32_property_t      Match;                 //!<  match value
+    bool                (*Init)(void);          //!< initialize the RTC
+    void                (*Enable)(void);        //!< enable the ahbclk
+    void                (*Disable)(void);       //!< disable the ahbclk
+    u32_property_t      Count;                  //!< count value
+    u32_property_t      Match;                  //!< match value
 } rtc_t;
 //! @}
 
@@ -38,7 +38,7 @@ static bool     rtc_set_match_value(uint32_t wValue);
 /*============================ GLOBAL VARIABLES ==============================*/
 //! \brief define the RTC
 const rtc_t RTC = {    
-    &rtc_init,                       //!< initialize the RTC
+    &rtc_init,                                  //!< initialize the RTC
     &rtc_enable,                                //!< enable the ahbclk
     &rtc_disable,                               //!< disable the ahbclk
     {

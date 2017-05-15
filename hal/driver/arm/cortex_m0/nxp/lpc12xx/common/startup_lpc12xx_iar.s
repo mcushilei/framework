@@ -33,11 +33,10 @@
     PUBWEAK PMU_IRQHandler
     PUBWEAK DMA_IRQHandler
     PUBWEAK RTC_IRQHandler
-;;------------------------------------------------------------------------------
-;; Vector Table
-;;------------------------------------------------------------------------------
-    
+
+
     SECTION CSTACK:DATA:NOROOT(3)
+    
     
     SECTION .intvec:CODE:NOROOT(2)
     DATA
@@ -93,16 +92,12 @@ __vector_table_0x1c
         DCD     DMA_IRQHandler            ; 16+29: DMA
         DCD     RTC_IRQHandler            ; 16+30: RTC
 
-;;------------------------------------------------------------------------------
-;; Default interrupt handlers.
-;;------------------------------------------------------------------------------
 
     SECTION .text:CODE:NOROOT(2)
     THUMB
 Reset_Handler
         LDR     R0, = __iar_program_start
         BX      R0
-
       
 NMI_Handler
 HardFault_Handler
@@ -135,9 +130,11 @@ DMA_IRQHandler
 RTC_IRQHandler
 Default_IRQHandler
 #ifdef __DEBUG__
-        B Default_IRQHandler
+        B       Default_IRQHandler
 #else
-        B Reset_Handler
+        B       Reset_Handler
 #endif
+
+
         END
 

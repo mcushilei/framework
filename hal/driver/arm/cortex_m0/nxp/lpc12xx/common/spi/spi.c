@@ -1,6 +1,6 @@
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include ".\i_io_spi.h"
+#include ".\reg_spi.h"
 #include "..\device.h"
 #include "..\scon\pm.h"
 

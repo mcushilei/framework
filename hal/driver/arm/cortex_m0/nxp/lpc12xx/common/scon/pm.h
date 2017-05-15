@@ -4,8 +4,8 @@
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\device.h"
-#include ".\i_io_scon.h"
-#include ".\i_io_sleep.h"
+#include ".\reg_scon.h"
+#include ".\reg_sleep.h"
 
 /*============================ MACROS ========================================*/
 #define DIV_(_N,_D)     DIV_##_N = (_N),

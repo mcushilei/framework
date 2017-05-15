@@ -1,8 +1,8 @@
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\device.h"
-#include ".\i_io_scon.h"
-#include ".\i_io_sleep.h"
+#include ".\reg_scon.h"
+#include ".\reg_sleep.h"
 
 /*============================ MACROS ========================================*/
 #ifndef MAX_PLL_OUTCLK_FREQ
