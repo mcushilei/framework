@@ -53,7 +53,7 @@
 
 #define END_DEF_REG8(__NAME)        \
         };                          \
-        reg8_t Value;               \
+        uint8_t Value;              \
     }__NAME;
 
 #define TYPEDEF_REG8                \
@@ -62,7 +62,7 @@
 
 #define END_TYPEDEF_REG8(__NAME)    \
         };                          \
-        reg8_t Value;               \
+        uint8_t Value;              \
     }__NAME;
 
 #define DEF_REG16                   \
@@ -71,7 +71,7 @@
 
 #define END_DEF_REG16(__NAME)       \
         };                          \
-        reg16_t Value;              \
+        uint16_t Value;             \
     }__NAME;
 
 #define TYPEDEF_REG16               \
@@ -80,7 +80,7 @@
 
 #define END_TYPEDEF_REG16(__NAME)   \
         };                          \
-        reg16_t Value;              \
+        uint16_t Value;             \
     }__NAME;
 
 #define DEF_REG32                   \
@@ -89,7 +89,7 @@
     
 #define END_DEF_REG32(__NAME)       \
         };                          \
-        reg32_t Value;              \
+        uint32_t Value;             \
     }__NAME;
 
 #define TYPEDEF_REG32               \
@@ -98,7 +98,7 @@
 
 #define END_TYPEDEF_REG32(__NAME)   \
         };                          \
-        reg32_t Value;              \
+        uint32_t Value;             \
     }__NAME;
 
 #define DEF_REGPAGE                 \
@@ -108,13 +108,13 @@
     } __NAME;
 
 //! \brief Macro to reseverd register.
-#define __REG8_RSVD(__N, __A)       const reg8_t :8;
+#define __REG8_RSVD(__N, __A)       const uint8_t   :8;
 #define REG8_RSVD(__N)              MREPEAT(__N, __REG8_RSVD, 0)
 
-#define __REG16_RSVD(__N, __A)      const reg16_t :16;
+#define __REG16_RSVD(__N, __A)      const uint16_t  :16;
 #define REG16_RSVD(__N)             MREPEAT(__N, __REG16_RSVD, 0)
 
-#define __REG32_RSVD(__N, __A)      const reg32_t :32;
+#define __REG32_RSVD(__N, __A)      const uint32_t  :32;
 #define REG32_RSVD(__N)             MREPEAT(__N, __REG32_RSVD, 0)
 
 /*============================ TYPES =========================================*/
@@ -123,12 +123,12 @@ typedef volatile uint8_t    reg8_t;
 typedef volatile uint16_t   reg16_t;
 typedef volatile uint32_t   reg32_t;
 
-typedef enum {
+enum {
     FSM_RT_CPL = 0,     //!< fsm complete
     FSM_RT_ONGOING,
     FSM_RT_UNHANDLE,    //!< event unhandle
     FSM_RT_ERR,
-} fsm_rt_em_t;
+};
 typedef uint_fast8_t fsm_rt_t;
 
 
