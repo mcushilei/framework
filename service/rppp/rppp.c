@@ -53,7 +53,7 @@
 /*============================ PROTOTYPES ====================================*/
 extern void rppp_rcv_handle(uint8_t port, uint8_t *pData, uint16_t dataLength);
 extern bool rppp_output_byte(uint8_t byte);
-extern bool frame_poll_byte(uint8_t *pByte, uint8_t *pTimeoutFlag);
+extern bool rppp_poll_byte(uint8_t *pByte, uint8_t *pTimeoutFlag);
 
 /*============================ LOCAL VARIABLES ===============================*/
 DEBUG_DEFINE_THIS_FILE("RPPP");
@@ -95,9 +95,9 @@ fsm_rt_t rppp_rcv_fsm(uint8_t *pPort, uint8_t **ppData, uint16_t *pDataLength)
             bool bReturn = false;
             uint8_t timeout = 0u;
 
-            if (cmd_poll_byte(&byte, &timeout)) {
+            if (rppp_poll_byte(&byte, &timeout)) {
                 if (timeout) {                      //!< byte timeout.
-                    RPPP_DEQUEUE(&byte);
+                    RPPP_DEQUEUE(&dummy);
                     state1 = WAIT_FOR_HEAD;
                 } else if (!RPPP_ENQUEUE(byte)) {   //!< byte received.
                     RPPP_DEQUEUE(&dummy);
@@ -187,7 +187,7 @@ fsm_rt_t rppp_rcv_fsm(uint8_t *pPort, uint8_t **ppData, uint16_t *pDataLength)
             if (ppData != NULL) {
                 *ppData = rpppRcvBuffer;
             }
-            if (pDataLength != null) {
+            if (pDataLength != NULL) {
                 *pDataLength = writePoint;
             }
             rppp_rcv_handle(port, rpppRcvBuffer, writePoint);
