@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -16,56 +16,48 @@
 *******************************************************************************/
 
 
-#ifndef __I_IO_SLEEP_H__
-#define __I_IO_SLEEP_H__
+#ifndef __GEOMETRY_C__
+#ifndef __GEOMETRY_H__
+#define __GEOMETRY_H__
 
 /*============================ INCLUDES ======================================*/
+#include ".\app_cfg.h"
+
 /*============================ MACROS ========================================*/
-#define PMU_REG                     (*(pmu_reg_t *)PMU_BASE_ADDRESS)
-
-#define PMU_PCON_DPDEN_BIT0         1
-#define PMU_PCON_DPDEN_MSK          (1u << PMU_PCON_DPDEN_BIT0)
-
-#define PMU_PCON_SLEEPFLAG_BIT0     8
-#define PMU_PCON_SLEEPFLAG_MSK      (1u << PMU_PCON_SLEEPFLAG_BIT0)
-
-#define PMU_PCON_DPDFLAG_BIT0       11
-#define PMU_PCON_DPDFLAG_MSK        (1u << PMU_PCON_DPDFLAG_BIT0)
-
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-//! \name register page type 
-//! @{
-typedef volatile struct {
-    DEF_REG32
-        reg32_t             :1;
-        reg32_t DPDEN       :1;
-        reg32_t             :6;
-        reg32_t SLEEPFLAG   :1;
-        reg32_t             :2;
-        reg32_t DPDFLAG     :1;
-        reg32_t             :20;
-    END_DEF_REG32(PCON) 
-        
-    reg32_t GPREG0;
-    reg32_t GPREG1;
-    reg32_t GPREG2;
-    reg32_t GPREG3;
-        
-    DEF_REG32  
-        reg32_t             :10;
-        reg32_t WAKEUPHYS   :1;
-        reg32_t RTCCLK      :4;
-        reg32_t             :17;
-    END_DEF_REG32(SYSCFG)        
-} pmu_reg_t;
-//! @}
+typedef struct {
+    geonum_t    X;
+    geonum_t    Y;
+} dot2d_t;
 
+typedef struct {
+    dot2d_t     A;
+    dot2d_t     B;
+} segment2d_t;
 
+typedef struct {
+    dot2d_t     O;
+    geodec_t    R;
+} circle2d_t;
+
+typedef struct {
+    dot2d_t     LB;
+    dot2d_t     RT;
+} rectangle2d_t;
 
 /*============================ GLOBAL VARIABLES ==============================*/
-/*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
-/*============================ IMPLEMENTATION ================================*/
+extern geodec_t dot_distance(dot2d_t *A, dot2d_t *B);
+extern void     get_set_rectangle(dot2d_t *pSet, uint32_t n, rectangle2d_t *pRectangle);
+extern bool     is_line_horizontal(segment2d_t *l1);
+extern bool     is_line_vertical(segment2d_t *l1);
+extern bool     is_line_parallel(segment2d_t *l1, segment2d_t *l2);
+extern int32_t  dot_position_of_line(dot2d_t *d, segment2d_t *l);
+extern bool     is_dot_on_segment(dot2d_t *d, segment2d_t *l);
+extern uint32_t is_segment_intersection(segment2d_t *l1, segment2d_t *l2);
+extern bool     is_dot_in_polygon(dot2d_t *pDot, dot2d_t *pVertex, uint32_t n);
 
-#endif
+#endif  //! #ifndef __GEOMETRY_H__
+#endif  //! #ifndef __GEOMETRY_C__
+/* EOF */

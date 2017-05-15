@@ -3,8 +3,8 @@
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define SYSCON_REG              (*(syscon_reg_t *)SYSCON_BASE_ADDRESS)
-#define FLASH_REG               (*(flash_reg_t *)FLASH_BASE_ADDRESS)
+#define SYSCON_REG              (*(volatile syscon_reg_t *)SYSCON_BASE_ADDRESS)
+#define FLASH_REG               (*(volatile flash_reg_t *)FLASH_BASE_ADDRESS)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define SSC_SYSPLLCTRL_MSEL_BIT0        0
@@ -142,7 +142,7 @@ typedef enum {
 
 //! \brief system control block register page
 //! @{
-typedef volatile struct {
+typedef struct {
     DEF_REG32
         reg32_t MAP             :2;
         reg32_t                 :30;
@@ -384,7 +384,7 @@ typedef volatile struct {
 } syscon_reg_t;
 //! @}
 
-typedef volatile struct {
+typedef struct {
     REG32_RSVD(7) //!< Reserved
         
     DEF_REG32

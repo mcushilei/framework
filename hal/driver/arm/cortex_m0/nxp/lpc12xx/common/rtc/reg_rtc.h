@@ -3,13 +3,13 @@
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define RTC_REG                         (*(rtc_reg_t *)RTC_BASE_ADDRESS)
+#define RTC_REG                         (*(volatile rtc_reg_t *)RTC_BASE_ADDRESS)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 //! \name register page type
 //! @{
-typedef volatile struct {
+typedef struct {
     reg32_t     DATA;
     reg32_t     MATCH;
     reg32_t     LOAD;

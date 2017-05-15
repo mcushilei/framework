@@ -95,19 +95,19 @@
     } while(0)
 
 #if (((DEBUG_MSG_ENABLE != DISABLED) || (DEBUG_ASSERT_ENABLE != DISABLED)) && defined(__DEBUG__))
-#   define DEBUG_PRINT(string, ...)        __DEBUG_PRINT(string, __VA_ARGS__)
+#   define DEBUG_PRINT(...)                 __DEBUG_PRINT(__VA_ARGS__)
 #else
-#   define DEBUG_PRINT(string, ...)
+#   define DEBUG_PRINT(...)
 #endif
 
 #if ((DEBUG_MSG_ENABLE != DISABLED) && defined(__DEBUG__))
-#   define DEBUG_MSG(ctrl, ...)            __DEBUG_MSG(ctrl, __LINE__, __VA_ARGS__)
+#   define DEBUG_MSG(ctrl, ...)             __DEBUG_MSG(ctrl, __LINE__, __VA_ARGS__)
 #else
 #   define DEBUG_MSG(ctrl, ...)
 #endif
             
 #if ((DEBUG_ASSERT_ENABLE != DISABLED) && defined(__DEBUG__))
-#   define DEBUG_ASSERT(condition, ...)    __DEBUG_ASSERT(condition, __LINE__, __VA_ARGS__)
+#   define DEBUG_ASSERT(condition, ...)     __DEBUG_ASSERT(condition, __LINE__, __VA_ARGS__)
 
 #   define DEBUG_ASSERT_NOT_NULL(pointer, ...)                      \
         DEBUG_ASSERT(                                               \

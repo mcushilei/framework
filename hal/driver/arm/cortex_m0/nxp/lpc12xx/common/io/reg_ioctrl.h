@@ -22,7 +22,7 @@
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define IOCTRL_REG              (*(ioctrl_reg_t *)IOCTRL_BASE_ADDRESS)
+#define IOCTRL_REG              (*(volatile ioctrl_reg_t *)IOCTRL_BASE_ADDRESS)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 //! \name function selection macros
@@ -121,7 +121,7 @@ typedef enum {
 
 //! \name cross switch controller register page
 //! @{
-typedef volatile struct {
+typedef struct {
     DEF_REG32
         reg32_t FUNSEL      : 3;       //!< function selection
         reg32_t             : 1;

@@ -94,7 +94,7 @@ int debug_string_compare(const _CHAR *expected, const _CHAR *actual)
 void debug_print_string(const _CHAR *string)
 {
     if (string != NULL) {
-        for (; *string; string++) {
+        for (; *string != '\0'; string++) {
             DEBUG_OUTPUT_CHAR(*string);
         }
     }

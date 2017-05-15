@@ -22,18 +22,18 @@
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define GPIO_PORT0_REG                  (*(gpio_reg_t *)GPIO0_BASE_ADDRESS)
-#define GPIO0_REG                       (*(gpio_reg_t *)GPIO0_BASE_ADDRESS)
-#define GPIO_PORT1_REG                  (*(gpio_reg_t *)GPIO1_BASE_ADDRESS)
-#define GPIO1_REG                       (*(gpio_reg_t *)GPIO1_BASE_ADDRESS)
-#define GPIO_PORT2_REG                  (*(gpio_reg_t *)GPIO2_BASE_ADDRESS)
-#define GPIO2_REG                       (*(gpio_reg_t *)GPIO2_BASE_ADDRESS)
+#define GPIO_PORT0_REG                  (*(volatile gpio_reg_t *)GPIO0_BASE_ADDRESS)
+#define GPIO0_REG                       (*(volatile gpio_reg_t *)GPIO0_BASE_ADDRESS)
+#define GPIO_PORT1_REG                  (*(volatile gpio_reg_t *)GPIO1_BASE_ADDRESS)
+#define GPIO1_REG                       (*(volatile gpio_reg_t *)GPIO1_BASE_ADDRESS)
+#define GPIO_PORT2_REG                  (*(volatile gpio_reg_t *)GPIO2_BASE_ADDRESS)
+#define GPIO2_REG                       (*(volatile gpio_reg_t *)GPIO2_BASE_ADDRESS)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 //! \name cross switch controller register page
 //! @{
-typedef volatile struct {
+typedef struct {
     reg32_t     MSK;                //!< Mask Register
     reg32_t     IN;                 //!< Input Value Register
     reg32_t     OUT;                //!< Data Output Value

@@ -3,8 +3,8 @@
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define UART0_REG                      (*(uart_reg_t *)UART0_BASE_ADDRESS)
-#define UART1_REG                      (*(uart_reg_t *)UART1_BASE_ADDRESS)
+#define UART0_REG                      (*(volatile uart_reg_t *)UART0_BASE_ADDRESS)
+#define UART1_REG                      (*(volatile uart_reg_t *)UART1_BASE_ADDRESS)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define UART_RBR0                      0

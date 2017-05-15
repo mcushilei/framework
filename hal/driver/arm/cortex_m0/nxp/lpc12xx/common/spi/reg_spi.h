@@ -3,7 +3,7 @@
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define SPI0_REG                        (*((spi_reg_t *)(SPI0_BASE_ADDRESS)))
+#define SPI0_REG                        (*(volatile spi_reg_t *)SPI0_BASE_ADDRESS))
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /* spi datasize*/
@@ -162,7 +162,7 @@
 
 /*============================ TYPES =========================================*/
 /* spi spi mode register page type*/
-typedef volatile struct{
+typedef struct{
     DEF_REG32
         reg32_t DSS     : 4;
         reg32_t FRF     : 2;

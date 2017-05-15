@@ -3,7 +3,7 @@
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define WDT_REG                         (*(wdt_reg_t *)WDT_BASE_ADDRESS)
+#define WDT_REG                         (*(volatile wdt_reg_t *)WDT_BASE_ADDRESS)
 
 //! \name REGISTER DEFIEN
 //! @{
