@@ -14,8 +14,8 @@
  *  You should have received a copy of the GNU Lesser General Public License  *
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
-/* example:
-    Frame: A5 5A | 02 - 21 22 | XX XX
+/*  example:
+ *  Frame: A5 5A | 02 - 21 22 | XX XX
  */
 
 #ifndef __COMMUNICATION_FRAME_C__
@@ -31,7 +31,7 @@
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 extern bool frame_ini(void);
-extern fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t *pchDate, uint16_t *phwLength);
+extern fsm_rt_t frame_rcv_fsm(uint8_t *pchDate, uint16_t *phwLength);
 extern fsm_rt_t frame_snd_fsm(const uint8_t *pchData, uint16_t hwLength);
 
 #endif  //! #ifndef __COMMUNICATION_FRAME_H__

@@ -14,7 +14,10 @@
  *  You should have received a copy of the GNU Lesser General Public License  *
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
-
+/*
+|--HEAD--|--PORT--|-------LENGTH-------|------PAYLOAD------|--------CRC--------|
+|---1----|----1---|----------2---------|---------n---------|---------2---------|
+*/
 
 //! \note do not move this pre-processor statement to other places
 #define __RPPP_C__
@@ -28,8 +31,8 @@
 /*============================ MACROS ========================================*/
 #define FRAM_CRC16_POLLY                CRC16_POLY_CCITT
 
-#define RPPP_RCV_HEAD_BYTE              (0xF5)
-#define RPPP_SND_HEAD_BYTE              (0xF5)
+#define RPPP_RCV_HEAD_BYTE              RPPP_HEAD_BYTE
+#define RPPP_SND_HEAD_BYTE              RPPP_HEAD_BYTE
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define RPPP_QUEUE                      queue_t
@@ -50,6 +53,7 @@
 /*============================ PROTOTYPES ====================================*/
 extern void rppp_rcv_handle(uint8_t port, uint8_t *pData, uint16_t dataLength);
 extern bool rppp_output_byte(uint8_t byte);
+extern bool frame_poll_byte(uint8_t *pByte, uint8_t *pTimeoutFlag);
 
 /*============================ LOCAL VARIABLES ===============================*/
 DEBUG_DEFINE_THIS_FILE("RPPP");
@@ -65,13 +69,12 @@ bool rppp_ini(void)
     return RPPP_QUEUE_INIT();
 }
 
-uint16_t rppp_rcv_fsm(uint8_t byte, uint8_t timeout, uint8_t *pPort, uint8_t **ppData)
+fsm_rt_t rppp_rcv_fsm(uint8_t *pPort, uint8_t **ppData, uint16_t *pDataLength)
 {
     static enum {
-        RCV_ENQUEUE = 0,
-        RCV_PASER,
+        RCV_PASER = 0,
         RCV_HANDLE,
-    } state0 = RCV_ENQUEUE;
+    } state0 = RCV_PASER;
     static enum {
         WAIT_FOR_HEAD = 0,
         WAIT_FOR_PORT,
@@ -85,29 +88,27 @@ uint16_t rppp_rcv_fsm(uint8_t byte, uint8_t timeout, uint8_t *pPort, uint8_t **p
     static uint16_t checksum = 0;
     static uint8_t  port;
     static uint8_t  rpppRcvBuffer[RPPP_PAYLOAD_MAX_SIZE];
+    uint8_t byte, dummy;
 
     switch (state0) {
-        case RCV_ENQUEUE:
-            if (timeout) {                      //!< byte timeout.
-                RPPP_DEQUEUE(&byte);
-                state1 = WAIT_FOR_HEAD;
-            } else {                            //!< byte received.
-                if (!RPPP_ENQUEUE(byte)) {      //!< queue is full.
-                    uint8_t dummy;
+        case RCV_PASER: {
+            bool bReturn = false;
+            uint8_t timeout = 0u;
+
+            if (cmd_poll_byte(&byte, &timeout)) {
+                if (timeout) {                      //!< byte timeout.
+                    RPPP_DEQUEUE(&byte);
+                    state1 = WAIT_FOR_HEAD;
+                } else if (!RPPP_ENQUEUE(byte)) {   //!< byte received.
                     RPPP_DEQUEUE(&dummy);
                     RPPP_ENQUEUE(byte);
                     state1 = WAIT_FOR_HEAD;
                 }
             }
-            state0 = RCV_PASER;
-            //break;    //!< omitted intentionally.
-
-        case RCV_PASER: {
-            bool bReturn = false;
+                
             do {
                 if (!RPPP_PEEK_QUEUE(&byte)) {
-                    state0 = RCV_ENQUEUE;
-                    return 0;
+                    return FSM_RT_ONGOING;
                 }
 
                 switch (state1) {
@@ -119,7 +120,7 @@ uint16_t rppp_rcv_fsm(uint8_t byte, uint8_t timeout, uint8_t *pPort, uint8_t **p
                             writePoint = 0;
                             state1 = WAIT_FOR_PORT;
                         } else {
-                            RPPP_DEQUEUE(&byte);
+                            RPPP_DEQUEUE(&dummy);
                         }
                         break;
                         
@@ -140,7 +141,7 @@ uint16_t rppp_rcv_fsm(uint8_t byte, uint8_t timeout, uint8_t *pPort, uint8_t **p
                         checksum = RPPP_CHECKSUM(byte);
                         //! validate length
                         if ((dataLength == 0) || (dataLength > RPPP_PAYLOAD_MAX_SIZE)) {
-                            RPPP_DEQUEUE(&byte);
+                            RPPP_DEQUEUE(&dummy);
                             state1 = WAIT_FOR_HEAD;
                         } else {
                             state1 = WAIT_FOR_DATA;
@@ -170,7 +171,7 @@ uint16_t rppp_rcv_fsm(uint8_t byte, uint8_t timeout, uint8_t *pPort, uint8_t **p
                             state0 = RCV_HANDLE;
                             bReturn = true;
                         } else {
-                            RPPP_DEQUEUE(&byte);
+                            RPPP_DEQUEUE(&dummy);
                         }
                         state1 = WAIT_FOR_HEAD;
                         break;
@@ -186,15 +187,18 @@ uint16_t rppp_rcv_fsm(uint8_t byte, uint8_t timeout, uint8_t *pPort, uint8_t **p
             if (ppData != NULL) {
                 *ppData = rpppRcvBuffer;
             }
+            if (pDataLength != null) {
+                *pDataLength = writePoint;
+            }
             rppp_rcv_handle(port, rpppRcvBuffer, writePoint);
-            state0 = RCV_ENQUEUE;
-            return writePoint;
+            state0 = RCV_PASER;
+            return FSM_RT_CPL;
     }
 
-    return 0;
+    return FSM_RT_ONGOING;
 }
 
-uint16_t rppp_snd_fsm(uint8_t port, const uint8_t *pData, uint16_t dataLength)
+fsm_rt_t rppp_snd_fsm(uint8_t port, const uint8_t *pData, uint16_t dataLength)
 {
     static enum {
         SND_HEAD = 0,
@@ -211,7 +215,7 @@ uint16_t rppp_snd_fsm(uint8_t port, const uint8_t *pData, uint16_t dataLength)
     switch (state) {
         case SND_HEAD:
             if (0 == dataLength) {
-                return 0;
+                return FSM_RT_CPL;
             }
             //DEBUG_MSG(RPPP_DEBUG, DEBUG_PRINT("Snd start:"););
             checksum = 0;
@@ -274,7 +278,7 @@ uint16_t rppp_snd_fsm(uint8_t port, const uint8_t *pData, uint16_t dataLength)
             break;
     }
     
-    return writePoint;
+    return FSM_RT_ONGOING;
 }
 
 /* EOF */

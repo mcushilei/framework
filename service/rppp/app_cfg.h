@@ -25,6 +25,7 @@
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
 #define RPPP_PAYLOAD_MAX_SIZE   (128u)
+#define RPPP_HEAD_BYTE          (0xF5)
 
 #define RPPP_DEBUG              DEBUG_ON
 

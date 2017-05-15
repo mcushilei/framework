@@ -28,8 +28,8 @@
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 extern bool     rppp_ini(void);
-extern uint16_t rppp_rcv_fsm(uint8_t byte, uint8_t timeout, uint8_t *pPort, uint8_t **ppData);
-extern uint16_t rppp_snd_fsm(uint8_t port, const uint8_t *pData, uint16_t dataLength);
+extern fsm_rt_t rppp_rcv_fsm(uint8_t *pPort, uint8_t **ppData, uint16_t *pDataLength);
+extern fsm_rt_t rppp_snd_fsm(uint8_t port, const uint8_t *pData, uint16_t dataLength);
 
 #endif  //! #ifndef __RPPP_H__
 #endif  //! #ifndef __RPPP_C__

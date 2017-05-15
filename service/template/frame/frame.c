@@ -117,6 +117,9 @@ DEF_STRUCTURE(frame_tcp_t)
 END_DEF_STRUCTURE(frame_tcp_t)
 
 /*============================ PROTOTYPES ====================================*/
+extern bool frame_output_byte(uint8_t chByte);
+extern bool frame_poll_byte(uint8_t *pByte, uint8_t *pTimeoutFlag);
+
 /*============================ LOCAL VARIABLES ===============================*/
 DEBUG_DEFINE_THIS_FILE("FRAME");
 
@@ -130,11 +133,10 @@ bool frame_ini(void)
     return FRAME_QUEUE_INIT();
 }
 
-fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t *pchDate, uint16_t *phwLength)
+fsm_rt_t frame_rcv_fsm(uint8_t *pchDate, uint16_t *phwLength)
 {
     static enum {
-        RCV_ENQUEUE = 0,
-        RCV_PASER,
+        RCV_PASER = 0,
         RCV_HANDLE,
     } s_tState0 = RCV_ENQUEUE;
     static enum {
@@ -162,29 +164,28 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t *pchDate, uint16
 #else
     static uint8_t  s_Checksum = 0;
 #endif
+    uint8_t chByte;
+    uint8_t dummy;
 
     switch (s_tState0) {
-        case RCV_ENQUEUE:
-            if (chEvent) {  //!< timeout
-                FRAME_DEQUEUE(&chByte);
-                s_tState1 = WAIT_FOR_HEAD_0;
-            } else {        //!< byte received
-                if (!FRAME_ENQUEUE(chByte)) {
-                    uint8_t dummy;
-                    FRAME_DEQUEUE(&dummy);
-                    FRAME_ENQUEUE(chByte)
-                    s_tState1 = WAIT_FOR_HEAD_0;
-                }
-            }
-            s_tState0 = RCV_PASER;
-            //break;    //!< omitted intentionally.
-
         case RCV_PASER:
         {
             bool bReturn = false;
+            uint8_t timeout = 0u;
+            
+            if (cmd_poll_byte(&chByte, &timeout)) {
+                if (timeout != 0) {
+                    FRAME_DEQUEUE(&dummy);
+                    s_tState1 = WAIT_FOR_HEAD_0;
+                } else if (!FRAME_ENQUEUE(chByte)) {            //!< byte received
+                    FRAME_DEQUEUE(&dummy);
+                    FRAME_ENQUEUE(chByte);
+                    s_tState1 = WAIT_FOR_HEAD_0;
+                }
+            }
+            
             do {
                 if (!FRAME_PEEK_QUEUE(&chByte)) {
-                    s_tState0 = RCV_ENQUEUE;
                     return FSM_RT_ONGOING;
                 }
 
@@ -194,7 +195,7 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t *pchDate, uint16
                             DEBUG_MSG(FRAME_DEBUG, "Rcv start.");
                             s_Checksum   = 0;
                             s_DataLength = 0;
-                            s_WritePoint    = 0;
+                            s_WritePoint = 0;
 #if FRAME_HEAD_SEGMENT_SIZE > 1
                             s_tState1 = WAIT_FOR_HEAD_1;
 #else
@@ -205,7 +206,7 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t *pchDate, uint16
 #endif
 #endif
                         } else {
-                            FRAME_DEQUEUE(&chByte);
+                            FRAME_DEQUEUE(&dummy);
                         }
                         break;
 
@@ -218,7 +219,7 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t *pchDate, uint16
                             s_tState1 = WAIT_FOR_LENGTH_1;
 #endif
                         } else {
-                            FRAME_DEQUEUE(&chByte);
+                            FRAME_DEQUEUE(&dummy);
                             s_tState1 = WAIT_FOR_HEAD_0;
                         }
                         break;
@@ -267,15 +268,15 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t *pchDate, uint16
 
                     case WAIT_FOR_CHECKSUM_1:
                         s_Checksum = FRAME_CHECKSUM(chByte);
-                        if (0 == s_Checksum) {
-                            DEBUG_MSG(FRAME_DEBUG, "Rcv cpl.");
-                            FRAME_GET_ALL_PEEKED_QUEUE();
-                            s_tState0 = RCV_HANDLE;
-                            bReturn = true;
-                        } else {
-                            FRAME_DEQUEUE(&chByte);
-                        }
                         s_tState1 = WAIT_FOR_HEAD_0;
+                        if (0u != s_Checksum) {
+                            FRAME_DEQUEUE(&dummy);
+                            break;
+                        }
+                        DEBUG_MSG(FRAME_DEBUG, "Rcv cpl.");
+                        FRAME_GET_ALL_PEEKED_QUEUE();
+                        s_tState0 = RCV_HANDLE;
+                        bReturn = true;
                         break;
                 }
             } while (!bReturn);
@@ -284,14 +285,12 @@ fsm_rt_t frame_rcv_fsm(uint8_t chByte, uint8_t chEvent, uint8_t *pchDate, uint16
 
         case RCV_HANDLE:
             *phwLength = s_WritePoint;
-            s_tState0 = RCV_ENQUEUE;
+            s_tState0  = RCV_PASER;
             return FSM_RT_CPL;
     }
 
     return FSM_RT_ONGOING;
 }
-
-extern bool frame_output_byte(uint8_t chByte);
 
 fsm_rt_t frame_snd_fsm(const uint8_t *pchData, uint16_t hwLength)
 {
