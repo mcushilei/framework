@@ -286,6 +286,7 @@ uint32_t com_write(com_t *ptThis, uint8_t *pchData, uint32_t wLen)
     DWORD       numBytesWrite = 0;
     OVERLAPPED  oWriter = {0};
     DWORD       errorCode;
+    DWORD       wRes;
 
     if ((0 == wLen) || (NULL == pchData) || (NULL == ptThis))  {
         return 0;
@@ -306,26 +307,23 @@ uint32_t com_write(com_t *ptThis, uint8_t *pchData, uint32_t wLen)
         wLen,
         NULL,
         &oWriter)) {
-        // our write operation will be complete asynchronously.
         errorCode = GetLastError();
         if (ERROR_IO_PENDING != errorCode) {
             //! Fatal Error.
-        } else {
-            uint32_t wRes;
-            wRes = WaitForSingleObject(oWriter.hEvent, INFINITE);
-            if (WAIT_OBJECT_0 != wRes) {
-                //! Fatal Error.
-            } else {
-                // OVERLAPPED structure's event has been signaled. 
-                if (!GetOverlappedResult(this.hCom, &oWriter, &numBytesWrite, FALSE)) {
-                }
-            }
+            goto __ERROR_EXIT;
         }
-    } else {
-        // write complete immediately.
-        numBytesWrite = wLen;
     }
 
+    wRes = WaitForSingleObject(oWriter.hEvent, INFINITE);
+    if (WAIT_OBJECT_0 != wRes) {
+        //! Fatal Error.
+    } else {
+        // OVERLAPPED structure's event has been signaled. 
+        if (!GetOverlappedResult(this.hCom, &oWriter, &numBytesWrite, FALSE)) {
+        }
+    }
+
+__ERROR_EXIT:
     CloseHandle(oWriter.hEvent);
 
     return numBytesWrite;
@@ -343,6 +341,7 @@ uint32_t com_read(com_t *ptThis, uint8_t *pchData, uint32_t wLen)
     DWORD       numBytesRead = 0;
     OVERLAPPED  oReader = {0};
     DWORD       errorCode;
+    DWORD       wRes;
 
     if ((0 == wLen) || (NULL == pchData) || (NULL == ptThis)) {
         return 0;
@@ -363,25 +362,22 @@ uint32_t com_read(com_t *ptThis, uint8_t *pchData, uint32_t wLen)
         wLen,
         NULL,
         &oReader)) {
-        //! Our operation has been pended.
         errorCode = GetLastError();
         if (ERROR_IO_PENDING != errorCode) {
             //! Fatal Error.
-        } else {
-            DWORD wRes;
-            wRes = WaitForSingleObject(oReader.hEvent, INFINITE);
-            if (WAIT_OBJECT_0 != wRes) {
-                //! Fatal Error.
-            } else {
-                if (!GetOverlappedResult(this.hCom, &oReader, &numBytesRead, FALSE)) {
-                }
-            }
+            goto __ERROR_EXIT;
         }
-    } else {
-        // read complete immediately.
-        numBytesRead = wLen;
     }
 
+    wRes = WaitForSingleObject(oReader.hEvent, INFINITE);
+    if (WAIT_OBJECT_0 != wRes) {
+        //! Fatal Error.
+    } else {
+        if (!GetOverlappedResult(this.hCom, &oReader, &numBytesRead, FALSE)) {
+        }
+    }
+
+__ERROR_EXIT:
     CloseHandle(oReader.hEvent);
 
     return numBytesRead;

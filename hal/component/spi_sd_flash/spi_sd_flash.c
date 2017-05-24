@@ -660,7 +660,7 @@ bool spi_sd_erase_blocks(uint32_t block, uint32_t cnt)
     uint8_t recv;
     
     if (0 == cnt) {
-        cnt++;
+        return true;
     }
     wStart = block, wEnd = block + cnt - 1;
     

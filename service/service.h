@@ -35,6 +35,7 @@
 #include ".\dsp\dsp.h"
 #include ".\rppp\rppp.h"
 #include ".\geometry\geometry.h"
+#include ".\calendar\calendar.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/

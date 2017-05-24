@@ -22,6 +22,7 @@
 /*============================ INCLUDES ======================================*/
 #include ".\api\os.h"
 #include ".\api\com\com.h"
+#include ".\api\block\block.h"
 
 /*============================ MACROS ========================================*/
 #define OS_ERR                                  DWORD

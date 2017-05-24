@@ -44,7 +44,7 @@
  *  \note   It's assume that the destination type is memory alligned to original
  *          type.
  */
-#define TYPE_CAST(__V, __T) ((__T *)&(__V))[0]
+#define TYPE_CAST(__V, __T) (*(__T *)&(__V))
 
 #define IS_POWER_OF_2(__N)  (((__N) != 0u) && ((((__N) - 1u) & (__N)) == 0))
 
