@@ -87,7 +87,7 @@ fsm_rt_t rppp_rcv_fsm(uint8_t *pPort, uint8_t **ppData, uint16_t *pDataLength)
     static uint16_t dataLength = 0, writePoint  = 0;
     static uint16_t checksum = 0;
     static uint8_t  port;
-    static uint8_t  rpppRcvBuffer[RPPP_PAYLOAD_MAX_SIZE];
+    static uint8_t  rcvBuffer[RPPP_PAYLOAD_MAX_SIZE];
     uint8_t byte, dummy;
 
     switch (state0) {
@@ -149,7 +149,7 @@ fsm_rt_t rppp_rcv_fsm(uint8_t *pPort, uint8_t **ppData, uint16_t *pDataLength)
                         break;
 
                     case WAIT_FOR_DATA:
-                        rpppRcvBuffer[writePoint] = byte;
+                        rcvBuffer[writePoint] = byte;
                         checksum = RPPP_CHECKSUM(byte);
                         writePoint++;
                         dataLength--;
@@ -185,12 +185,12 @@ fsm_rt_t rppp_rcv_fsm(uint8_t *pPort, uint8_t **ppData, uint16_t *pDataLength)
                 *pPort = port;
             }
             if (ppData != NULL) {
-                *ppData = rpppRcvBuffer;
+                *ppData = rcvBuffer;
             }
             if (pDataLength != NULL) {
                 *pDataLength = writePoint;
             }
-            rppp_rcv_handle(port, rpppRcvBuffer, writePoint);
+            rppp_rcv_handle(port, rcvBuffer, writePoint);
             state0 = RCV_PASER;
             return FSM_RT_CPL;
     }

@@ -26,13 +26,13 @@
 /*============================ TYPES =========================================*/
 typedef void timer_routine_t(void *pArg);
 
-DEF_STRUCTURE(softtimer_t)
+typedef struct {
     uint8_t         Flag;
     uint32_t        Count;
     uint32_t        Reload;
     timer_routine_t *pRoutine;
     void            *pRoutineArg;
-END_DEF_STRUCTURE(softtimer_t)
+} softtimer_t;
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/

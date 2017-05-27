@@ -71,51 +71,6 @@
 #endif
 
 /*============================ TYPES =========================================*/
-typedef enum {
-    RCV_ENQUEUE = 0,
-    RCV_PASER,
-    RCV_HANDLE,
-} em_rcv_state0_t;
-
-typedef enum {
-    WAIT_FOR_HEAD_0 = 0,
-    WAIT_FOR_HEAD_1,
-    WAIT_FOR_LENGTH_0,
-    WAIT_FOR_LENGTH_1,
-    WAIT_FOR_DATA,
-    WAIT_FOR_CHECKSUM_0,
-    WAIT_FOR_CHECKSUM_1,
-} em_rcv_state1_t;
-
-typedef enum {
-    SND_HEAD_0 = 0,
-    SND_HEAD_1,
-    SND_LENGTH_0,
-    SND_LENGTH_1,
-    SND_DATA,
-    SND_CHECKSUM_0,
-    SND_CHECKSUM_1,
-} em_snd_state_t;
-
-DEF_STRUCTURE(frame_tcp_t)
-    FRAME_QUEUE tFrameRcvQueue;
-    uint16_t    hwPayloadSize;
-    
-    uint8_t     chRcvState0;
-    uint8_t     chRcvState1;
-    uint8_t     chSndState;
-    
-    uint8_t     chHeadBytes;
-    uint8_t     chLengthBytes;
-    uint8_t     chChecksumBytes;
-    
-    uint16_t    hwRcvDataLength;
-    uint16_t    hwRcvDataCnt;
-    uint16_t    hwRcvChecksum;
-    uint16_t    hwSndDataCnt;
-    uint16_t    hwSndChecksum;
-END_DEF_STRUCTURE(frame_tcp_t)
-
 /*============================ PROTOTYPES ====================================*/
 extern bool frame_output_byte(uint8_t chByte);
 extern bool frame_poll_byte(uint8_t *pByte, uint8_t *pTimeoutFlag);
@@ -133,12 +88,12 @@ bool frame_ini(void)
     return FRAME_QUEUE_INIT();
 }
 
-fsm_rt_t frame_rcv_fsm(uint8_t *pchDate, uint16_t *phwLength)
+fsm_rt_t frame_rcv_fsm(uint8_t *pchData, uint16_t *phwLength)
 {
     static enum {
         RCV_PASER = 0,
         RCV_HANDLE,
-    } s_tState0 = RCV_ENQUEUE;
+    } s_tState0 = RCV_PASER;
     static enum {
         WAIT_FOR_HEAD_0 = 0,
 #if FRAME_HEAD_SEGMENT_SIZE > 1
@@ -173,7 +128,7 @@ fsm_rt_t frame_rcv_fsm(uint8_t *pchDate, uint16_t *phwLength)
             bool bReturn = false;
             uint8_t timeout = 0u;
             
-            if (cmd_poll_byte(&chByte, &timeout)) {
+            if (frame_poll_byte(&chByte, &timeout)) {
                 if (timeout != 0) {
                     FRAME_DEQUEUE(&dummy);
                     s_tState1 = WAIT_FOR_HEAD_0;
@@ -246,7 +201,7 @@ fsm_rt_t frame_rcv_fsm(uint8_t *pchDate, uint16_t *phwLength)
                         break;
 
                     case WAIT_FOR_DATA:
-                        pchDate[s_WritePoint] = chByte;
+                        pchData[s_WritePoint] = chByte;
                         s_Checksum = FRAME_CHECKSUM(chByte);
                         s_WritePoint++;
                         s_DataLength--;

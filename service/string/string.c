@@ -302,42 +302,41 @@ uint8_t *string_string(const uint8_t *s1, const uint8_t *s2)
     return NULL;
 }
 
-/*! \brief paser string to token, replace delim to '\0' and return point to token.
- *! \param StringRef address of point varible point to string that to paser.
- *! \param Delim point to delim string, every char in this sting represent as a delim.
+/*! \brief  Paser string to token, replace delim to '\0' and return point to token.
+ *!         String should be end with '\0'.
+ *! \param ppStringRef address of point varible point to string that to paser.
+ *! \param pDelim point to delim string, every char in this sting represent as a delim.
  *! \retval address of token, this token may be empty string:"\0".
  *! \retval NULL there is no token in specify string.
  */
-uint8_t *strsep(uint8_t **StringRef, const uint8_t *Delim)
+uint8_t *strsep(uint8_t **ppStringRef, const uint8_t *pDelim)
 {
 	uint8_t *s, *tok;
 	const uint8_t *spanp;
 	uint8_t c, sc;
 
-    if (StringRef == NULL) {
-		return NULL;
-    }
-
-    s = *StringRef;
+    s = *ppStringRef;
     if (s == NULL) {
-		return NULL;
+        return NULL;
     }
 
     tok = s;
 	for (;;) {
-		c = *s++;
-		for (spanp = Delim; *spanp != '\0'; spanp++) {
-            sc = *spanp;
-			if (sc == c) {
-                if (sc == '\0') {
-					s = NULL;
-                } else {
-					s[-1] = '\0';
-                }
-				*StringRef = s;
-				return tok;
-			}
-		}
+        c = *s;
+        if (c == '\0') {
+            *ppStringRef = NULL;
+            return tok;
+        } else {
+		    for (spanp = pDelim; *spanp != '\0'; spanp++) {
+                sc = *spanp;
+			    if (sc == c) {
+					*s = '\0';
+				    *ppStringRef = s + 1;
+                    return tok;
+			    }
+		    }
+        }
+        s++;
 	}
 }
 
