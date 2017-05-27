@@ -47,7 +47,6 @@ bool block_memory_init(void)
     if (GetCurrentDirectory(MAX_PATH, currentPath) == 0) {
         return GetLastError();
     }
-    printf("\r\n%s", currentPath);
 
     //! creat file.
     CHAR newFileName[MAX_PATH];
@@ -126,7 +125,6 @@ bool block_memory_write_block(uint32_t block, uint8_t *pData)
 
         case WAIT_OBJECT_0:
             GetOverlappedResult(mem.File, &oWriteFile, &byteWritten, TRUE);
-            printf("\r\n Bytes written: %u", byteWritten);
             break;
 
         case WAIT_FAILED:
@@ -189,7 +187,6 @@ bool block_memory_read_block(uint32_t block, uint8_t *pData)
 
         case WAIT_OBJECT_0:
             GetOverlappedResult(mem.File, &oReadFile, &byteRead, TRUE);
-            printf("\r\n Bytes read: %u", byteRead);
             break;
 
         case WAIT_FAILED:
