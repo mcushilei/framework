@@ -65,6 +65,10 @@ typedef HANDLE  OS_HANDLE;
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ IMPLEMENTATION ================================*/
+void        osTimeDelay            (UINT32          ticks)
+{
+    Sleep(10u * ticks);
+}
 
 
 OS_ERR      osSemCreate            (OS_HANDLE      *pSemaphoreHandle,

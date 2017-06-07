@@ -73,7 +73,7 @@ typedef HANDLE  OS_HANDLE;
 
 
 #define OS_SEMAPHORE_TYPE                   OS_HANDLE
-#define OS_SEMAPHORE_CREATE(__SEM, __CNT)   osSemCreate(__SEM, __CNT)
+#define OS_SEMAPHORE_CREATE(__SEM, __CNT)   osSemCreate(&__SEM, __CNT)
 #define OS_SEMAPHORE_DELETE(__SEM)          osSemDelete(__SEM, 0)
 #define OS_SEMAPHORE_RELEASE(__SEM)         osSemPost(__SEM, 1u)
 #define OS_SEMAPHORE_WAIT(__SEM, __TIME)    osSemPend(__SEM, __TIME)
@@ -94,6 +94,8 @@ typedef HANDLE  OS_HANDLE;
 #define OS_FLAG_WAIT(__FLAG, __TIME)        osFlagPend(__FLAG, __TIME)
 
 
+#define OS_TASK_SLEEP(__T)                  osTimeDelay(__T)
+
 #define OS_TASK_DEFINE_BEGIN(__TASK_NAME, __ARG_NAME)   DWORD WINAPI __TASK_NAME(void *__ARG_NAME) {
 #define OS_TASK_DEFINE_END(__TASK_NAME)                 return 0;}
 
@@ -102,6 +104,7 @@ typedef HANDLE  OS_HANDLE;
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
+extern void     osTimeDelay        (UINT32          ticks);
 
 extern OS_ERR   osFlagCreate       (OS_HANDLE      *pFlagHandle,
                                     BOOLEAN         init,
