@@ -28,7 +28,9 @@
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define __GPIO_INTERFACE(__N, __VALUE)      const i_gpio_t GPIO##__N;
 
-#define __IO_PORT_PIN_MSK(__N, __OFFSET)    PIN##__N##_MSK = (1ul << (__N)),
+#define __IO_PORT_NAM(__N, __OFFSET)        PORT##__N = (__N),
+#define __IO_PIN_NAM(__N, __OFFSET)         PIN##__N = (__N),
+#define __IO_PIN_MSK(__N, __OFFSET)         PIN##__N##_MSK = (1ul << (__N)),
 
 //! \brief enable pull-up resistor
 #define IOCTRL_ENABLE_PULL_UP(__PIN)        do {                                \
@@ -64,40 +66,26 @@
             } while(0)
 
 /*============================ TYPES =========================================*/
-//! \name PIN mask
-//! @{
-typedef enum {
-    MREPEAT(IO_PORT_PIN_COUNT, __IO_PORT_PIN_MSK, 0)
-} em_io_pin_msk_t;
-//! @}
+enum {
+    MREPEAT(IO_PORT_PIN_COUNT, __IO_PIN_MSK, 0)
+};
 
-//! \name Port name 
-//! @{
-typedef enum {
-#if defined(PIO_PORTA)
-    PA,
-#endif
-#if defined(PIO_PORTB)
-    PB,
-#endif
-#if defined(PIO_PORTC)
-    PC,
-#endif
-#if defined(PIO_PORTD)
-    PD,
-#endif
-#if defined(PIO_PORTE)
-    PE,
-#endif
-} em_io_port_t;
-//! @}
+enum {
+    MREPEAT(IO_PORT_PIN_COUNT, __IO_PIN_NAM, 0)
+};
+
+enum {
+    MREPEAT(IO_PORT_COUNT, __IO_PORT_NAM, 0)
+};
+
 
 //! \name io configuration structure
 //! @{
 typedef struct {
-    em_io_pin_t         tPIN;                   //!< pin number
-    em_io_func_sel_t    tFunction;              //!< io Funcitons
-    io_mode_sel_t       tMode;                  //!< io mode
+    uint8_t         tPort;                  //!< port number
+    uint8_t         tPIN;                   //!< pin number
+    uint8_t         tFunction;              //!< io Funcitons
+    uint8_t         tMode;                  //!< io mode
 } io_cfg_t;
 //! @}
 

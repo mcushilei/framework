@@ -91,12 +91,8 @@ typedef enum {
 
 //! \name IO Controller macros
 //! @{
+#define IO_PORT_COUNT                   5
 #define IO_PORT_PIN_COUNT               32
-#define PIO_PORTA
-#define PIO_PORTB
-#define PIO_PORTC
-#define PIO_PORTD
-#define PIO_PORTE
 //! @}
 
 #define FLASH_PAGE_SIZE                 (512u)

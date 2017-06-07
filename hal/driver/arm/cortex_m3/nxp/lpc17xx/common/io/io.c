@@ -28,11 +28,9 @@
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define __GPIO_INTERFACE(__N, __VALUE)      const i_gpio_t GPIO##__N;
 
-#define __IO_PINA_MSK(__N, __OFFSET)        PA##__N##_MSK = (1ul << (__N)),
-#define __IO_PINB_MSK(__N, __OFFSET)        PB##__N##_MSK = (1ul << (__N)),
-#define __IO_PINC_MSK(__N, __OFFSET)        PC##__N##_MSK = (1ul << (__N)),
-#define __IO_PIND_MSK(__N, __OFFSET)        PD##__N##_MSK = (1ul << (__N)),
-#define __IO_PINE_MSK(__N, __OFFSET)        PE##__N##_MSK = (1ul << (__N)),
+#define __IO_PORT_NAM(__N, __OFFSET)        PORT##__N = (__N),
+#define __IO_PIN_NAM(__N, __OFFSET)         PIN##__N = (__N),
+#define __IO_PIN_MSK(__N, __OFFSET)         PIN##__N##_MSK = (1ul << (__N)),
 
 #define __GPIO_FUNC_DEF(__N,__VALUE)                                            \
 static void     gpio##__N##_set_direction(uint32_t wDirection, uint32_t wPinMask);  \
@@ -121,13 +119,25 @@ static void gpio##__N##_toggle(uint32_t wPinMask)                               
 }                                                                                                                                             
 
 /*============================ TYPES =========================================*/
+enum {
+    MREPEAT(IO_PORT_PIN_COUNT, __IO_PIN_MSK, 0)
+};
+
+enum {
+    MREPEAT(IO_PORT_PIN_COUNT, __IO_PIN_NAM, 0)
+};
+
+enum {
+    MREPEAT(IO_PORT_COUNT, __IO_PORT_NAM, 0)
+};
 
 //! \name io configuration structure
 //! @{
 typedef struct {
-    em_io_pin_t         tPIN;                   //!< pin number
-    em_io_func_sel_t    tFunction;              //!< io Funcitons
-    io_mode_sel_t       tMode;                  //!< io mode
+    uint8_t         tPort;                  //!< port number
+    uint8_t         tPIN;                   //!< pin number
+    uint8_t         tFunction;              //!< io Funcitons
+    uint8_t         tMode;                  //!< io mode
 } io_cfg_t;
 //! @}
 
@@ -195,21 +205,20 @@ static bool io_configuration(io_cfg_t *ptCFG, uint32_t wSize)
 
     //! io configure
     for (; wSize; --wSize){
-        uint32_t wPinIndex  = ptCFG->tPIN;
         uint32_t wFunction  = ptCFG->tFunction;
         uint32_t wIOMODE    = ptCFG->tMode;
         uint32_t wRegIndex, wBitIndex, wMask;
 
-        wRegIndex = wPinIndex >> 4;         //!< wPinIndex / 16
-        wBitIndex = (wPinIndex << 1) & (32 - 1);   //!< wPinIndex * 2 % 32
-        wMask = 0x03ul << wBitIndex;
-        PINCON_REG.PINSEL[wRegIndex] = PINCON_REG.PINSEL[wRegIndex] & ~wMask | ((wFunction & 0x03ul) << wBitIndex);
-        PINCON_REG.PINMODE[wRegIndex] = PINCON_REG.PINMODE[wRegIndex] & ~wMask | ((wIOMODE & 0x03ul) << wBitIndex);
+        wRegIndex = (ptCFG->tPort * 2u) + ((ptCFG->tPIN >> 4) & 0x01u);
+        wBitIndex = (ptCFG->tPIN & 0x0Fu) * 2u;
+        wMask = 0x03u << wBitIndex;
+        PINCON_REG.PINSEL[wRegIndex] = PINCON_REG.PINSEL[wRegIndex] & ~wMask | ((wFunction & 0x03u) << wBitIndex);
+        PINCON_REG.PINMODE[wRegIndex] = PINCON_REG.PINMODE[wRegIndex] & ~wMask | ((wIOMODE & 0x03u) << wBitIndex);
 
-        wRegIndex = wPinIndex >> 5;         //!< wPinIndex / 32
-        wBitIndex = wPinIndex & (32 - 1);   //!< wPinIndex % 32
-        wMask = 0x01ul << wBitIndex;
-        PINCON_REG.PINMODE_OD[wRegIndex] = PINCON_REG.PINMODE[wRegIndex] & ~wMask | (((wIOMODE >> 2) & 0x01ul) << wBitIndex);
+        wRegIndex = ptCFG->tPort;
+        wBitIndex = ptCFG->tPIN;
+        wMask = 0x01u << wBitIndex;
+        PINCON_REG.PINMODE_OD[wRegIndex] = PINCON_REG.PINMODE[wRegIndex] & ~wMask | (((wIOMODE >> 2) & 0x01u) << wBitIndex);
                 
         ptCFG++;
     }
