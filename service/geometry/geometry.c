@@ -37,7 +37,7 @@ typedef struct {
 
 typedef struct {
     dot2d_t     O;
-    geodec_t    R;
+    geonum_t    R;
 } circle2d_t;
 
 typedef struct {
@@ -49,7 +49,7 @@ typedef struct {
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ IMPLEMENTATION ================================*/
-geodec_t dot_distance(dot2d_t *A, dot2d_t *B)
+geonum_t dot_distance(dot2d_t *A, dot2d_t *B)
 {
     geonum_t x, y;
     x = A->X - B->X;
@@ -231,10 +231,11 @@ void get_set_rectangle(dot2d_t *pSet, uint32_t n, rectangle2d_t *pRectangle)
 bool is_dot_in_polygon(dot2d_t *pDot, dot2d_t *pVertex, uint32_t n)
 {
     rectangle2d_t retangle;
-    segment2d_t   line;
+    segment2d_t   ray;
     segment2d_t   segment;
     uint32_t i, cnt = 0;;
 
+    //! it must be not in the polygon if it is out of polygon's bounding rectangle.
     get_set_rectangle(pVertex, n, &retangle);
     if ((pDot->X < retangle.LB.X)
     ||  (pDot->X > retangle.RT.X)
@@ -242,9 +243,12 @@ bool is_dot_in_polygon(dot2d_t *pDot, dot2d_t *pVertex, uint32_t n)
     ||  (pDot->Y > retangle.RT.Y)) {
         return false;
     }
-    line.A.X = retangle.LB.X;
-    line.A.Y = pDot->Y;
-    line.B   = *pDot;
+
+    //! one horizontal ray from the dot.
+    ray.A.X = retangle.LB.X;
+    ray.A.Y = pDot->Y;
+    ray.B   = *pDot;
+
     for (i = 0; i != n; i++) {
         segment.A = pVertex[i];
         if ((i + 1) == n) {
@@ -257,14 +261,14 @@ bool is_dot_in_polygon(dot2d_t *pDot, dot2d_t *pVertex, uint32_t n)
             return true;
         }
 
-        switch (is_segment_intersection(&line, &segment)) {
+        switch (is_segment_intersection(&ray, &segment)) {
             case 1:         //!< intersection.
                 cnt++;
                 break;
 
-            case 2:         //!< at least one terminal is on the line.
-                if ((0 < dot_position_of_line(&segment.A, &line))       //!< onlg those segments above line are valid.
-                ||  (0 < dot_position_of_line(&segment.B, &line))) {    //!< ...below or on the line are invalid.
+            case 2:         //!< at least one terminal is on the ray.
+                if ((0 < dot_position_of_line(&segment.A, &ray))       //!< onlg those segments above ray are valid.
+                ||  (0 < dot_position_of_line(&segment.B, &ray))) {    //!< ...below or on the ray are invalid.
                     cnt++;
                 }
                 break;

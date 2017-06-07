@@ -38,7 +38,7 @@ typedef struct {
 
 typedef struct {
     dot2d_t     O;
-    geodec_t    R;
+    geonum_t    R;
 } circle2d_t;
 
 typedef struct {
@@ -48,7 +48,7 @@ typedef struct {
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern geodec_t dot_distance(dot2d_t *A, dot2d_t *B);
+extern geonum_t dot_distance(dot2d_t *A, dot2d_t *B);
 extern void     get_set_rectangle(dot2d_t *pSet, uint32_t n, rectangle2d_t *pRectangle);
 extern bool     is_line_horizontal(segment2d_t *l1);
 extern bool     is_line_vertical(segment2d_t *l1);
