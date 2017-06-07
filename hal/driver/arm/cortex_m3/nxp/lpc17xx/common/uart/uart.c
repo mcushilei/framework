@@ -30,13 +30,19 @@
 #define MODE_LENGTH_MSK         0x0300
 #define MODE_LENGTH_SHIFT       8
 
-#define __SAFE_CLK_CODE(...)                                            \
+#define __SAFE_CLK_CODE_BEGIN()                                         \
     {                                                                   \
         uint32_t wStatus = peripheral_clock_get_status(ptThis->tPCON);  \
         peripheral_clock_enable(ptThis->tPCON);                         \
-        __VA_ARGS__;                                                    \
+
+#define __SAFE_CLK_CODE_END()                                           \
         peripheral_clock_resume_status(ptThis->tPCON, wStatus);         \
     }
+
+#define __SAFE_CLK_CODE(...)    \
+    __SAFE_CLK_CODE_BEGIN()     \
+    __VA_ARGS__;                \
+    __SAFE_CLK_CODE_END()       \
 
 #define __UART_INTERFACE(__N, __A)                                           \
     {                                                                       \
@@ -301,11 +307,11 @@ static bool uart_baudrate_set(uint32_t wUsart, uint32_t wBaudrate)
         return false;
     }
 
-    if (!uart_idle(wUsart)) {
-        return false;
-    }
+//    if (!uart_idle(wUsart)) {
+//        return false;
+//    }
     
-    if (!wBaudrate) {
+    if (wBaudrate == 0) {
         wBaudrate++;
     }
            
@@ -314,13 +320,13 @@ static bool uart_baudrate_set(uint32_t wUsart, uint32_t wBaudrate)
         uint32_t wPclkFrequency = PM.Clock.Peripheral.Get(ptThis->tPCLK);
 
         wPclkFrequency = (wPclkFrequency >> 4) / wBaudrate;
-        __SAFE_CLK_CODE(
+        __SAFE_CLK_CODE_BEGIN()
             ptREG->LCR |= UART_LCR_DLAB_MSK;
             ptREG->DLM  = wPclkFrequency >> 8;
             ptREG->DLL  = wPclkFrequency & 0xFF;
             ptREG->LCR &= ~UART_LCR_DLAB_MSK;
             ptREG->FDR  = 0x10;   
-        )
+        __SAFE_CLK_CODE_END()
 
     } while (0);
     ptThis->wBaundRate = wBaudrate;    
@@ -356,61 +362,61 @@ static bool uart_config(uint32_t wUsart, uart_cfg_t *ptUsartCFG)
         return false;
     }
 
-    __SAFE_CLK_CODE (
-        do { 
-            uint16_t hwMode = ptUsartCFG->hwMode;
-            uart_reg_t *ptREG = ptThis->ptREG; 
+    __SAFE_CLK_CODE_BEGIN()
+    do { 
+        uint16_t hwMode = ptUsartCFG->hwMode;
+        uart_reg_t *ptREG = ptThis->ptREG; 
 
-            //! read LCR
-            uint32_t wTempLCR = ptREG->LCR & ~ 
-                        (   UART_LCR_WLS_MSK              |
-                            UART_LCR_SBS_MSK              |
-                            UART_LCR_PE_MSK               |
-                            UART_LCR_PS_MSK               |
-                            UART_LCR_BC_MSK               |
-                            UART_LCR_DLAB_MSK);
-            //! read ACR
-            uint32_t wTempACR = ptREG->ACR & ~ 
-                        (   UART_ACR_AUTO_BAUD_START_MSK  |
-                            UART_ACR_MODE_MSK             |
-                            UART_ACR_AUTO_RESTART_MSK     |
-                            UART_ACR_ABEOINTCLR_MSK       |
-                            UART_ACR_ABTOINTCLR_MSK);
+        //! read LCR
+        uint32_t wTempLCR = ptREG->LCR & ~ 
+                    (   UART_LCR_WLS_MSK              |
+                        UART_LCR_SBS_MSK              |
+                        UART_LCR_PE_MSK               |
+                        UART_LCR_PS_MSK               |
+                        UART_LCR_BC_MSK               |
+                        UART_LCR_DLAB_MSK);
+        //! read ACR
+        uint32_t wTempACR = ptREG->ACR & ~ 
+                    (   UART_ACR_AUTO_BAUD_START_MSK  |
+                        UART_ACR_MODE_MSK             |
+                        UART_ACR_AUTO_RESTART_MSK     |
+                        UART_ACR_ABEOINTCLR_MSK       |
+                        UART_ACR_ABTOINTCLR_MSK);
 
-            //! FIFO configuration
-            if (!(hwMode & UART_DISABLE_FIFO)) {
-                ptREG->FCR =  UART_FCR_FIFO_EN_MSK      | 
-                                            UART_FCR_RX_FIFO_RS_MSK   |
-                                            UART_FCR_TX_FIFO_RS_MSK |
-                                                (0x02u << 6);
+        //! FIFO configuration
+        if (!(hwMode & UART_DISABLE_FIFO)) {
+            ptREG->FCR =  UART_FCR_FIFO_EN_MSK      | 
+                                        UART_FCR_RX_FIFO_RS_MSK   |
+                                        UART_FCR_TX_FIFO_RS_MSK |
+                                            (0x02u << 6);
+        }
+
+        //! parity configuration
+        wTempLCR |= hwMode & (UART_LCR_PE_MSK | UART_LCR_PS_MSK);
+
+        //! configure stop bits
+        if (hwMode & UART_2_STOPBIT) {
+            wTempLCR |= UART_LCR_SBS_MSK;
+        }
+
+        //! bit length configuration
+        wTempLCR |= UART_LCR_WLS_SET(
+            ((hwMode & MODE_LENGTH_MSK) >> MODE_LENGTH_SHIFT));
+
+        //! autobaud configuration 
+        if (hwMode & UART_AUTO_BAUD_MODE1) {
+            wTempACR |= hwMode & 0x0007;
+            ptREG->ACR = wTempACR;
+        } else {
+            if (!uart_baudrate_set(wUsart, ptUsartCFG->wBaudrate)) {
+                return false;
             }
+        }
 
-            //! parity configuration
-            wTempLCR |= hwMode & (UART_LCR_PE_MSK | UART_LCR_PS_MSK);
-
-            //! configure stop bits
-            if (hwMode & UART_2_STOPBIT) {
-                wTempLCR |= UART_LCR_SBS_MSK;
-            }
-
-            //! bit length configuration
-            wTempLCR |= UART_LCR_WLS_SET(
-                ((hwMode & MODE_LENGTH_MSK) >> MODE_LENGTH_SHIFT));
-
-            //! autobaud configuration 
-            if (hwMode & UART_AUTO_BAUD_MODE1) {
-                wTempACR |= hwMode & 0x0007;
-                ptREG->ACR = wTempACR;
-            } else {
-                if (!uart_baudrate_set(wUsart, ptUsartCFG->wBaudrate)) {
-                    return false;
-                }
-            }
-
-            //! update LCR register
-            ptREG->LCR = wTempLCR;      
-        } while(0);
-    )
+        //! update LCR register
+        ptREG->LCR = wTempLCR;      
+    } while(0);
+    __SAFE_CLK_CODE_END()
     
     return true;
 }

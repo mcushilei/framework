@@ -109,8 +109,8 @@ typedef enum {
 
 #define UART0_BASE_ADDRESS              (0x4000C000u)
 #define UART1_BASE_ADDRESS              (0x40010000u)
-#define UART2_BASE_ADDRESS              (0x40009800u)
-#define UART3_BASE_ADDRESS              (0x40009C00u)
+#define UART2_BASE_ADDRESS              (0x40098000u)
+#define UART3_BASE_ADDRESS              (0x4009C000u)
 #define SSP0_BASE_ADDRESS               (0x40088000u)
 #define SSP1_BASE_ADDRESS               (0x40030000u)
 #define SPI_BASE_ADDRESS                (0x40020000u)

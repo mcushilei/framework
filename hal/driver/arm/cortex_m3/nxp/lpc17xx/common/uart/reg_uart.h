@@ -442,7 +442,7 @@
 /*============================ TYPES =========================================*/
 /*------------- Universal Asynchronous Receiver Transmitter (UART) -----------*/
 /** @brief  Universal Asynchronous Receiver Transmitter (UART) register structure definition */
-typedef struct
+typedef volatile struct
 {
     union {
         reg8_t  RBR;
@@ -475,7 +475,7 @@ typedef struct
 } uart_reg_t;
 
 /** @brief  Universal Asynchronous Receiver Transmitter 1 (UART1) register structure definition */
-typedef struct
+typedef volatile struct
 {
     union {
         reg8_t  RBR;

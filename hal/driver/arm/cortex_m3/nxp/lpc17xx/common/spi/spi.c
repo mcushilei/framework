@@ -37,6 +37,13 @@
         PM_POWER_RESUME(ptThis->tPOWER, wStatus);                            \
     }
 
+#define __SAFE_CLK_CODE_BEGIN()                                                      \
+        uint32_t __wStatus   = PM_POWER_GET_STATUS(ptThis->tPOWER);            \
+        PM_POWER_ENABLE(ptThis->tPOWER);                                     \
+
+#define __SAFE_CLK_CODE_END()                                                      \
+        PM_POWER_RESUME(ptThis->tPOWER, __wStatus);                            \
+
 //! \brief Macro for spi init
 #define __SPI_OBJ(__N,__DATA)                                                   \
     {                                                                           \
@@ -212,7 +219,7 @@ static bool ssp_config(spi_cfg_t *ptSpiCfg, __spi_t *ptThis)
         return false;
     }
 
-    __SAFE_CLK_CODE (
+    __SAFE_CLK_CODE_BEGIN();
         ssp_reg_t *ptREG = this.ptREG;
 
         //!  read CR0 register
@@ -290,7 +297,7 @@ static bool ssp_config(spi_cfg_t *ptSpiCfg, __spi_t *ptThis)
         
         //! update CPSR
         ptREG->CPSR = wTempCPSR;
-    )
+    __SAFE_CLK_CODE_END();
 
     return true;
 }
