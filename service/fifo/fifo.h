@@ -26,8 +26,8 @@
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define FIFO8_INIT(__FIFO, __PBUF, __BUF_SIZE)                         \
     fifo8_init(&__FIFO, __PBUF, __BUF_SIZE)
-#define FIFO8_IN(__FIFO, __OBJ)         fifo8_in(&__PFIFO, (const uint8_t *)&(__OBJ))
-#define FIFO8_OUT(__FIFO, __OBJ)        fifo8_out(&__PFIFO, (uint8_t *)&(__POBJ))
+#define FIFO8_IN(__FIFO, __OBJ)         fifo8_in(&__FIFO, (const uint8_t *)&(__OBJ))
+#define FIFO8_OUT(__FIFO, __OBJ)        fifo8_out(&__FIFO, (uint8_t *)&(__OBJ))
 
 
 /*============================ TYPES =========================================*/
