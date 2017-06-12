@@ -226,8 +226,13 @@ bool com_open(com_t *ptThis, const uint8_t *pchCom, com_cfg_t *ptCfg, void *pCom
         return false;
     }
 
-    this.pComEventHandle = pComEventHandle;
+    //! configration.
+    if (!com_cfg(ptThis, ptCfg)) {
+        com_in_error(ptThis);
+        return false;
+    }
 
+    this.pComEventHandle = pComEventHandle;
     this.hHardwareThread = CreateThread(
         NULL,
         0,
@@ -236,12 +241,6 @@ bool com_open(com_t *ptThis, const uint8_t *pchCom, com_cfg_t *ptCfg, void *pCom
         0,
         NULL);
     if (NULL == this.hHardwareThread) {
-        com_in_error(ptThis);
-        return false;
-    }
-
-    //! configration.
-    if (!com_cfg(ptThis, ptCfg)) {
         com_in_error(ptThis);
         return false;
     }
@@ -388,12 +387,14 @@ static DWORD WINAPI com_hardware_event_task(void *pArg)
     OVERLAPPED  oStatus = {0};
     DWORD       wRes, commEvent;
     com_t      *ptThis = (com_t *)pArg;
+    DWORD  errCode;
 
     oStatus.hEvent = this.hHardwareEvent;
 
     while (this.flagClosePort == 0) {
         if (!WaitCommEvent(this.hCom, &commEvent, &oStatus)) {
-            if (ERROR_IO_PENDING != GetLastError()) {
+            errCode = GetLastError();
+            if (ERROR_IO_PENDING != errCode) {
                 return 0;
             } else {
                 wRes = WaitForSingleObject(oStatus.hEvent, INFINITE);
