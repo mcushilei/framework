@@ -279,11 +279,28 @@ bool is_dot_in_polygon(dot2d_t *pDot, dot2d_t *pVertex, uint32_t n)
         }
     }
 
-    if (cnt & 0x1u) {
-        return false;
+    if (cnt & 0x1u) {       //!< cnt is odd?
+        return true;        //!< Yes, dot in polygon.
     } else {
-        return true;
+        return false;
     }
+}
+
+#define PI          (3.14159265358979f)
+#define EARTH_R     (6371393.0f)
+//! brief   compute distance of two dots on a great circle. prision: 0.5m when use float.
+//! input   in degree.
+//! output  in meter.
+float distance_on_earth(float longitude1, float latitude1, float longitude2, float latitude2)
+{
+    float deltaLongitude;
+    longitude1 = PI / 180.0f * longitude1;
+    latitude1 = PI / 180.0f * latitude1;
+    longitude2 = PI / 180.0f * longitude2;
+    latitude2 = PI / 180.0f * latitude2;
+    deltaLongitude = longitude1 - longitude2;
+
+    return EARTH_R * acos(cos(latitude1) * cos(latitude2) * cos(deltaLongitude) + sin(latitude1) * sin(latitude2));
 }
 
 /* EOF */

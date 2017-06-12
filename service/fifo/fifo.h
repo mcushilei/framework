@@ -31,13 +31,13 @@
 
 
 /*============================ TYPES =========================================*/
-EXTERN_CLASS(fifo_t)
+typedef struct {
     void *              pBuffer;
     __fifo_uint_t       fifoSize;       //!< fifo size.
     __fifo_uint_t       itemSize;       //!< fifo size.
     __fifo_uint_t       Out;
     __fifo_uint_t       In;
-END_EXTERN_CLASS(fifo_t)
+} fifo_t;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/

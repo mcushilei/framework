@@ -58,6 +58,8 @@ extern bool     is_dot_on_segment(dot2d_t *d, segment2d_t *l);
 extern uint32_t is_segment_intersection(segment2d_t *l1, segment2d_t *l2);
 extern bool     is_dot_in_polygon(dot2d_t *pDot, dot2d_t *pVertex, uint32_t n);
 
+extern float    distance_on_earth(float longitude1, float latitude1, float longitude2, float latitude2);
+
 #endif  //! #ifndef __GEOMETRY_H__
 #endif  //! #ifndef __GEOMETRY_C__
 /* EOF */

@@ -26,13 +26,13 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-DEF_CLASS(fifo_t)
+typedef struct {
     void *              pBuffer;
     __fifo_uint_t       fifoSize;       //!< buffer size.
     __fifo_uint_t       itemSize;       //!< item size.
     __fifo_uint_t       Out;            //!< point to space filled.
     __fifo_uint_t       In;             //!< point to space empty.
-END_DEF_CLASS(fifo_t)
+} fifo_t;
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
@@ -41,7 +41,7 @@ END_DEF_CLASS(fifo_t)
 
 bool fifo_init(void *fifoObj, void *pBuffer, __fifo_uint_t fifoSize, __fifo_uint_t itemSize)
 {
-    CLASS(fifo_t) *FIFO = (CLASS(fifo_t) *)fifoObj;
+    fifo_t *FIFO = (fifo_t *)fifoObj;
     
     if (NULL == FIFO || NULL == pBuffer || (!IS_POWER_OF_2(fifoSize))) {
         return false;
@@ -58,7 +58,7 @@ bool fifo_init(void *fifoObj, void *pBuffer, __fifo_uint_t fifoSize, __fifo_uint
 
 bool fifo_in(void *fifoObj, const void *pBuffer)
 {
-    CLASS(fifo_t) *FIFO = (CLASS(fifo_t) *)fifoObj;
+    fifo_t *FIFO = (fifo_t *)fifoObj;
     __fifo_uint_t L1;
 
     if (NULL == FIFO || NULL == pBuffer) {
@@ -80,7 +80,7 @@ bool fifo_in(void *fifoObj, const void *pBuffer)
 
 bool fifo_out(void *fifoObj, void *pBuffer)
 {
-    CLASS(fifo_t) *FIFO = (CLASS(fifo_t) *)fifoObj;
+    fifo_t *FIFO = (fifo_t *)fifoObj;
     __fifo_uint_t L1;
 
     if (NULL == FIFO) {
@@ -104,7 +104,7 @@ bool fifo_out(void *fifoObj, void *pBuffer)
 
 bool fifo8_init(void *fifoObj, uint8_t *pBuffer, __fifo_uint_t fifoSize)
 {
-    CLASS(fifo_t) *FIFO = (CLASS(fifo_t) *)fifoObj;
+    fifo_t *FIFO = (fifo_t *)fifoObj;
     
     if (NULL == FIFO || NULL == pBuffer || (!IS_POWER_OF_2(fifoSize))) {
         return false;
@@ -121,7 +121,7 @@ bool fifo8_init(void *fifoObj, uint8_t *pBuffer, __fifo_uint_t fifoSize)
 
 bool fifo8_in(void *fifoObj, const uint8_t *pBuffer)
 {
-    CLASS(fifo_t) *FIFO = (CLASS(fifo_t) *)fifoObj;
+    fifo_t *FIFO = (fifo_t *)fifoObj;
     __fifo_uint_t L1;
 
     if (NULL == FIFO || NULL == pBuffer) {
@@ -143,7 +143,7 @@ bool fifo8_in(void *fifoObj, const uint8_t *pBuffer)
 
 bool fifo8_out(void *fifoObj, uint8_t *pBuffer)
 {
-    CLASS(fifo_t) *FIFO = (CLASS(fifo_t) *)fifoObj;
+    fifo_t *FIFO = (fifo_t *)fifoObj;
     __fifo_uint_t L1;
 
     if (NULL == FIFO) {
@@ -167,7 +167,7 @@ bool fifo8_out(void *fifoObj, uint8_t *pBuffer)
 
 //__fifo_uint_t fifo8_in_burst(void *fifoObj, const uint8_t *pBuffer, __fifo_uint_t bufferSize)
 //{
-//    CLASS(fifo_t) *FIFO = (CLASS(fifo_t) *)fifoObj;
+//    fifo_t *FIFO = (fifo_t *)fifoObj;
 //    __fifo_uint_t L1, L2;
 //
 //    if (NULL == FIFO || NULL == pBuffer) {
@@ -192,7 +192,7 @@ bool fifo8_out(void *fifoObj, uint8_t *pBuffer)
 //
 //__fifo_uint_t fifo8_out_burst(void *fifoObj, uint8_t *pBuffer, __fifo_uint_t bufferSize)
 //{
-//    CLASS(fifo_t) *FIFO = (CLASS(fifo_t) *)fifoObj;
+//    fifo_t *FIFO = (fifo_t *)fifoObj;
 //    __fifo_uint_t L1, L2;
 //
 //    if (NULL == FIFO) {
