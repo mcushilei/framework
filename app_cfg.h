@@ -21,7 +21,6 @@
 #define __FRAMEWORK_APP_CFG_H__
 
 /*============================ INCLUDES ======================================*/
-//! \note do NOT modify include sequence here.
 #include "..\application\common_environment_cfg.h"
 #include ".\utilities\utilities.h"
 #include "..\application\common_plateform_cfg.h"
