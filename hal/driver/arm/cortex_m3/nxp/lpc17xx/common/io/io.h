@@ -32,38 +32,11 @@
 #define __IO_PIN_NAM(__N, __OFFSET)         PIN##__N = (__N),
 #define __IO_PIN_MSK(__N, __OFFSET)         PIN##__N##_MSK = (1ul << (__N)),
 
-//! \brief enable pull-up resistor
-#define IOCTRL_ENABLE_PULL_UP(__PIN)        do {                                \
-            uint32_t wRegIndex, wBitIndex, wMask;                               \
-            wRegIndex = __PIN >> 4;                                             \
-            wBitIndex = __PIN & (16 - 1);                                       \
-            wMask = 3ul << wBitIndex;                                           \
-            PINCON_REG.PINMODE[wRegIndex] = PINCON_REG.PINMODE[wRegIndex] & wMask | (IO_MOD_PULL_UP & 0x03ul);\
-        } while(0)
-
-//! \brief disable pull-up resistor
-#define IOCTRL_DISABLE_PULL_UP(__PIN)       do {                                \
-            uint32_t wRegIndex, wBitIndex, wMask;                               \
-            wRegIndex = __PIN >> 4;                                             \
-            wBitIndex = __PIN & (16 - 1);                                       \
-            wMask = 3ul << wBitIndex;                                           \
-            PINCON_REG.PINMODE[wRegIndex] = PINCON_REG.PINMODE[wRegIndex] & wMask | (IO_MOD_NONE & 0x03ul);\
-        } while(0)
-
-//! \brief function selection
-#define IOCTRL_FUNCTION_SELECT(__PIN, __FUNC)   do {                            \
-            uint32_t wRegIndex, wBitIndex, wMask;                               \
-            wRegIndex = __PIN >> 4;                                             \
-            wBitIndex = __PIN & (16 - 1);                                       \
-            wMask = 3ul << wBitIndex;                                           \
-            PINCON_REG.PINSEL[wRegIndex] = PINCON_REG.PINSEL[wRegIndex] & wMask | __FUNC;   \
-        } while(0)
-
-#define IO_CFG(...)                                                         \
-            do {                                                            \
-                io_cfg_t tCFG[] = {__VA_ARGS__};                            \
-                IO.Config(tCFG, ARRAY_LENGTH(tCFG));                              \
-            } while(0)
+#define IO_CFG(...)                                                 \
+    do {                                                            \
+        io_cfg_t tCFG[] = {__VA_ARGS__};                            \
+        IO.Config(tCFG, ARRAY_LENGTH(tCFG));                        \
+    } while(0)
 
 /*============================ TYPES =========================================*/
 enum {
@@ -71,21 +44,20 @@ enum {
 };
 
 enum {
-    MREPEAT(IO_PORT_PIN_COUNT, __IO_PIN_NAM, 0)
-};
-
-enum {
     MREPEAT(IO_PORT_COUNT, __IO_PORT_NAM, 0)
 };
 
+enum {
+    MREPEAT(IO_PORT_PIN_COUNT, __IO_PIN_NAM, 0)
+};
 
 //! \name io configuration structure
 //! @{
 typedef struct {
-    uint8_t         tPort;                  //!< port number
-    uint8_t         tPIN;                   //!< pin number
-    uint8_t         tFunction;              //!< io Funcitons
-    uint8_t         tMode;                  //!< io mode
+    uint8_t         Port;                  //!< port number
+    uint8_t         Pin;                   //!< pin number
+    uint8_t         Function;              //!< io Funcitons
+    uint8_t         Mode;                  //!< io mode
 } io_cfg_t;
 //! @}
 
@@ -109,7 +81,7 @@ END_DEF_INTERFACE(i_gpio_t)
 //! @{
 DEF_INTERFACE(i_io_t)
     //! general io configuration
-    bool            (*Config)(io_cfg_t *ptCFG, uint32_t chSize);
+    bool            (*Config)(io_cfg_t *pConfig, uint32_t size);
     union {
         const i_gpio_t  GPIO[GPIO_COUNT];               //!< dedicated gpio control interface
         struct {

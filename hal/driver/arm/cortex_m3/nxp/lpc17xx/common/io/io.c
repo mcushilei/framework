@@ -32,7 +32,21 @@
 #define __IO_PIN_NAM(__N, __OFFSET)         PIN##__N = (__N),
 #define __IO_PIN_MSK(__N, __OFFSET)         PIN##__N##_MSK = (1ul << (__N)),
 
-#define __GPIO_FUNC_DEF(__N,__VALUE)                                            \
+#define __GPIO_INTERFACE_DEF(__N, __VALUE)                              \
+    {                                                                   \
+        &gpio##__N##_set_direction,                                     \
+        &gpio##__N##_get_direction,                                     \
+        &gpio##__N##_set_input,                                         \
+        &gpio##__N##_set_output,                                        \
+        &gpio##__N##_reverse_direction,                                 \
+        &gpio##__N##_read,                                              \
+        &gpio##__N##_write,                                             \
+        &gpio##__N##_set,                                               \
+        &gpio##__N##_clear,                                             \
+        &gpio##__N##_toggle,                                            \
+    },
+
+#define __GPIO_FUNC_PROTOTYPES(__N,__VALUE)                                     \
 static void     gpio##__N##_set_direction(uint32_t wDirection, uint32_t wPinMask);  \
 static uint32_t gpio##__N##_get_direction(uint32_t wPinMask);                   \
 static void     gpio##__N##_set_input(uint32_t wPinMask);                       \
@@ -43,20 +57,6 @@ static void     gpio##__N##_write(uint32_t wValue, uint32_t wPinMask);          
 static void     gpio##__N##_set(uint32_t wPinMask);                             \
 static void     gpio##__N##_clear(uint32_t wPinMask);                           \
 static void     gpio##__N##_toggle(uint32_t wPinMask);                       
-
-#define __GPIO_INTERFACE_DEF(__N, __VALUE)                                      \
-            {                                                                   \
-                &gpio##__N##_set_direction,                                     \
-                &gpio##__N##_get_direction,                                     \
-                &gpio##__N##_set_input,                                         \
-                &gpio##__N##_set_output,                                        \
-                &gpio##__N##_reverse_direction,                                 \
-                &gpio##__N##_read,                                              \
-                &gpio##__N##_write,                                             \
-                &gpio##__N##_set,                                               \
-                &gpio##__N##_clear,                                             \
-                &gpio##__N##_toggle,                                            \
-            },
 
 #define __GPIO_FUNC_BODY(__N, __VALUE)                                          \
 static void gpio##__N##_set_direction(uint32_t wDirection, uint32_t wPinMask)   \
@@ -124,20 +124,20 @@ enum {
 };
 
 enum {
-    MREPEAT(IO_PORT_PIN_COUNT, __IO_PIN_NAM, 0)
+    MREPEAT(IO_PORT_COUNT, __IO_PORT_NAM, 0)
 };
 
 enum {
-    MREPEAT(IO_PORT_COUNT, __IO_PORT_NAM, 0)
+    MREPEAT(IO_PORT_PIN_COUNT, __IO_PIN_NAM, 0)
 };
 
 //! \name io configuration structure
 //! @{
 typedef struct {
-    uint8_t         tPort;                  //!< port number
-    uint8_t         tPIN;                   //!< pin number
-    uint8_t         tFunction;              //!< io Funcitons
-    uint8_t         tMode;                  //!< io mode
+    uint8_t         Port;                  //!< port number
+    uint8_t         Pin;                   //!< pin number
+    uint8_t         Function;              //!< io Funcitons
+    uint8_t         Mode;                  //!< io mode
 } io_cfg_t;
 //! @}
 
@@ -161,7 +161,7 @@ END_DEF_INTERFACE(i_gpio_t)
 //! @{
 DEF_INTERFACE(i_io_t)
     //! general io configuration
-    bool            (*Config)(io_cfg_t *ptCFG, uint_fast8_t wSize);
+    bool            (*Config)(io_cfg_t *pConfig, uint32_t size);
     union {
         const i_gpio_t  GPIO[GPIO_COUNT];               //!< dedicated gpio control interface
         struct {
@@ -173,8 +173,8 @@ END_DEF_INTERFACE(i_io_t)
 
 
 /*============================ PROTOTYPES ====================================*/
-static bool io_configuration( io_cfg_t *ptCFG, uint_fast8_t wSize );
-MREPEAT(GPIO_COUNT, __GPIO_FUNC_DEF, NULL)
+static bool io_configuration( io_cfg_t *pConfig, uint32_t size );
+MREPEAT(GPIO_COUNT, __GPIO_FUNC_PROTOTYPES, NULL)
 
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
@@ -191,39 +191,37 @@ MREPEAT(GPIO_COUNT, __GPIO_FUNC_BODY, NULL)
 
 /*! \name io general configuration
  *! \param io configuration structure array
- *! \param wSize array size
+ *! \param size array size
  *! \retval true configuration succeed
  *! \retval false configuration fail
  */
-static bool io_configuration(io_cfg_t *ptCFG, uint32_t wSize)
+static bool io_configuration(io_cfg_t *pConfig, uint32_t size)
 {
-    bool tResult = true;
-
-    if (NULL == ptCFG || 0 == wSize) {
+    if (NULL == pConfig || 0u == size) {
         return false;
     }
 
     //! io configure
-    for (; wSize; --wSize){
-        uint32_t wFunction  = ptCFG->tFunction;
-        uint32_t wIOMODE    = ptCFG->tMode;
+    for (; size != 0u; --size){
+        uint32_t wFunction  = pConfig->Function;
+        uint32_t wIOMODE    = pConfig->Mode;
         uint32_t wRegIndex, wBitIndex, wMask;
 
-        wRegIndex = (ptCFG->tPort * 2u) + ((ptCFG->tPIN >> 4) & 0x01u);
-        wBitIndex = (ptCFG->tPIN & 0x0Fu) * 2u;
+        wRegIndex = (pConfig->Port * 2u) + ((pConfig->Pin >> 4) & 0x01u);
+        wBitIndex = (pConfig->Pin & 0x0Fu) * 2u;
         wMask = 0x03u << wBitIndex;
-        PINCON_REG.PINSEL[wRegIndex] = PINCON_REG.PINSEL[wRegIndex] & ~wMask | ((wFunction & 0x03u) << wBitIndex);
+        PINCON_REG.PINSEL[wRegIndex]  = PINCON_REG.PINSEL[wRegIndex] & ~wMask | ((wFunction & 0x03u) << wBitIndex);
         PINCON_REG.PINMODE[wRegIndex] = PINCON_REG.PINMODE[wRegIndex] & ~wMask | ((wIOMODE & 0x03u) << wBitIndex);
 
-        wRegIndex = ptCFG->tPort;
-        wBitIndex = ptCFG->tPIN;
+        wRegIndex = pConfig->Port;
+        wBitIndex = pConfig->Pin;
         wMask = 0x01u << wBitIndex;
         PINCON_REG.PINMODE_OD[wRegIndex] = PINCON_REG.PINMODE[wRegIndex] & ~wMask | (((wIOMODE >> 2) & 0x01u) << wBitIndex);
                 
-        ptCFG++;
+        pConfig++;
     }
 
-    return tResult;
+    return true;
 }
 
 
