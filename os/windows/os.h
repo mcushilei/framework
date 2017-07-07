@@ -24,7 +24,6 @@
 #include ".\app_cfg.h"
 #include ".\api\os.h"
 #include ".\api\com\com.h"
-#include ".\api\block\block.h"
 
 /*============================ MACROS ========================================*/
 enum {
@@ -95,9 +94,6 @@ typedef HANDLE  OS_HANDLE;
 
 
 #define OS_TASK_SLEEP(__T)                  osTimeDelay(__T)
-
-#define OS_TASK_DEFINE_BEGIN(__TASK_NAME, __ARG_NAME)   DWORD WINAPI __TASK_NAME(void *__ARG_NAME) {
-#define OS_TASK_DEFINE_END(__TASK_NAME)                 return 0;}
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/

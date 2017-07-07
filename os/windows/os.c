@@ -23,6 +23,8 @@
 #include ".\app_cfg.h"
 
 /*============================ MACROS ========================================*/
+#define MS_PER_TICK                 (10u)
+
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 enum {
@@ -67,16 +69,16 @@ typedef HANDLE  OS_HANDLE;
 /*============================ IMPLEMENTATION ================================*/
 void        osTimeDelay            (UINT32          ticks)
 {
-    Sleep(10u * ticks);
+    Sleep(MS_PER_TICK * ticks);
 }
 
 
 OS_ERR      osSemCreate            (OS_HANDLE      *pSemaphoreHandle,
-                                    UINT16          cnt)
+                                    UINT16          initialCount)
 {
     HANDLE hSem;
 
-    hSem = CreateSemaphore(NULL, cnt, ~(1u), NULL);
+    hSem = CreateSemaphore(NULL, initialCount, 0x7FFFFFFFu, NULL);
     if (hSem == NULL) {
         *pSemaphoreHandle = NULL;
         return OS_ERR_EVENT_DEPLETED;
@@ -105,7 +107,7 @@ OS_ERR      osSemPend              (OS_HANDLE       hSemaphore,
 {
     DWORD retValue;
 
-    retValue = WaitForSingleObject(hSemaphore, timeout);
+    retValue = WaitForSingleObject(hSemaphore, MS_PER_TICK * timeout);
     if (retValue == WAIT_OBJECT_0) {
         return OS_ERR_NONE;
     } else if (retValue == WAIT_TIMEOUT) {
@@ -145,7 +147,7 @@ OS_ERR      osMutexPend            (OS_HANDLE       hMutex,
 {
     DWORD retValue;
 
-    retValue = WaitForSingleObject(hMutex, timeout);
+    retValue = WaitForSingleObject(hMutex, MS_PER_TICK * timeout);
     if (retValue == WAIT_OBJECT_0) {
         return OS_ERR_NONE;
     } else if (retValue == WAIT_TIMEOUT) {
@@ -192,12 +194,13 @@ OS_ERR      osFlagPend             (OS_HANDLE       hFlag,
 {
     DWORD retValue;
 
-    retValue = WaitForSingleObject(hFlag, timeout);
+    retValue = WaitForSingleObject(hFlag, MS_PER_TICK * timeout);
     if (retValue == WAIT_OBJECT_0) {
         return OS_ERR_NONE;
     } else if (retValue == WAIT_TIMEOUT) {
         return OS_ERR_TIMEOUT;
     } else {
+        retValue = GetLastError();
         return OS_ERR_PEND_ABORT;
     }
 }
