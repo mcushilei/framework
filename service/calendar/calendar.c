@@ -22,6 +22,10 @@
 #include ".\app_cfg.h"
 
 /*============================ MACROS ========================================*/
+#define SECONDS_OF_MINUTE       (60u)
+#define SECONDS_OF_HOUR         (60u * 60u)
+#define SECONDS_OF_DAY          (24u * 60u * 60u)
+
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 typedef struct {
@@ -42,7 +46,7 @@ typedef struct {
 /*============================ IMPLEMENTATION ================================*/
 bool is_leap_year(uint32_t year)
 {
-    if ((year % 400u) == 0u || (year % 4u == 0u && year % 100u != 0u)) {
+    if ((year % 400u == 0u) || ((year % 4u == 0u) && (year % 100u != 0u))) {
         return true;
     }
 
@@ -80,7 +84,7 @@ static void validate_date(date_t *pDate)
     }
 }
 
-uint32_t days_of_year(date_t *pDate)
+uint32_t days_in_year(date_t *pDate)
 {
     uint32_t i, days;
     uint8_t month;
@@ -169,16 +173,16 @@ uint32_t count_days_between(date_t *pDate1, date_t *pDate2)
 
     if (pDate1->Year != pDate2->Year) {
         if (is_leap_year(pDate1->Year)) {
-            days = 366u - days_of_year(pDate1);
+            days = 366u - days_in_year(pDate1);
         } else {
-            days = 365u - days_of_year(pDate1);
+            days = 365u - days_in_year(pDate1);
         }
         years = count_leap_years_between(pDate1->Year, pDate2->Year);
         days += 366u * years;
         days += 365u * (pDate2->Year - pDate1->Year - 1u - years);
-        days += days_of_year(pDate2);
+        days += days_in_year(pDate2);
     } else {
-        days = days_of_year(pDate2) - days_of_year(pDate1);
+        days = days_in_year(pDate2) - days_in_year(pDate1);
     }
 
     return days;
@@ -192,7 +196,7 @@ bool make_new_date_by_days(date_t *pDate, int32_t deltaDays)
     date_t date;
     static const uint8_t daysInMonth[2][13] = {{0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
     {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
-    uint8_t *pDaysInMonth = NULL;
+    const uint8_t *pDaysInMonth = NULL;
     uint32_t days, diffDays;
 
     validate_date(pDate);
@@ -206,7 +210,7 @@ __SUB_STATE_0:
         date.Year = year;
         date.Month = month;
         date.Day = day;
-        days = days_of_year(&date);
+        days = days_in_year(&date);
         if (diffDays < days) {
         } else {
             diffDays -= days;
@@ -240,9 +244,9 @@ __SUB_STATE_0:
         }
 
         if (is_leap_year(year)) {
-            pDaysInMonth = &daysInMonth[0];
+            pDaysInMonth = (const uint8_t *)&daysInMonth[0];
         } else {
-            pDaysInMonth = &daysInMonth[1];
+            pDaysInMonth = (const uint8_t *)&daysInMonth[1];
         }
         if (diffDays < day) {
             day -= diffDays;
@@ -265,9 +269,9 @@ __ADD_STATE_0:
         date.Month = month;
         date.Day = day;
         if (is_leap_year(year)) {
-            days = 366u - days_of_year(&date);
+            days = 366u - days_in_year(&date);
         } else {
-            days = 365u - days_of_year(&date);
+            days = 365u - days_in_year(&date);
         }
         if (diffDays <= days) {
         } else {
@@ -293,9 +297,9 @@ __ADD_STATE_0:
         }
 
         if (is_leap_year(year)) {
-            pDaysInMonth = &daysInMonth[0];
+            pDaysInMonth = (const uint8_t *)&daysInMonth[0];
         } else {
-            pDaysInMonth = &daysInMonth[1];
+            pDaysInMonth = (const uint8_t *)&daysInMonth[1];
         }
         if (diffDays <= (pDaysInMonth[month] - day)) {
             day += diffDays;
@@ -333,18 +337,31 @@ static void validate_time(rtime_t *pTime)
     pTime->Second %= 60u;
 }
 
-uint32_t seconds_of_day(rtime_t *pTime)
+uint32_t time_to_seconds(rtime_t *pTime)
 {
     validate_time(pTime);
-    return 60 * 60 * pTime->Hour + 60 * pTime->Minute + pTime->Second;
+    return 60u * 60u * pTime->Hour + 60u * pTime->Minute + pTime->Second;
+}
+
+void seconds_to_time(rtime_t *pTime, uint32_t seconds)
+{
+    uint32_t days;
+
+    days = seconds / SECONDS_OF_DAY;
+    seconds -= days * SECONDS_OF_DAY;
+    pTime->Hour = seconds / SECONDS_OF_HOUR;
+    seconds -= pTime->Hour * SECONDS_OF_HOUR;
+    pTime->Minute = seconds / SECONDS_OF_MINUTE;
+    seconds -= pTime->Minute * SECONDS_OF_MINUTE;
+    pTime->Second = seconds;
 }
 
 uint32_t seconds_between_time(rtime_t *pTime1, rtime_t *pTime2)
 {
     uint32_t s1, s2;
 
-    s1 = seconds_of_day(pTime1);
-    s2 = seconds_of_day(pTime2);
+    s1 = time_to_seconds(pTime1);
+    s2 = time_to_seconds(pTime2);
     if (s1 < s2) {
         return s2 - s1;
     } else {

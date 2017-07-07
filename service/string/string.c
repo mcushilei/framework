@@ -36,7 +36,7 @@
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
 /*============================ IMPLEMENTATION ================================*/
-bool mem_cmpn(const void *m1, const void *m2, size_t n)
+bool memory_compare(const void *m1, const void *m2, size_t n)
 {
     if ((NULL == m1) || (NULL == m2) || (0 == n)) {
         return false;
@@ -53,22 +53,20 @@ bool mem_cmpn(const void *m1, const void *m2, size_t n)
     return false;
 }
 
-void *mem_copy(void *d, const void *s, size_t n)
+bool memory_copy(void *d, const void *s, size_t n)
 {
-    void* pRet = d;
-
     for (; n; --n) {
         *(uint8_t *)d = *(uint8_t *)s;
         d = (uint8_t*)d + 1;
         s = (uint8_t*)s + 1;
     }
 
-    return pRet;
+    return true;
 }
 
 //! this function is not transplantable.
 #if defined(__CPU_ARM__) || defined(__CPU_X86__)
-void *mem_set(void *m, uint32_t v, size_t n)
+bool memory_set(void *m, uint32_t v, size_t n)
 {
     if (n < 20) {
         uint8_t *p = (uint8_t *)m;
@@ -119,7 +117,13 @@ void *mem_set(void *m, uint32_t v, size_t n)
         }
     }
 
-    return m;
+    return true;
+}
+#else
+bool memory_set(void *m, uint32_t v, size_t n)
+{
+    memset(m, v, n);
+    return true;
 }
 #endif
 
@@ -222,7 +226,7 @@ float dec_str2float(const uint8_t *DecimalString)
     return (IsNegative? -(Integer + Decimal) : Integer + Decimal); 
 } 
 
-size_t string_len(const uint8_t *s)
+size_t string_length(const uint8_t *s)
 {
     size_t len = 0;
 
@@ -435,7 +439,7 @@ uint8_t *itostr(int32_t Value, uint8_t *IntegerString, int32_t Radix)
                         break;                                                  \
                     }                                                           \
                                                                                 \
-                    i = string_len(s);                                          \
+                    i = string_length(s);                                          \
                     if (pl < i) {                                               \
                         pl = i;                                                 \
                     }                                                           \
@@ -455,7 +459,7 @@ uint8_t *itostr(int32_t Value, uint8_t *IntegerString, int32_t Radix)
                     uint32_t d = __ARG(uint32_t);                               \
                     itostr(d, buf, 10);                                         \
                                                                                 \
-                    i = string_len(buf);                                        \
+                    i = string_length(buf);                                        \
                     if (pl < i) {                                               \
                         pl = i;                                                 \
                     }                                                           \
@@ -476,7 +480,7 @@ uint8_t *itostr(int32_t Value, uint8_t *IntegerString, int32_t Radix)
                     int32_t n = __ARG(int32_t);                                 \
                     itostr(n, buf, -10);                                        \
                                                                                 \
-                    i = string_len(buf);                                        \
+                    i = string_length(buf);                                        \
                     if (n < 0) {                                                \
                         i += 1;                                                 \
                     }                                                           \
@@ -514,7 +518,7 @@ uint8_t *itostr(int32_t Value, uint8_t *IntegerString, int32_t Radix)
                     uint32_t d = __ARG(uint32_t);                               \
                     itostr(d, buf, 16);                                         \
                                                                                 \
-                    i = string_len(buf);                                        \
+                    i = string_length(buf);                                        \
                     if (pl < i) {                                               \
                         pl = i;                                                 \
                     }                                                           \
@@ -551,7 +555,7 @@ uint8_t *itostr(int32_t Value, uint8_t *IntegerString, int32_t Radix)
                         __PRINT_OUT(' ');                                       \
                     }                                                           \
                                                                                 \
-                    i = string_len(buf);                                        \
+                    i = string_length(buf);                                        \
                     pl = (sizeof(uint32_t) * 2) - i;                            \
                     for (i = 0; i < pl; i++) {                                  \
                         __PRINT_OUT('0');                                       \

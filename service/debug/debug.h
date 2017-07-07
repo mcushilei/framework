@@ -80,7 +80,7 @@
             debug_failure_captured(__ThisFileName, line);\
             __VA_ARGS__                         \
         }                                       \
-    } while (0)
+    } while (0);
 
 #define __DEBUG_MSG(ctrl, line, ...)            do {\
         if (( (ctrl) & (DEBUG_ON)) &&           \
@@ -92,7 +92,7 @@
                     debug_trap();               \
                 }                               \
         }                                       \
-    } while(0)
+    } while(0);
 
 #if (((DEBUG_MSG_ENABLE != DISABLED) || (DEBUG_ASSERT_ENABLE != DISABLED)) && defined(__DEBUG__))
 #   define DEBUG_PRINT(...)                 __DEBUG_PRINT(__VA_ARGS__)

@@ -115,7 +115,7 @@ bool queue_enqueue(void *queueObj, void *pData)
                                   Queue->Tail] = *(uint32_t *)pData;
                     break;
                 default:
-                    mem_copy((void *)((uint32_t)Queue->pBuffer + Queue->Tail * Queue->itemSize),
+                    memory_copy((void *)((uint32_t)Queue->pBuffer + Queue->Tail * Queue->itemSize),
                              pData,
                              Queue->itemSize);
                     break;
@@ -168,7 +168,7 @@ bool queue_dequeue(void *queueObj, void *pData)
                                                            Queue->Head];
                         break;
                     default:
-                        mem_copy(pData,
+                        memory_copy(pData,
                                  (void *)((uint32_t)Queue->pBuffer + Queue->Head * Queue->itemSize),
                                  Queue->itemSize);
                         break;
@@ -222,7 +222,7 @@ bool queue_peek(void *queueObj, void *pData)
                                                            Queue->Peek];
                         break;
                     default:
-                        mem_copy(pData,
+                        memory_copy(pData,
                                  (void *)((uint32_t)Queue->pBuffer + Queue->Peek * Queue->itemSize),
                                  Queue->itemSize);
                         break;

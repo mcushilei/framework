@@ -39,13 +39,13 @@
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool     mem_cmpn(const void *m1, const void *m2, size_t n);
-extern void *   mem_set(void *m, uint32_t v, size_t n);
-extern void *   mem_copy(void *d, const void *s, size_t n);
+extern bool     memory_compare(const void *m1, const void *m2, size_t n);
+extern bool     memory_set(void *m, uint32_t v, size_t n);
+extern bool     memory_copy(void *d, const void *s, size_t n);
 extern uint32_t hex_str2uint(const uint8_t *str);
 extern int32_t  int_str2int(const uint8_t *str);
 extern float    dec_str2float(const uint8_t *str);
-extern size_t   string_len(const uint8_t *s);
+extern size_t   string_length(const uint8_t *s);
 extern uint8_t *string_copy(uint8_t *d, const uint8_t *s);
 extern uint8_t *string_string(const uint8_t *s1, const uint8_t *s2);
 extern bool     string_cmp(const uint8_t *s1, const uint8_t *s2);

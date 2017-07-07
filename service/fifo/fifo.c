@@ -72,7 +72,7 @@ bool fifo_in(void *fifoObj, const void *pBuffer)
 
     L1 = MIN(1u, L1);
 
-    mem_copy((void *)((uint32_t)FIFO->pBuffer + (FIFO->In & (FIFO->fifoSize - 1u)) * FIFO->itemSize), pBuffer, FIFO->itemSize);
+    memory_copy((void *)((uint32_t)FIFO->pBuffer + (FIFO->In & (FIFO->fifoSize - 1u)) * FIFO->itemSize), pBuffer, FIFO->itemSize);
     FIFO->In += L1;
 
     return true;
@@ -95,7 +95,7 @@ bool fifo_out(void *fifoObj, void *pBuffer)
     L1 = MIN(1u, L1);
 
     if (NULL != pBuffer) {
-        mem_copy(pBuffer, (void *)((uint32_t)FIFO->pBuffer + (FIFO->Out & (FIFO->fifoSize - 1u)) * FIFO->itemSize), FIFO->itemSize);
+        memory_copy(pBuffer, (void *)((uint32_t)FIFO->pBuffer + (FIFO->Out & (FIFO->fifoSize - 1u)) * FIFO->itemSize), FIFO->itemSize);
     }
     FIFO->Out += L1;
 

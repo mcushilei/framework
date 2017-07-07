@@ -26,74 +26,77 @@
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 DEF_STRUCTURE(pool_block_t)
-    pool_block_t *  Next;
+    pool_block_t*   pNext;
 END_DEF_STRUCTURE(pool_block_t)
 
 //! ADT: list stack.
 DEF_CLASS(pool_t)
-    pool_block_t *  FreeList;
+    void*           pFreeList;
+    pool_uint_t     BlockSize;      //!< size of one block in BYTE.
     pool_uint_t     Size;           //!< pool size.
-    pool_uint_t     Level;          //!< amount of block allocable
-    pool_uint_t     LevelMin;       //!< minimum amount of block allocable
+    pool_uint_t     Level;          //!< pool level
+    pool_uint_t     LevelMin;       //!< minimum pool level
 END_DEF_CLASS(pool_t)
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-bool pool_init(void *poolObj, void *poolMem, pool_uint_t poolSize, pool_uint_t blockSize)
+bool pool_init(void* pPoolObj, pool_uint_t blockSize)
 {    
-    CLASS(pool_t) *Pool = (CLASS(pool_t) *)poolObj;
-    pool_block_t **ppBlockRef;
+    CLASS(pool_t)* Pool = (CLASS(pool_t)*)pPoolObj;
 
-    if ((NULL == poolObj) || (NULL == poolMem) || (0 == poolSize) || (sizeof(void *) > blockSize)) {
+    if (NULL == pPoolObj || 0u == blockSize || 0 != (blockSize % sizeof(void*))) {
         return false;
     }
 
-    Pool->FreeList  = NULL;
-    Pool->Size      = poolSize;
-    Pool->Level     = poolSize;
-    Pool->LevelMin  = poolSize;
-
-    ppBlockRef = &Pool->FreeList;
-    for (; poolSize; poolSize--) {
-        *ppBlockRef = poolMem;
-        ppBlockRef  = &((pool_block_t *)(poolMem))->Next;
-        *ppBlockRef = NULL;
-        poolMem = (uint8_t *)poolMem + blockSize;
-    }
+    Pool->pFreeList = NULL;
+    Pool->BlockSize = blockSize;
+    Pool->Size      = 0u;
+    Pool->Level     = 0u;
+    Pool->LevelMin  = 0u;
 
     return true;
 }
 
-bool pool_deinit(void *poolObj)
+bool pool_deinit(void* pPoolObj)
 {
-    CLASS(pool_t) *Pool = (CLASS(pool_t) *)poolObj;
+    return true;
+}
 
-    if (NULL == poolObj) {
+bool pool_add_memory(void* pPoolObj, void* pMem, pool_uint_t num)
+{
+    CLASS(pool_t)* Pool = (CLASS(pool_t)*)pPoolObj;
+
+    if ((NULL == pPoolObj) || (NULL == pMem)) {
         return false;
     }
 
-    Pool->FreeList  = NULL;
-    Pool->Size      = 0;
-    Pool->Level     = 0;
-    Pool->LevelMin  = 0;
+    __POOL_ATOM_ACCESS(
+        for (; num; num--) {
+            ((pool_block_t*)pMem)->pNext = (pool_block_t*)Pool->pFreeList;
+            Pool->pFreeList = pMem;
+            pMem = (uint8_t*)pMem + Pool->BlockSize;
+        } while (0);
+        Pool->Level += num;
+    )
+
 
     return true;
 }
 
-bool pool_free(void *poolObj, void *Block)
+bool pool_free(void* pPoolObj, void* pMem)
 {    
-    CLASS(pool_t) *Pool = (CLASS(pool_t) *)poolObj;
+    CLASS(pool_t)* Pool = (CLASS(pool_t)*)pPoolObj;
 
-    if ((NULL == poolObj) || (NULL == Block)) {
+    if ((NULL == pPoolObj) || (NULL == pMem)) {
         return false;
     }
 
     __POOL_ATOM_ACCESS(
         do {
-            ((pool_block_t *)Block)->Next = (pool_block_t *)Pool->FreeList;
-            Pool->FreeList = Block;
+            ((pool_block_t*)pMem)->pNext = (pool_block_t*)Pool->pFreeList;
+            Pool->pFreeList = pMem;
             Pool->Level++;
         } while (0);
     )
@@ -101,49 +104,49 @@ bool pool_free(void *poolObj, void *Block)
     return true;
 }
 
-void *pool_new(void *poolObj)
+void* pool_new(void* pPoolObj)
 {
-    CLASS(pool_t) *Pool = (CLASS(pool_t) *)poolObj;
-    void *Block = NULL;
+    CLASS(pool_t)* Pool = (CLASS(pool_t)*)pPoolObj;
+    void* pMem = NULL;
 
-    if (NULL == poolObj) {
+    if (NULL == pPoolObj) {
         return NULL;
     }
 
      __POOL_ATOM_ACCESS(
         do {
-            if (NULL == Pool->FreeList) {
+            if (NULL == Pool->pFreeList) {
                 break; 
             }
-            Block = Pool->FreeList;
-            Pool->FreeList = ((pool_block_t *)Block)->Next; 
-            ((pool_block_t *)Block)->Next = NULL;
+            pMem = Pool->pFreeList;
+            Pool->pFreeList = ((pool_block_t*)pMem)->pNext; 
+            ((pool_block_t*)pMem)->pNext = NULL;
             Pool->Level--;
             if (Pool->Level < Pool->LevelMin) {
                 Pool->LevelMin = Pool->Level;
             }
-        } while (false);
+        } while (0);
     )
 
-    return Block;     
+    return pMem;     
 }    
 
-pool_uint_t pool_get_level(void *poolObj)
+pool_uint_t pool_get_level(void* pPoolObj)
 {
-    CLASS(pool_t) *Pool = (CLASS(pool_t) *)poolObj;
+    CLASS(pool_t)* Pool = (CLASS(pool_t)*)pPoolObj;
 
-    if (NULL == poolObj) {
+    if (NULL == pPoolObj) {
         return 0;
     }
 
     return Pool->Level;
 }
 
-pool_uint_t pool_get_min_level(void *poolObj)
+pool_uint_t pool_get_min_level(void* pPoolObj)
 {
-    CLASS(pool_t) *Pool = (CLASS(pool_t) *)poolObj;
+    CLASS(pool_t)* Pool = (CLASS(pool_t)*)pPoolObj;
 
-    if (NULL == poolObj) {
+    if (NULL == pPoolObj) {
         return 0;
     }
 

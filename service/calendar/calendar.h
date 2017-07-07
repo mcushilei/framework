@@ -24,6 +24,10 @@
 #include ".\app_cfg.h"
 
 /*============================ MACROS ========================================*/
+#define SECONDS_OF_MINUTE       (60u)
+#define SECONDS_OF_HOUR         (60u * 60u)
+#define SECONDS_OF_DAY          (24u * 60u * 60u)
+
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 typedef struct {
@@ -41,12 +45,13 @@ typedef struct {
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 extern bool     is_leap_year(uint32_t year);
-extern uint32_t days_of_year(date_t *pDate);
+extern uint32_t days_in_year(date_t *pDate);
 extern uint32_t count_leap_years_between(uint32_t year1, uint32_t year2);
 extern uint32_t count_days_between(date_t *pDate1, date_t *pDate2);
 extern bool     make_new_date_by_days(date_t *pDate, int32_t deltaDays);
 
-extern uint32_t seconds_of_day(rtime_t *pTime);
+extern uint32_t time_to_seconds(rtime_t *pTime);
+extern void     seconds_to_time(rtime_t *pTime, uint32_t seconds);
 extern uint32_t seconds_between_time(rtime_t *pTime1, rtime_t *pTime2);
 
 #endif  //! #ifndef __CALENDAR_H__
