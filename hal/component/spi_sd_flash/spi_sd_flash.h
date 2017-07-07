@@ -26,6 +26,8 @@
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
+extern bool spi_sd_disable(void);
+extern bool spi_sd_enable(void);
 extern bool spi_sd_card_detect(void);
 extern bool spi_sd_get_card_info(void);
 extern bool spi_sd_read_blocks(uint32_t block, uint8_t *buf, uint32_t cnt);

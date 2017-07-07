@@ -347,6 +347,7 @@ bool spi_sd_card_detect(void)
     uint8_t chRes[4];
     uint32_t wR1;
     uint32_t wOCR = 0;
+    word_t tWord;
     
     s_tCardProperties.chCardType = SD_UNKNOW_CARD_TYPE;
     
@@ -376,7 +377,11 @@ bool spi_sd_card_detect(void)
         if (wR1 & SD_R1_ILLEGAL_CMD_MSK) {
             goto __CARD_DETECT_FAULT_EXIT;
         }
-        GET_U32_LE(wOCR, chRes);
+        tWord.Byte0 = chRes[0];
+        tWord.Byte1 = chRes[1];
+        tWord.Byte2 = chRes[2];
+        tWord.Byte3 = chRes[3];
+        wOCR = tWord.Value;
         //! get card operate valtage if need.
 
         //! Check if it is SD card
@@ -398,7 +403,11 @@ bool spi_sd_card_detect(void)
         }
 
         wR1 = spi_sd_send_cmd(SD_CMD_CMD58, 0, chRes, 4);
-        GET_U32_BE(wOCR, chRes);
+        tWord.Byte0 = chRes[3];
+        tWord.Byte1 = chRes[2];
+        tWord.Byte2 = chRes[1];
+        tWord.Byte3 = chRes[0];
+        wOCR = tWord.Value;
         //! get card operate valtage if need.
         
         SD_TIME_SET(1000);
@@ -413,7 +422,11 @@ bool spi_sd_card_detect(void)
         } while (!SD_TIME_IS_OVERFLOW());
         
         wR1 = spi_sd_send_cmd(SD_CMD_CMD58, 0, chRes, 4);
-        GET_U32_BE(wOCR, chRes);
+        tWord.Byte0 = chRes[3];
+        tWord.Byte1 = chRes[2];
+        tWord.Byte2 = chRes[1];
+        tWord.Byte3 = chRes[0];
+        wOCR = tWord.Value;
         s_tCardProperties.chCardType = (wOCR & SD_OCR_CCS_MSK) ? SD_V2_0_HC_CARD : SD_V2_0_SC_CARD;
         
     }
