@@ -24,6 +24,8 @@
     #include ".\windows\os.h"
 #elif   defined(__OS_RTOS__)
     #include ".\rtos\os.h"
+#elif   defined(__OS_XOS__)
+    #include ".\xos\os.h"
 #else
 #define OS_CRITICAL_DEFINE(__CRITICAL)      
 #define OS_CRITICAL_INIT(__CRITICAL)        do {} while (0)

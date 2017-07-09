@@ -301,7 +301,7 @@ __ADD_STATE_0:
         } else {
             pDaysInMonth = (const uint8_t *)&daysInMonth[1];
         }
-        if (diffDays <= (pDaysInMonth[month] - day)) {
+        if (diffDays <= (uint32_t)(pDaysInMonth[month] - day)) {
             day += diffDays;
         } else {
             diffDays -= pDaysInMonth[month] - day + 1u;
