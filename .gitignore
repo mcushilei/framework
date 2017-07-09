@@ -83,3 +83,4 @@ $RECYCLE.BIN/
 *.lnk
 /os/ucos/ucos_ii/source
 /service/fsm/fsm_common.h
+rtos
