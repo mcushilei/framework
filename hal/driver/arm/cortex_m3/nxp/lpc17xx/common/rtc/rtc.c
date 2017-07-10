@@ -15,6 +15,9 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
+//! \note do not move this pre-processor statement to other places.
+#define __DRIVER_RTC_C__
+
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\device.h"
@@ -31,16 +34,6 @@
     }
 
 /*============================ TYPES =========================================*/
-//! \name rtc struct
-//! @{
-typedef struct {    
-    bool                (*Init)(void);          //!< initialize the RTC
-    void                (*Enable)(void);        //!< enable the ahbclk
-    void                (*Disable)(void);       //!< disable the ahbclk
-    u32_property_t      Count;                  //!< count value
-    u32_property_t      Match;                  //!< match value
-} i_rtc_t;
-//! @}
 
 typedef struct {
     uint32_t Year;
@@ -52,31 +45,20 @@ typedef struct {
 } rtc_time_t;
 
 /*============================ PROTOTYPES ====================================*/
-bool rtc_init(void);
-void rtc_enable(void);
-void rtc_disable(void);
-uint32_t rtc_get_counter_value(void);
-bool     rtc_set_counter_value(uint32_t wValue);
-uint32_t rtc_get_counter_match_value(void);
-bool     rtc_set_counter_match_value(uint32_t wValue);
+extern bool     rtc_init(void);
+extern void     rtc_enable(void);
+extern void     rtc_disable(void);
+extern uint32_t rtc_get_counter_value(void);
+extern bool     rtc_set_counter_value(uint32_t wValue);
+extern uint32_t rtc_get_counter_match_value(void);
+extern bool     rtc_set_counter_match_value(uint32_t wValue);
+extern void     rtc_get_time_value(rtc_time_t* pTime);
+extern void     rtc_set_time_value(rtc_time_t* pTime);
+extern void     rtc_set_time_match_value(rtc_time_t* pTime);
+extern void     rtc_get_time_match_value(rtc_time_t* pTime);
 
 
 /*============================ GLOBAL VARIABLES ==============================*/
-//! \brief define the RTC
-const i_rtc_t RTC = {    
-    &rtc_init,                                  //!< initialize the RTC
-    &rtc_enable,                                //!< enable the ahbclk
-    &rtc_disable,                               //!< disable the ahbclk
-    {
-        &rtc_set_counter_value,                    //!< set count value
-        &rtc_get_counter_value,                    //!< get count value
-    },
-    {
-        &rtc_set_counter_match_value,       //!< set match value
-        &rtc_get_counter_match_value,       //!< get match value
-    },
-};
-
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ IMPLEMENTATION ================================*/
 /*!\brief init real-time clock

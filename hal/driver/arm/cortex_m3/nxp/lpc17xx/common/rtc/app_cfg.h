@@ -15,11 +15,11 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-//! \note do not move this pre-processor statement to other places
+//! \note do not move this pre-processor statement to other places.
 #include "..\app_cfg.h"
 
-#ifndef __RTC_DRIVER_APP_CFG_H__
-#define __RTC_DRIVER_APP_CFG_H__
+#ifndef __DRIVER_RTC_APP_CFG_H__
+#define __DRIVER_RTC_APP_CFG_H__
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
