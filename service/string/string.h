@@ -35,6 +35,14 @@
 #define CHAR_TO_INT(__CHAR)         ((__CHAR) - '0')
 #define CHAR_IS_SPACE(__CHAR)       (' ' == (__CHAR))
 
+#ifdef USE_STAND_STRING_LIB
+#   define STRING_PRINTF(__string, __VA0, ...)          \
+        printf(__string, __VA0, __VA_ARGS__)
+#else
+#   define STRING_PRINTF(__string, __VA0, ...)          \
+        string_printf(__string, (uint32_t)__VA0)
+#endif
+
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/

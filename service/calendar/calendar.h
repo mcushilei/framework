@@ -45,9 +45,9 @@ typedef struct {
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 extern bool     is_leap_year(uint32_t year);
-extern uint32_t days_in_year(date_t *pDate);
+extern uint32_t days_in_year(const date_t *pDate);
 extern uint32_t count_leap_years_between(uint32_t year1, uint32_t year2);
-extern uint32_t count_days_between(date_t *pDate1, date_t *pDate2);
+extern uint32_t count_days_between(const date_t *pDate1, const date_t *pDate2);
 extern bool     make_new_date_by_days(date_t *pDate, int32_t deltaDays);
 
 extern uint32_t time_to_seconds(rtime_t *pTime);

@@ -43,6 +43,9 @@ typedef struct {
 /*============================ PROTOTYPES ====================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
+static const uint8_t daysOfMonth[12]     = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+static const uint8_t daysOfMonthLeap[12] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
 /*============================ IMPLEMENTATION ================================*/
 bool is_leap_year(uint32_t year)
 {
@@ -53,7 +56,38 @@ bool is_leap_year(uint32_t year)
     return false;
 }
 
-static void validate_date(date_t *pDate)
+static bool validate_date(const date_t *pDate)
+{
+    if (pDate->Year == 0) {
+        return false;
+    }
+
+    if (pDate->Month == 0) {
+        return false;
+    } else if (pDate->Month > 12) {
+        return false;
+    }
+
+    if (pDate->Day == 0) {
+        return false;
+    } else {
+        uint8_t month = pDate->Month - 1u;
+
+        if (is_leap_year(pDate->Year)) {
+            if (pDate->Day > daysOfMonthLeap[month]) {
+                return false;
+            }
+        } else {
+            if (pDate->Day > daysOfMonth[month]) {
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+static void correct_date(date_t *pDate)
 {
     if (pDate->Year == 0) {
         pDate->Year = 1;
@@ -71,41 +105,39 @@ static void validate_date(date_t *pDate)
         uint8_t month = pDate->Month - 1u;
 
         if (is_leap_year(pDate->Year)) {
-            static const uint8_t daysInMonth[12] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-            if (pDate->Day > daysInMonth[month]) {
-                pDate->Day = daysInMonth[month];
+            if (pDate->Day > daysOfMonthLeap[month]) {
+                pDate->Day = daysOfMonthLeap[month];
             }
         } else {
-            static const uint8_t daysInMonth[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-            if (pDate->Day > daysInMonth[month]) {
-                pDate->Day = daysInMonth[month];
+            if (pDate->Day > daysOfMonth[month]) {
+                pDate->Day = daysOfMonth[month];
             }
         }
     }
 }
 
-uint32_t days_in_year(date_t *pDate)
+uint32_t days_in_year(const date_t *pDate)
 {
     uint32_t i, days;
     uint8_t month;
+    date_t date;
 
-    validate_date(pDate);
+    date = *pDate;
+    correct_date(&date);
 
     days = 0;
-    month = pDate->Month;
+    month = date.Month;
     month--;
-    if (is_leap_year(pDate->Year)) {
-        static const uint8_t daysInMonth[12] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    if (is_leap_year(date.Year)) {
         for (i = 0; i < month; i++) {
-            days += daysInMonth[i];
+            days += daysOfMonthLeap[i];
         }
     } else {
-        static const uint8_t daysInMonth[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
         for (i = 0; i < month; i++) {
-            days += daysInMonth[i];
+            days += daysOfMonth[i];
         }
     }
-    days += pDate->Day;
+    days += date.Day;
 
     return days;
 }
@@ -143,18 +175,22 @@ uint32_t count_leap_years_between(uint32_t year1, uint32_t year2)
     return count_leap_years(year2) - count_leap_years(year1);
 }
 
-uint32_t count_days_between(date_t *pDate1, date_t *pDate2)
+uint32_t count_days_between(const date_t *pDate1, const date_t *pDate2)
 {
     uint32_t days, years;
-    date_t *pDate;
+    const date_t *pDate;
 
     do {
         if (pDate2->Year > pDate1->Year) {
             break;
-        } else if (pDate2->Year == pDate1->Year) {
+        }
+        
+        if (pDate2->Year == pDate1->Year) {
             if (pDate2->Month > pDate1->Month) {
                 break;
-            } else if (pDate2->Month == pDate1->Month) {
+            }
+            
+            if (pDate2->Month == pDate1->Month) {
                 if (pDate2->Day > pDate1->Day) {
                     return pDate2->Day - pDate1->Day;
                 } else if (pDate2->Day == pDate1->Day) {
@@ -162,10 +198,9 @@ uint32_t count_days_between(date_t *pDate1, date_t *pDate2)
                 } else {
                     return pDate1->Day - pDate2->Day;
                 }
-            } else {
             }
-        } else {
         }
+        
         pDate  = pDate1;
         pDate1 = pDate2;
         pDate2 = pDate;
@@ -191,40 +226,38 @@ uint32_t count_days_between(date_t *pDate1, date_t *pDate2)
 bool make_new_date_by_days(date_t *pDate, int32_t deltaDays)
 {
     uint32_t year;
-    uint8_t month;
-    uint8_t day;
+    uint8_t  month;
+    uint8_t  day;
     date_t date;
-    static const uint8_t daysInMonth[2][13] = {{0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-    {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
     const uint8_t *pDaysInMonth = NULL;
-    uint32_t days, diffDays;
+    uint32_t days, dd;
 
-    validate_date(pDate);
+    correct_date(pDate);
     year  = pDate->Year;
     month = pDate->Month;
     day   = pDate->Day;
 
     if (deltaDays < 0) {
-        diffDays = -deltaDays;
+        dd = -deltaDays;
 __SUB_STATE_0:
-        date.Year = year;
+        date.Year  = year;
         date.Month = month;
-        date.Day = day;
+        date.Day   = day;
         days = days_in_year(&date);
-        if (diffDays < days) {
+        if (dd < days) {
         } else {
-            diffDays -= days;
+            dd -= days;
             year--;
             if (year == 0u) {
                 return false;
             }
             month = 12;
-            day = 31;
+            day   = 31;
 
-            while (diffDays > 365u) {
+            while (dd > 365u) {
                 if (is_leap_year(year)) {
-                    if (diffDays > 366u) {
-                        diffDays -= 366u;
+                    if (dd > 366u) {
+                        dd -= 366u;
                         year--;
                         if (year == 0u) {
                             return false;
@@ -233,7 +266,7 @@ __SUB_STATE_0:
                         break;
                     }
                 } else {
-                    diffDays -= 365u;
+                    dd -= 365u;
                     year--;
                     if (year == 0u) {
                         return false;
@@ -244,52 +277,52 @@ __SUB_STATE_0:
         }
 
         if (is_leap_year(year)) {
-            pDaysInMonth = (const uint8_t *)&daysInMonth[0];
+            pDaysInMonth = daysOfMonthLeap;
         } else {
-            pDaysInMonth = (const uint8_t *)&daysInMonth[1];
+            pDaysInMonth = daysOfMonth;
         }
-        if (diffDays < day) {
-            day -= diffDays;
+        if (dd < day) {
+            day -= dd;
         } else {
-            diffDays -= day;
+            dd -= day;
             month--;
             day = pDaysInMonth[month];
-            while (diffDays >= day) {
-                diffDays -= day;
+            while (dd >= day) {
+                dd -= day;
                 month--;
                 day = pDaysInMonth[month];
             }
-            day -= diffDays;
+            day -= dd;
         }
 
     } else {
-        diffDays = deltaDays;
+        dd = deltaDays;
 __ADD_STATE_0:
-        date.Year = year;
+        date.Year  = year;
         date.Month = month;
-        date.Day = day;
+        date.Day   = day;
         if (is_leap_year(year)) {
             days = 366u - days_in_year(&date);
         } else {
             days = 365u - days_in_year(&date);
         }
-        if (diffDays <= days) {
+        if (dd <= days) {
         } else {
-            diffDays -= days + 1u;
+            dd -= days + 1u;
             year++;
             month = 1;
             day = 1;
 
-            while (diffDays > 365u) {
+            while (dd > 365u) {
                 if (is_leap_year(year)) {
-                    if (diffDays > 366u) {
-                        diffDays -= 366u;
+                    if (dd > 366u) {
+                        dd -= 366u;
                         year++;
                     } else {
                         break;
                     }
                 } else {
-                    diffDays -= 365u;
+                    dd -= 365u;
                     year++;
                 }
             }
@@ -297,25 +330,25 @@ __ADD_STATE_0:
         }
 
         if (is_leap_year(year)) {
-            pDaysInMonth = (const uint8_t *)&daysInMonth[0];
+            pDaysInMonth = daysOfMonthLeap;
         } else {
-            pDaysInMonth = (const uint8_t *)&daysInMonth[1];
+            pDaysInMonth = daysOfMonth;
         }
-        if (diffDays <= (uint32_t)(pDaysInMonth[month] - day)) {
-            day += diffDays;
+        if (dd <= (uint32_t)(pDaysInMonth[month] - day)) {
+            day += dd;
         } else {
-            diffDays -= pDaysInMonth[month] - day + 1u;
+            dd -= pDaysInMonth[month] - day + 1u;
             day = 1u;
             month++;
-            while (diffDays > 28u) {
-                if (diffDays > pDaysInMonth[month]) {
-                    diffDays -= pDaysInMonth[month];
+            while (dd > 28u) {
+                if (dd > pDaysInMonth[month]) {
+                    dd -= pDaysInMonth[month];
                     month++;
                 } else {
                     break;
                 }
             }
-            day += diffDays;
+            day += dd;
             while (day > pDaysInMonth[month]) {
                 day -= pDaysInMonth[month];
                 month++;
@@ -330,17 +363,17 @@ __ADD_STATE_0:
     return true;
 }
 
-static void validate_time(rtime_t *pTime)
+static void correct_time(rtime_t *pTime)
 {
-    pTime->Hour %= 24u;
+    pTime->Hour   %= 24u;
     pTime->Minute %= 60u;
     pTime->Second %= 60u;
 }
 
 uint32_t time_to_seconds(rtime_t *pTime)
 {
-    validate_time(pTime);
-    return 60u * 60u * pTime->Hour + 60u * pTime->Minute + pTime->Second;
+    correct_time(pTime);
+    return SECONDS_OF_HOUR * pTime->Hour + SECONDS_OF_MINUTE * pTime->Minute + pTime->Second;
 }
 
 void seconds_to_time(rtime_t *pTime, uint32_t seconds)
@@ -349,10 +382,13 @@ void seconds_to_time(rtime_t *pTime, uint32_t seconds)
 
     days = seconds / SECONDS_OF_DAY;
     seconds -= days * SECONDS_OF_DAY;
+    
     pTime->Hour = seconds / SECONDS_OF_HOUR;
     seconds -= pTime->Hour * SECONDS_OF_HOUR;
+    
     pTime->Minute = seconds / SECONDS_OF_MINUTE;
     seconds -= pTime->Minute * SECONDS_OF_MINUTE;
+    
     pTime->Second = seconds;
 }
 
