@@ -20,6 +20,7 @@
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
+#include <math.h>
 
 /*============================ MACROS ========================================*/
 #define PI                  (3.14159265358979f)
@@ -97,7 +98,7 @@ void fft_init(void)
     }
 }
 
-void fft(float_complex_t *xin)
+void fft(float_complex_t xin[FFT_SAMPLE_NUM])
 {
     uint32_t    i, j, le, li, ip, in;
     float_complex_t   c, w, t;

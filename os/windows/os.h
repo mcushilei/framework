@@ -64,12 +64,15 @@ typedef HANDLE  OS_HANDLE;
 
 #define OS_INFINITE                         INFINITE
 
-#define OS_CRITICAL_DEFINE(__ATOM)          CRITICAL_SECTION __ATOM;
-#define OS_CRITICAL_INIT(__ATOM)            do {InitializeCriticalSectionAndSpinCount(&(__ATOM), 0x00000400);} while (0)
-#define OS_CRITICAL_DEINIT(__ATOM)          do {DeleteCriticalSection(&(__ATOM));} while (0)
-#define OS_CRITICAL_ENTER(__ATOM)           EnterCriticalSection(&(__ATOM))
-#define OS_CRITICAL_EXIT(__ATOM)            LeaveCriticalSection(&(__ATOM))
+#define OS_CRITICAL_SECTION_DEFINE(...)    
+#define OS_CRITICAL_SECTION_BEGIN(...)      EnterCriticalSection(&__globalCriticalSection)
+#define OS_CRITICAL_SECTION_END(...)        LeaveCriticalSection(&__globalCriticalSection)
 
+#define OS_CRITICAL_SECTION(...)            do {        \
+    EnterCriticalSection(&__globalCriticalSection);     \
+    __VA_ARGS__                                         \
+    LeaveCriticalSection(&__globalCriticalSection);     \
+} while (0);
 
 #define OS_SEMAPHORE_TYPE                   OS_HANDLE
 #define OS_SEMAPHORE_CREATE(__SEM, __CNT)   osSemCreate(&__SEM, __CNT)
@@ -98,8 +101,12 @@ typedef HANDLE  OS_HANDLE;
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
+extern CRITICAL_SECTION __globalCriticalSection;
+
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
+extern void     osInit             (void);
+
 extern void     osTimeDelay        (UINT32          ticks);
 
 extern OS_ERR   osFlagCreate       (OS_HANDLE      *pFlagHandle,
@@ -140,9 +147,6 @@ extern OS_ERR   osSemPend          (OS_HANDLE       hSemaphore,
 
 
 extern OS_ERR   osSemPost          (OS_HANDLE       hSemaphore,
-                                    UINT16          cnt);
-
-extern OS_ERR   osSemSet           (OS_HANDLE       hSemaphore,
                                     UINT16          cnt);
 
 

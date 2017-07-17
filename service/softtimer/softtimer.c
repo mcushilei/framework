@@ -37,14 +37,12 @@ typedef struct {
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
 static softtimer_t  softTimers[SOFTTIMER_MAX_TIMERS];
-static OS_CRITICAL_DEFINE(softtimerCriticalSection)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
 
 bool softtimer_init(void)
 {
-    OS_CRITICAL_INIT(softtimerCriticalSection);
     return true;
 }
 

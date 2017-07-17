@@ -72,7 +72,7 @@ enum {
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 extern void fft_init(void);
-extern void fft(float_complex_t *xin);
+extern void fft(float_complex_t xin[FFT_SAMPLE_NUM]);
 extern void window_coeff(float *pBuff, uint32_t buffSize, uint8_t windowType, float Alpha, float Beta, bool unityGain);
 
 #endif  //! #ifndef __DSP_H__

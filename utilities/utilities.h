@@ -46,10 +46,11 @@
 
 //! \brief get compound type variable's address from one of its member's address.
 #define CONTAINER_OF(__ptr, __type, __member) ( \
-        (type*)( (char*)(__ptr) - offsetof(__type, __member) ))
+        (__type*)( (char*)(__ptr) - offsetof(__type, __member) ))
 
 
-#define ARRAY_LENGTH(__ARRAY)     (sizeof(__ARRAY) / sizeof(__ARRAY[0]))
+#define UBOUND(__ARRAY)             (sizeof(__ARRAY) / sizeof(__ARRAY[0]))
+#define ARRAY_LENGTH(__ARRAY)       (sizeof(__ARRAY) / sizeof(__ARRAY[0]))
 
 #define IS_POWER_OF_2(__N)  (((__N) != 0u) && ((((__N) - 1u) & (__N)) == 0))
 

@@ -27,9 +27,9 @@
 
 #ifdef WIN32
 #define __SOFTTIMER_SAFE_ATOME_CODE(...) {\
-            OS_CRITICAL_ENTER(softtimerCriticalSection);\
+            OS_CRITICAL_SECTION_BEGIN();\
             __VA_ARGS__\
-            OS_CRITICAL_EXIT(softtimerCriticalSection);\
+            OS_CRITICAL_SECTION_END();\
         }
 #elif defined(__OS_RTOS__)
 #define __SOFTTIMER_SAFE_ATOME_CODE(...) {\

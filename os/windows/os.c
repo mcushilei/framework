@@ -65,8 +65,15 @@ typedef HANDLE  OS_HANDLE;
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
+CRITICAL_SECTION __globalCriticalSection;
+
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ IMPLEMENTATION ================================*/
+void        osInit                 (void)
+{
+    InitializeCriticalSectionAndSpinCount(&__globalCriticalSection, 0x00000400);
+}
+
 void        osTimeDelay            (UINT32          ticks)
 {
     Sleep(MS_PER_TICK * ticks);
