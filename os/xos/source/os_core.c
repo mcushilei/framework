@@ -7,6 +7,8 @@
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
+#define OS_COUNT_LEADING_ZERO(__B)      (OSUnMapTbl[__B])
+
 /*============================ TYPES =========================================*/
 /*============================ PROTOTYPES ====================================*/
 static  void    os_init_obj_list(void);
@@ -128,34 +130,34 @@ static void os_init_misc(void)
  *!
  *! \Returns     none
  */
-static bool os_obj_pool_init(OS_LIST_NODE** ppObj, void* pMem, UINT16 num, UINT16 objSize)
+static bool os_obj_pool_init(OS_LIST_NODE **ppObj, void *pMem, UINT16 num, UINT16 objSize)
 {
-    OS_LIST_NODE* pobj;
+    OS_LIST_NODE *pobj;
     
     for (; num; num--) {
-        pobj = (OS_LIST_NODE*)pMem;
+        pobj = (OS_LIST_NODE *)pMem;
         *ppObj = pobj;
         pobj->Next = NULL;
         pobj->Prev = NULL;
         ppObj = &pobj->Next;
-        pMem = (uint8_t*)pMem + objSize;
+        pMem = (UINT8 *)pMem + objSize;
     }
 
     return true;
 }
 
-bool OS_ObjPoolFree(OS_LIST_NODE** ppObj, void* pobj)
+bool OS_ObjPoolFree(OS_LIST_NODE **ppObj, void *pobj)
 {    
-    ((OS_LIST_NODE*)pobj)->Next = *ppObj;
-    ((OS_LIST_NODE*)pobj)->Prev = NULL;
-    *ppObj = (OS_LIST_NODE*)pobj;
+    ((OS_LIST_NODE *)pobj)->Next = *ppObj;
+    ((OS_LIST_NODE *)pobj)->Prev = NULL;
+    *ppObj = (OS_LIST_NODE *)pobj;
 
     return true;
 }
 
-void* OS_ObjPoolNew(OS_LIST_NODE** ppObj)
+void *OS_ObjPoolNew(OS_LIST_NODE **ppObj)
 {
-    OS_LIST_NODE* pobj;
+    OS_LIST_NODE *pobj;
 
     if (*ppObj == NULL) {
         return NULL;
@@ -212,7 +214,7 @@ static void os_init_schedule(void)
     os_list_init_head(&osPndList);
 }
 
-void OS_AddToReadyList(OS_TCB* ptcb)
+void OS_AddToReadyList(OS_TCB *ptcb)
 {
     UINT8 prio, g;
     OS_PRIO x, y;
@@ -234,7 +236,7 @@ void OS_AddToReadyList(OS_TCB* ptcb)
     osRdyTbl[g] |= x;
 }
 
-void OS_RemoveFromReadyList(OS_TCB* ptcb)
+void OS_RemoveFromReadyList(OS_TCB *ptcb)
 {
     UINT8 prio, g;
     OS_PRIO x, y;
@@ -273,7 +275,6 @@ void OS_RemoveFromReadyList(OS_TCB* ptcb)
  *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
  *!              2) Interrupts are assumed to be disabled when this function is called.
  */
-#define OS_COUNT_LEADING_ZERO(__B)      (OSUnMapTbl[__B])
 static UINT8 os_get_highest_prio(void)
 {
     UINT8   y;
@@ -319,7 +320,7 @@ static UINT8 os_get_highest_prio(void)
 void OS_Schedule(void)
 {
     UINT8           prio;
-    OS_LIST_NODE*   node;
+    OS_LIST_NODE   *node;
 #if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif
@@ -390,7 +391,7 @@ void osIntEnter(void)
 void osIntExit(void)
 {
     UINT8           prio;
-    OS_LIST_NODE*   node;
+    OS_LIST_NODE   *node;
 #if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif
@@ -515,7 +516,7 @@ void osUnlockSched(void)
 void osStart(void)
 {
     UINT8           prio;
-    OS_LIST_NODE*   node;
+    OS_LIST_NODE   *node;
     
     
     if (osRunning == FALSE) {
@@ -543,10 +544,10 @@ void osStart(void)
  */
 void osTimeTick(void)
 {
-    OS_LIST_NODE*   node;
-    OS_TCB*         ptcb;
+    OS_LIST_NODE   *node;
+    OS_TCB         *ptcb;
 #if OS_CRITICAL_METHOD == 3u                               //!< Allocate storage for CPU status register
-    OS_CPU_SR  cpu_sr = 0u;
+    OS_CPU_SR       cpu_sr = 0u;
 #endif
 
 
@@ -759,9 +760,9 @@ static void os_task_idle(void *parg)
 static void os_task_statistics(void *parg)
 {
     UINT32          idl_cnt;                        //!< Val. reached by idle ctr at run time in 1 sec.
-    OS_LIST_NODE*   list;
+    OS_LIST_NODE   *list;
     UINT8           i;
-    OS_TCB*         ptcb;
+    OS_TCB         *ptcb;
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif
@@ -837,10 +838,10 @@ static void os_task_statistics(void *parg)
  *!
  *! \Note        This function is INTERNAL to OS and your application should not call it.
  */
-void OS_TCBInit(OS_TCB*  ptcb,
+void OS_TCBInit(OS_TCB  *ptcb,
                 UINT8    prio,
-                OS_STK*  psp,
-                OS_STK*  pstk,
+                OS_STK  *psp,
+                OS_STK  *pstk,
                 UINT32   stk_size,
                 UINT8    opt)
 {
@@ -884,9 +885,9 @@ void OS_TCBInit(OS_TCB*  ptcb,
  *!              OS_ERR_PDATA_NULL      if 'p_stk_data' is a NULL pointer
  */
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
-void OS_TaskStkChk(OS_TCB* ptcb)
+void OS_TaskStkChk(OS_TCB *ptcb)
 {
-    OS_STK*    pstk;
+    OS_STK    *pstk;
     UINT32     nfree;
     UINT32     size;
 #if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
@@ -935,12 +936,12 @@ void OS_TaskStkChk(OS_TCB* ptcb)
  *! \Notes       1) This function assumes that interrupts are disabled.
  *!              2) This function is INTERNAL to OS and your application should not call it.
  */
-void OS_TaskChangePrio( OS_TCB*     ptcb,
+void OS_TaskChangePrio( OS_TCB     *ptcb,
                         UINT8       newprio)
 {
 #if (OS_EVENT_EN)
-    OS_WAITBALE_OBJ*    pobj;
-    OS_WAIT_NODE*       pnode;
+    OS_WAITBALE_OBJ    *pobj;
+    OS_WAIT_NODE       *pnode;
 #endif
 #if OS_CRITICAL_METHOD == 3u
     OS_CPU_SR           cpu_sr = 0u;                            //!< Storage for CPU status register
@@ -997,12 +998,12 @@ void OS_TaskChangePrio( OS_TCB*     ptcb,
  *! \Notes       1) This function assumes that interrupts are disabled.
  *!              2) This function is INTERNAL to OS and your application should not call it.
  */
-void OS_EventTaskWait(  void*           pecb,
-                        OS_WAIT_NODE*   pnode,
+void OS_EventTaskWait(  void           *pecb,
+                        OS_WAIT_NODE   *pnode,
                         UINT32          ticks)
 {
-    OS_WAITBALE_OBJ*    pobj = (OS_WAITBALE_OBJ *)pecb;
-    OS_LIST_NODE*       list;
+    OS_WAITBALE_OBJ    *pobj = (OS_WAITBALE_OBJ *)pecb;
+    OS_LIST_NODE       *list;
 
 
     os_list_init_head(&pnode->OSWaitNodeList);
@@ -1046,9 +1047,9 @@ void OS_EventTaskWait(  void*           pecb,
  *! \Notes       1) This function assumes that interrupts are disabled.
  *!              2) This function is INTERNAL to OS and your application should not call it.
  */
-void OS_EventTaskRemove(OS_TCB* ptcb)
+void OS_EventTaskRemove(OS_TCB *ptcb)
 {
-    OS_WAIT_NODE* pnode = ptcb->OSTCBWaitNode;
+    OS_WAIT_NODE *pnode = ptcb->OSTCBWaitNode;
     
 
     os_list_del(&pnode->OSWaitNodeList);
@@ -1074,12 +1075,12 @@ void OS_EventTaskRemove(OS_TCB* ptcb)
  *! \Notes       1) This function assumes that interrupts are disabled.
  *!              2) This function is INTERNAL to OS and your application should not call it.
  */
-OS_TCB* OS_EventTaskRdy(void*   pecb,
+OS_TCB* OS_EventTaskRdy(void   *pecb,
                         UINT8   pendRes)
 {
-    OS_WAITBALE_OBJ*    pobj = (OS_WAITBALE_OBJ*)pecb;
-    OS_WAIT_NODE*       pnode;
-    OS_TCB*             ptcb;
+    OS_WAITBALE_OBJ    *pobj = (OS_WAITBALE_OBJ*)pecb;
+    OS_WAIT_NODE       *pnode;
+    OS_TCB             *ptcb;
 
     
     pnode   = OS_CONTAINER_OF(&pobj->OSWaitObjWaitList, OS_WAIT_NODE, OSWaitNodeList);
@@ -1108,7 +1109,7 @@ OS_TCB* OS_EventTaskRdy(void*   pecb,
  *!              3) The clear is done one byte at a time since this will work on any processor irrespective
  *!                 of the alignment of the destination.
  */
-void OS_MemClr(UINT8* pdest, size_t size)
+void OS_MemClr(UINT8 *pdest, UINT32 size)
 {
     while (size > 0u) {
         *pdest++ = 0u;
@@ -1137,7 +1138,7 @@ void OS_MemClr(UINT8* pdest, size_t size)
  *!              3) The copy is done one byte at a time since this will work on any processor irrespective
  *!                 of the alignment of the source and destination.
  */
-void OS_MemCopy(UINT8* pdest, UINT8* psrc, size_t size)
+void OS_MemCopy(UINT8 *pdest, UINT8 *psrc, UINT32 size)
 {
     while (size > 0u) {
         *pdest++ = *psrc++;

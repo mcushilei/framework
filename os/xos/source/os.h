@@ -45,6 +45,8 @@ extern "C" {
 #   define OS_BITMAP_TBL_SIZE       ((OS_MAX_PRIO_LEVELS + 15u) / 16u)  //!< Size of ready table
 #endif
 
+#define OS_EVENT_EN                 (OS_MUTEX_EN | OS_FLAG_EN |OS_SEMP_EN)
+    
 #define OS_CONTAINER_OF(__ptr, __type, __member) (              \
         (__type*)( (char*)(__ptr) - offsetof(__type, __member) ))
 
@@ -111,7 +113,6 @@ enum {
     OS_ERR_INVALID_OPT              = 4u,
     OS_ERR_DEL_ISR                  = 5u,
     OS_ERR_CREATE_ISR               = 6u,
-    OS_ERR_INVALID_TASK_HANDLE      = 7u,
 
     OS_ERR_TIMEOUT                  = 30u,
     OS_ERR_PEND_ISR                 = 31u,
@@ -164,8 +165,8 @@ typedef struct {
 
 //! list type
 struct list_node {
-    OS_LIST_NODE*   Prev;
-    OS_LIST_NODE*   Next;
+    OS_LIST_NODE   *Prev;
+    OS_LIST_NODE   *Next;
 };
 
 //! memory pool.
@@ -175,8 +176,8 @@ struct os_mem_pool {
 
 struct os_wait_node {                           //!< Event Wait List Node.
     OS_LIST_NODE        OSWaitNodeList;         //!< Pointer to previous NODE in wait list.
-    OS_TCB*             OSWaitNodeTCB;          //!< Pointer to TCB of waiting task.
-    OS_WAITBALE_OBJ*    OSWaitNodeECB;          //!< Pointer to ECB wait for.
+    OS_TCB             *OSWaitNodeTCB;          //!< Pointer to TCB of waiting task.
+    OS_WAITBALE_OBJ    *OSWaitNodeECB;          //!< Pointer to ECB wait for.
     UINT8               OSWaitNodeRes;          //!< Event wait resault.
 };
     
@@ -196,7 +197,7 @@ struct os_semp {
     OS_LIST_NODE    OSSempWaitList;             //!< Pointer to first NODE of task waiting on semaphore
 };
 #endif
-    
+
 /*!
  *! MUTEX SEMAPHORE CONTROL BLOCK
  */
@@ -206,7 +207,7 @@ struct os_mutex {
     UINT8           OSMutexCeilingPrio;         //!< Mutex's ceiling prio.
     UINT8           OSMutexOwnerPrio;           //!< Mutex owner's prio.
     OS_LIST_NODE    OSMutexWaitList;            //!< Pointer to first NODE of task waiting on mutex
-    OS_TCB*         OSMutexOwnerTCB;            //!< Pointer to mutex owner's TCB
+    OS_TCB         *OSMutexOwnerTCB;            //!< Pointer to mutex owner's TCB
 };
 #endif
 
@@ -232,13 +233,13 @@ struct os_tcb {
     
     UINT32          OSTCBDly;                   //!< Ticks to pend task.
 
-    OS_STK*         OSTCBStkPtr;                //!< Pointer to current TOP of stack
+    OS_STK         *OSTCBStkPtr;                //!< Pointer to current TOP of stack
 
     OS_LIST_NODE    OSTCBList;                  //!< TCB list node.
 
-    OS_WAIT_NODE*   OSTCBWaitNode;
+    OS_WAIT_NODE   *OSTCBWaitNode;
     
-    OS_MUTEX*       OSTCBOwnMutex;
+    OS_MUTEX       *OSTCBOwnMutex;
     
     UINT16          OSTCBTimeSlice;
     
@@ -246,7 +247,7 @@ struct os_tcb {
     UINT8           OSTCBStatus;
     UINT16          OSTCBStkSize;               //!< Size of task stack (in number of stack elements)
     UINT16          OSTCBStkUsed;               //!< Number of BYTES used from the stack
-    OS_STK*         OSTCBStkBase;               //!< Base address of the task stack
+    OS_STK         *OSTCBStkBase;               //!< Base address of the task stack
     UINT32          OSTCBCtxSwCtr;              //!< Number of times the task was switched in
     UINT32          OSTCBCyclesTot;             //!< Total number of ticks the task has been running
     UINT32          OSTCBCyclesStart;           //!< Snapshot of tick at start of task
@@ -256,7 +257,7 @@ struct os_tcb {
 /*!
  *! FLAG DATA
  */
-#if OS_FLAG_EN > 0u
+#if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 typedef struct {
     BOOLEAN         OSFlagAutoReset;
     BOOLEAN         OSFlagStatus;
@@ -267,9 +268,9 @@ typedef struct {
 /*!
  *! MUTUAL EXCLUSION SEMAPHORE DATA
  */
-#if OS_MUTEX_EN > 0u
+#if (OS_MUTEX_EN) && (OS_MAX_MUTEXES > 0u)
 typedef struct {
-    OS_TCB*         OSOwnerTCB;
+    OS_TCB         *OSOwnerTCB;
     UINT8           OSOwnerPrio;
     UINT8           OSCeilingPrio;
     OS_LIST_NODE    OSWaitList;
@@ -280,7 +281,7 @@ typedef struct {
 /*!
  *! SEMAPHORE DATA
  */
-#if OS_SEMP_EN > 0u
+#if (OS_SEMP_EN) && (OS_MAX_SEMAPHORES > 0u)
 typedef struct {
     UINT16          OSCnt;                      //!< Semaphore count
     OS_LIST_NODE    OSWaitList;
@@ -291,21 +292,21 @@ typedef struct {
  *! GLOBAL VARIABLES
  */
 #if (OS_SEMP_EN) && (OS_MAX_SEMAPHORES > 0u)
-OS_EXT  OS_LIST_NODE*   osSempFreeList;                     //!< Pointer to list of free semaphore control blocks
+OS_EXT  OS_LIST_NODE   *osSempFreeList;                     //!< Pointer to list of free semaphore control blocks
 OS_EXT  OS_SEMP         osSempFreeTbl[OS_MAX_SEMAPHORES];   //!< Table of semaphore control blocks
 #endif
 
 #if (OS_MUTEX_EN) && (OS_MAX_MUTEXES > 0u)
-OS_EXT  OS_LIST_NODE*   osMutexFreeList;                    //!< Pointer to list of free mutex control blocks
+OS_EXT  OS_LIST_NODE   *osMutexFreeList;                    //!< Pointer to list of free mutex control blocks
 OS_EXT  OS_MUTEX        osMutexFreeTbl[OS_MAX_MUTEXES];     //!< Table of mutex control blocks
 #endif
 
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
-OS_EXT  OS_LIST_NODE*   osFlagFreeList;                     //!< Pointer to list of free flag control blocks
+OS_EXT  OS_LIST_NODE   *osFlagFreeList;                     //!< Pointer to list of free flag control blocks
 OS_EXT  OS_FLAG         osFlagFreeTbl[OS_MAX_FLAGS];        //!< Table of flag control blocks
 #endif
 
-OS_EXT  OS_LIST_NODE*   osTCBFreeList;                                  //!< List of free TCBs
+OS_EXT  OS_LIST_NODE   *osTCBFreeList;                                  //!< List of free TCBs
 OS_EXT  OS_TCB          osTCBFreeTbl[OS_MAX_TASKS + OS_N_SYS_TASKS];    //!< Table of free TCBs
 
 OS_EXT  OS_LIST_NODE    osPndList;                          //!< Doubly linked list of active task's TCB
@@ -315,8 +316,8 @@ OS_EXT  OS_PRIO         osRdyTbl[OS_BITMAP_TBL_SIZE];
 OS_EXT  OS_LIST_NODE    osRdyList[OS_MAX_PRIO_LEVELS];      //!< Table of pointers to TCB of active task
 
 OS_EXT  UINT16      osCurTimeSlice;
-OS_EXT  OS_TCB*     osTCBCur;                       //!< Pointer to currently running TCB
-OS_EXT  OS_TCB*     osTCBHighRdy;                   //!< Pointer to highest priority TCB Ready-to-Run
+OS_EXT  OS_TCB     *osTCBCur;                       //!< Pointer to currently running TCB
+OS_EXT  OS_TCB     *osTCBHighRdy;                   //!< Pointer to highest priority TCB Ready-to-Run
 
 OS_EXT  UINT8       osIntNesting;                   //!< Interrupt nesting level
 OS_EXT  UINT8       osLockNesting;                  //!< Multitasking lock nesting level
@@ -338,9 +339,9 @@ OS_EXT  OS_STK      osTaskIdleStk[OS_TASK_IDLE_STK_SIZE];   //!< Idle task stack
 /*!
  *! OS LIST INTERFACE
  */
-void os_list_init_head(OS_LIST_NODE *list);
-void os_list_add(OS_LIST_NODE *Node, OS_LIST_NODE *Head);
-void os_list_del(OS_LIST_NODE *entry);
+void        os_list_init_head       (OS_LIST_NODE *list);
+void        os_list_add             (OS_LIST_NODE *node, OS_LIST_NODE *head);
+void        os_list_del             (OS_LIST_NODE *entry);
 
 
 /*!
@@ -374,7 +375,7 @@ OS_ERR      osFlagQuery            (OS_HANDLE       hFlag,
 /*!
  *! MUTUAL EXCLUSION SEMAPHORE MANAGEMENT
  */
-#if OS_MUTEX_EN > 0u
+#if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 
 OS_ERR      osMutexCreate          (OS_HANDLE      *pMutexHandle,
                                     UINT8           ceilingPrio);
@@ -399,7 +400,7 @@ OS_ERR      osMutexQuery           (OS_HANDLE       hMutex,
 /*!
  *! SEMAPHORE MANAGEMENT
  */
-#if OS_SEMP_EN > 0u
+#if (OS_SEMP_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
 
 OS_ERR      osSemCreate            (OS_HANDLE      *pSemaphoreHandle,
                                     UINT16          cnt);
@@ -523,11 +524,11 @@ void        OSDebugInit            (void);
  */
 void        OS_Schedule            (void);
 
-bool        OS_ObjPoolFree          (OS_LIST_NODE** ppObj, void* pobj);
-void*       OS_ObjPoolNew           (OS_LIST_NODE** ppObj);
+bool        OS_ObjPoolFree         (OS_LIST_NODE **ppObj, void* pobj);
+void       *OS_ObjPoolNew          (OS_LIST_NODE **ppObj);
 
-void        OS_AddToReadyList       (OS_TCB* ptcb);
-void        OS_RemoveFromReadyList  (OS_TCB* ptcb);
+void        OS_AddToReadyList      (OS_TCB *ptcb);
+void        OS_RemoveFromReadyList (OS_TCB *ptcb);
 
 void        OS_TaskChangePrio      (OS_TCB         *ptcb,
                                     UINT8           newprio);
@@ -557,11 +558,11 @@ void        OS_EventTaskWait       (void           *pecb,
 void        OS_EventTaskRemove     (OS_TCB         *ptcb);
 
 void        OS_MemClr              (UINT8          *pdest,
-                                    size_t          size);
+                                    UINT32          size);
 
 void        OS_MemCopy             (UINT8          *pdest,
                                     UINT8          *psrc,
-                                    size_t          size);
+                                    UINT32          size);
 
 /*!
  *! LOOK FOR MISSING AND ERROR #define CONSTANTS

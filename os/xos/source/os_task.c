@@ -33,7 +33,7 @@ static void os_task_wrapper    (void           *ptask,
  *!              newp     is the new priority
  *!
  *! \Returns     OS_ERR_NONE            is the call was successful
- *!              OS_ERR_INVALID_TASK_HANDLE  ptcb is NULL.
+ *!              OS_ERR_INVALID_HANDLE  ptcb is NULL.
  *!              OS_ERR_INVALID_PRIO    if the priority you specify is higher that the maximum allowed
  *!              OS_ERR_TASK_EXIST      if the new priority already has been specified to a task.
  *!              OS_ERR_TASK_NOT_EXIST  there is no task with the specified OLD priority (i.e. the OLD task does
@@ -50,7 +50,7 @@ OS_ERR  osTaskChangePrio   (OS_HANDLE   handle,
     
 #if OS_ARG_CHK_EN > 0u
     if (ptcb == NULL) {
-        return OS_ERR_INVALID_TASK_HANDLE;
+        return OS_ERR_INVALID_HANDLE;
     }
 #if OS_MAX_PRIO_LEVELS <= 255
     if (newprio >= OS_MAX_PRIO_LEVELS) {
@@ -60,10 +60,15 @@ OS_ERR  osTaskChangePrio   (OS_HANDLE   handle,
 #endif
 
     OSEnterCriticalSection(cpu_sr);
-    if (ptcb->OSTCBOwnMutex != NULL) {
-        ptcb->OSTCBOwnMutex->OSMutexOwnerPrio = newprio;
+    if (ptcb->OSTCBOwnMutex != NULL) {                  //!< See if the task has owned a mutex.
+        ptcb->OSTCBOwnMutex->OSMutexOwnerPrio = newprio;//!< Yes.
+        if (newprio < ptcb->OSTCBPrio) {                //!  Change the priority only if the new one
+                                                        //!  is higher than the task's current.
+            OS_TaskChangePrio(ptcb, newprio);
+        }
+    } else {
+        OS_TaskChangePrio(ptcb, newprio);
     }
-    OS_TaskChangePrio(ptcb, newprio);
     OSExitCriticalSection(cpu_sr);
     
     if (osRunning == TRUE) {

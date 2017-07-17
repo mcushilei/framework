@@ -12,30 +12,30 @@
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-void os_list_init_head(OS_LIST_NODE *Head)
+void os_list_init_head(OS_LIST_NODE *head)
 {
-    Head->Next = Head;
-    Head->Prev = Head;
+    head->Next = head;
+    head->Prev = head;
 }
 
-static void __os_list_add(OS_LIST_NODE *Node, OS_LIST_NODE *Prev, OS_LIST_NODE *Next)
+static void __os_list_add(OS_LIST_NODE *node, OS_LIST_NODE *prev, OS_LIST_NODE *next)
 {
-    Next->Prev = Node;
-    Node->Next = Next;
-    Node->Prev = Prev;
-    Prev->Next = Node;
+    next->Prev = node;
+    node->Next = next;
+    node->Prev = prev;
+    prev->Next = node;
 }
 
-void os_list_add(OS_LIST_NODE *Node, OS_LIST_NODE *Head)
+void os_list_add(OS_LIST_NODE *node, OS_LIST_NODE *head)
 {
-    __os_list_add(Node, Head, Head->Next);
+    __os_list_add(node, head, head->Next);
 }
  
  
-void __os_list_del(OS_LIST_NODE* Prev, OS_LIST_NODE* Next)
+void __os_list_del(OS_LIST_NODE *prev, OS_LIST_NODE *next)
 {
-    Next->Prev = Prev;
-    Prev->Next = Next;
+    next->Prev = prev;
+    prev->Next = next;
 }
  
 void os_list_del(OS_LIST_NODE *entry)
