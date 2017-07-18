@@ -190,7 +190,7 @@ struct os_waitable_obj {                        //!< Waitable object head.
 /*!
  *! SEMAPHORE CONTROL BLOCK
  */
-#if OS_SEMP_EN > 0u
+#if (OS_SEMP_EN) && (OS_MAX_SEMAPHORES > 0u)
 struct os_semp {
     OS_OBJ_HEAD;
     UINT16          OSSempCnt;                  //!< Semaphore count.
@@ -201,7 +201,7 @@ struct os_semp {
 /*!
  *! MUTEX SEMAPHORE CONTROL BLOCK
  */
-#if OS_MUTEX_EN > 0u
+#if (OS_MUTEX_EN) && (OS_MAX_MUTEXES > 0u)
 struct os_mutex {
     OS_OBJ_HEAD;
     UINT8           OSMutexCeilingPrio;         //!< Mutex's ceiling prio.
@@ -214,7 +214,7 @@ struct os_mutex {
 /*!
  *! EVENT FLAGS CONTROL BLOCK
  */
-#if OS_FLAG_EN > 0u
+#if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 struct os_flag {
     OS_OBJ_HEAD;
     UINT16          OSFlagFlags;                //!< Flag options
@@ -259,8 +259,8 @@ struct os_tcb {
  */
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 typedef struct {
-    BOOLEAN         OSFlagAutoReset;
-    BOOLEAN         OSFlagStatus;
+    BOOL         OSFlagAutoReset;
+    BOOL         OSFlagStatus;
     OS_LIST_NODE    OSWaitList;
 } OS_FLAG_INFO;
 #endif
@@ -274,7 +274,7 @@ typedef struct {
     UINT8           OSOwnerPrio;
     UINT8           OSCeilingPrio;
     OS_LIST_NODE    OSWaitList;
-    BOOLEAN         OSValue;                    //!< Mutex value (OS_FALSE = used, TRUE = available)
+    BOOL         OSValue;                    //!< Mutex value (OS_FALSE = used, TRUE = available)
 } OS_MUTEX_INFO;
 #endif
 
@@ -315,34 +315,33 @@ OS_EXT  OS_PRIO         osRdyGrp;                           //!< Ready bitmap
 OS_EXT  OS_PRIO         osRdyTbl[OS_BITMAP_TBL_SIZE];
 OS_EXT  OS_LIST_NODE    osRdyList[OS_MAX_PRIO_LEVELS];      //!< Table of pointers to TCB of active task
 
+OS_EXT  UINT32      osTaskCtr;
+
 OS_EXT  UINT16      osCurTimeSlice;
 OS_EXT  OS_TCB     *osTCBCur;                       //!< Pointer to currently running TCB
-OS_EXT  OS_TCB     *osTCBHighRdy;                   //!< Pointer to highest priority TCB Ready-to-Run
+OS_EXT  OS_TCB     *osTCBNextRdy;                   //!< Pointer to highest priority TCB Ready-to-Run
 
 OS_EXT  UINT8       osIntNesting;                   //!< Interrupt nesting level
 OS_EXT  UINT8       osLockNesting;                  //!< Multitasking lock nesting level
 
-OS_EXT  BOOLEAN     osRunning;                      //!< Flag indicating that kernel is running
+OS_EXT  BOOL     osRunning;                      //!< Flag indicating that kernel is running
 
 #if OS_STAT_EN > 0u
-OS_EXT  UINT32      osTaskCtr;
 OS_EXT  UINT32      osCtxSwCtr;                     //!< Counter of number of context switches
 OS_EXT  UINT32      osIdleCtrMax;                   //!< Max. value that idle ctr can take in 1 sec.
 OS_EXT  UINT8       osCPUUsage;                     //!< Percentage of CPU used
-OS_EXT  BOOLEAN     osStatRunning;                  //!< Flag indicating that the statistic task is running
+OS_EXT  BOOL     osStatRunning;                  //!< Flag indicating that the statistic task is running
 OS_EXT  OS_STK      osTaskStatStk[OS_TASK_STAT_STK_SIZE];   //!< Statistics task stack
 #endif
+
 OS_EXT  volatile UINT32 osIdleCtr;                  //!< Idle counter
 OS_EXT  OS_STK      osTaskIdleStk[OS_TASK_IDLE_STK_SIZE];   //!< Idle task stack
 
 
-/*!
- *! OS LIST INTERFACE
- */
-void        os_list_init_head       (OS_LIST_NODE *list);
-void        os_list_add             (OS_LIST_NODE *node, OS_LIST_NODE *head);
-void        os_list_del             (OS_LIST_NODE *entry);
 
+/*!
+ *!                     APPLICATION FUNCTION PROTOTYPES
+ */
 
 /*!
  *! EVENT FLAGS MANAGEMENT
@@ -350,8 +349,8 @@ void        os_list_del             (OS_LIST_NODE *entry);
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 
 OS_ERR      osFlagCreate           (OS_HANDLE      *pFlagHandle,
-                                    BOOLEAN         init,
-                                    BOOLEAN         manual);
+                                    BOOL         init,
+                                    BOOL         manual);
 
 #if OS_FLAG_DEL_EN > 0u
 OS_ERR      osFlagDelete           (OS_HANDLE       hFlag,
@@ -477,13 +476,13 @@ void        osStatInit             (void);
 
 UINT16      osVersion              (void);
 
-#define  osEnterCriticalSection     OSEnterCriticalSection
-#define  osExitCriticalSection      OSExitCriticalSection
+#define     osEnterCriticalSection()     OSEnterCriticalSection()
+#define     osExitCriticalSection()      OSExitCriticalSection()
 
 /*!
  *!                        TARGET SPECIFIC FUNCTION PROTOTYPES
- *! Target Specific interface and hook Functions. Those function will be called by os and should be
- *! implemented by you.
+ *! Target Specific interface and hook functions. Those functions will be called
+ *! by os and should be implemented by you.
  */
 void        OSStartHighRdy         (void);
 void        OSIntCtxSw             (void);
@@ -522,16 +521,32 @@ void        OSDebugInit            (void);
  *!                       INTERNAL FUNCTION PROTOTYPES
  *!              (Your application MUST NOT call these functions)
  */
-void        OS_Schedule            (void);
 
-bool        OS_ObjPoolFree         (OS_LIST_NODE **ppObj, void* pobj);
-void       *OS_ObjPoolNew          (OS_LIST_NODE **ppObj);
+/*!
+ *! OS LIST INTERFACE
+ */
+void        os_list_init_head      (OS_LIST_NODE   *list);
+void        os_list_add            (OS_LIST_NODE   *node,
+                                    OS_LIST_NODE   *head);
+void        os_list_del            (OS_LIST_NODE   *entry);
 
-void        OS_AddToReadyList      (OS_TCB *ptcb);
-void        OS_RemoveFromReadyList (OS_TCB *ptcb);
+bool        OS_ObjPoolFree         (OS_LIST_NODE  **ppObj,
+                                    void           *pobj);
+void       *OS_ObjPoolNew          (OS_LIST_NODE  **ppObj);
 
-void        OS_TaskChangePrio      (OS_TCB         *ptcb,
+/*!
+ *! OS SCHEDULE INTERFACE
+ */
+void        OS_ScheduleReadyTask   (OS_TCB         *ptcb);
+void        OS_ScheduleUnreadyTask (OS_TCB         *ptcb);
+void        OS_SchedulePendTask    (OS_TCB         *ptcb,
+                                    UINT32          ticks);
+void        OS_ScheduleUnpendTask  (OS_TCB         *ptcb);
+void        OS_ScheduleChangePrio  (OS_TCB         *ptcb,
                                     UINT8           newprio);
+void        OS_SchedulePrio        (void);
+
+void        OS_Schedule            (void);
 
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
 void        OS_TaskStkChk          (OS_TCB         *ptcb);
@@ -543,10 +558,6 @@ void        OS_TCBInit             (OS_TCB         *ptcb,
                                     OS_STK         *pstk,
                                     UINT32          stk_size,
                                     UINT8           opt);
-
-#if (OS_SEMP_EN) && (OS_MAX_SEMAPHORES > 0u)
-void        OS_EventWaitTableInit  (OS_SEMP       *pevent);
-#endif
 
 OS_TCB     *OS_EventTaskRdy        (void           *pecb,
                                     UINT8           pend_stat);
@@ -640,14 +651,6 @@ void        OS_MemCopy             (UINT8          *pdest,
 #   endif
 #   if  OS_MAX_PRIO_LEVELS >  256u
 #       error "OS_CFG.H, OS_MAX_PRIO_LEVELS must be <= 256"
-#   endif
-#endif
-
-#ifndef OS_MAX_TASKS
-#   error "OS_CFG.H, Missing OS_MAX_TASKS: Max. number of tasks in your application"
-#else
-#   if  OS_MAX_TASKS >  (OS_MAX_PRIO_LEVELS - OS_N_SYS_TASKS)
-#       error "OS_CFG.H, OS_MAX_TASKS must be <= OS_MAX_PRIO_LEVELS - OS_N_SYS_TASKS"
 #   endif
 #endif
 

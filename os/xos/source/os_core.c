@@ -15,9 +15,7 @@ static  void    os_init_obj_list(void);
 
 static  void    os_init_misc(void);
 
-static  void    os_init_schedule(void);
-
-static  UINT8   os_get_highest_prio(void);
+static  void    os_schedule_init(void);
 
 #if OS_STAT_EN > 0u
 static  void    os_init_statistics_task(void);
@@ -77,7 +75,7 @@ void osInit(void)
 
     os_init_misc();                                              //!< Initialize miscellaneous variables
 
-    os_init_schedule();                                          //!< Initialize the Ready List
+    os_schedule_init();                                          //!< Initialize the Ready List
 
     os_init_idle_task();                                          //!< Create the Idle Task
 #if OS_STAT_EN > 0u
@@ -197,24 +195,27 @@ static void os_init_obj_list(void)
  *!
  *! \Returns     none
  */
-static void os_init_schedule(void)
+static void os_schedule_init(void)
 {
-    UINT8 i;
+    UINT16 i;
 
 
     osRdyGrp = 0u;
     for (i = 0u; i < OS_BITMAP_TBL_SIZE; i++) {
         osRdyTbl[i] = 0u;
+    }
+
+    for (i = 0u; i < OS_MAX_PRIO_LEVELS; i++) {
         os_list_init_head(&osRdyList[i]);
     }
 
     osTCBCur      = NULL;
-    osTCBHighRdy  = NULL;
+    osTCBNextRdy  = NULL;
     
     os_list_init_head(&osPndList);
 }
 
-void OS_AddToReadyList(OS_TCB *ptcb)
+void OS_ScheduleReadyTask(OS_TCB *ptcb)
 {
     UINT8 prio, g;
     OS_PRIO x, y;
@@ -236,7 +237,7 @@ void OS_AddToReadyList(OS_TCB *ptcb)
     osRdyTbl[g] |= x;
 }
 
-void OS_RemoveFromReadyList(OS_TCB *ptcb)
+void OS_ScheduleUnreadyTask(OS_TCB *ptcb)
 {
     UINT8 prio, g;
     OS_PRIO x, y;
@@ -262,6 +263,74 @@ void OS_RemoveFromReadyList(OS_TCB *ptcb)
     }
 }
 
+void OS_SchedulePendTask(OS_TCB *ptcb, UINT32 ticks)
+{
+    if (ticks == OS_INFINITE) {
+        ticks = 0u;
+    }
+    ptcb->OSTCBDly = ticks;
+    
+    os_list_add(&ptcb->OSTCBList, osPndList.Prev);  //!< add task to the end of PEND task list.
+}
+
+void OS_ScheduleUnpendTask(OS_TCB *ptcb)
+{
+    os_list_del(&ptcb->OSTCBList);
+    ptcb->OSTCBDly = 0u;
+}
+
+/*!
+ *! \Brief       CHANGE PRIORITY OF A TASK
+ *!
+ *! \Description This function changes the priority of a task.
+ *!
+ *! \Arguments   ptcb     pointer to tcb
+ *!
+ *!              newp     is the new priority
+ *!
+ *! \Returns     none
+ *!
+ *! \Notes       1) This function assumes that interrupts are disabled.
+ *!              2) This function is INTERNAL to OS and your application should not call it.
+ */
+void OS_ScheduleChangePrio( OS_TCB     *ptcb,
+                        UINT8       newprio)
+{
+#if (OS_EVENT_EN)
+    OS_WAITBALE_OBJ    *pobj;
+    OS_WAIT_NODE       *pnode;
+#endif
+
+
+    if (ptcb->OSTCBDly != 0u) {
+#if (OS_EVENT_EN)
+        pnode = ptcb->OSTCBWaitNode;
+        if (pnode != NULL) {                                    //!< Is this task pending for any event?
+            pobj = pnode->OSWaitNodeECB;
+            if (OS_OBJ_PRIO_TYPE_GET(pobj->OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {
+                OS_LIST_NODE* list;
+                OS_WAIT_NODE* nextNode;
+                
+                os_list_del(&pnode->OSWaitNodeList);
+                
+                for (list = pobj->OSWaitObjWaitList.Next; list != &pobj->OSWaitObjWaitList; list = list->Next) {
+                    nextNode = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
+                    if (newprio < nextNode->OSWaitNodeTCB->OSTCBPrio) {
+                        break;
+                    }
+                }
+                os_list_add(&pnode->OSWaitNodeList, list->Prev);
+            }
+        }
+#endif
+        ptcb->OSTCBPrio = newprio;                                  //!< Set new task priority
+    } else {
+        OS_ScheduleUnreadyTask(ptcb);                        //!< Remove TCB from old priority
+        ptcb->OSTCBPrio = newprio;
+        OS_ScheduleReadyTask(ptcb);                           //!< Place TCB @ new priority
+    }
+}
+
 /*!
  *! \Brief       FIND HIGHEST PRIORITY TASK READY TO RUN
  *!
@@ -270,23 +339,25 @@ void OS_RemoveFromReadyList(OS_TCB *ptcb)
  *!
  *! \Arguments   none
  *!
- *! \Returns     The priority of the highest ready task in ready table.
+ *! \Returns     none
  *!
  *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
  *!              2) Interrupts are assumed to be disabled when this function is called.
  */
-static UINT8 os_get_highest_prio(void)
+
+void OS_SchedulePrio(void)
 {
     UINT8   y;
     UINT8   prio;
     OS_PRIO tbl_val;
+    OS_LIST_NODE   *node;
 
 
-#if OS_MAX_PRIO_LEVELS <= 64u                        //!< See if we support up to 64 tasks
+#if OS_MAX_PRIO_LEVELS <= 64u               //!< See if we support up to 64 tasks
     y       = OS_COUNT_LEADING_ZERO(osRdyGrp);
     tbl_val = osRdyTbl[y];
     prio    = (y * 8u) + OS_COUNT_LEADING_ZERO(tbl_val);
-#else                                            //!< We support up to 256 tasks
+#else                                       //!< We support up to 256 tasks
     if ((osRdyGrp & 0xFFu) != 0u) {
         y =      OS_COUNT_LEADING_ZERO(osRdyGrp & 0xFFu);
     } else {
@@ -300,7 +371,11 @@ static UINT8 os_get_highest_prio(void)
     }
 #endif
     
-    return prio;
+    node = osRdyList[prio].Next;
+    os_list_del(node);
+    os_list_add(node, osRdyList[prio].Prev);
+    
+    osTCBNextRdy = OS_CONTAINER_OF(node, OS_TCB, OSTCBList);
 }
 
 /*!
@@ -319,8 +394,6 @@ static UINT8 os_get_highest_prio(void)
  */
 void OS_Schedule(void)
 {
-    UINT8           prio;
-    OS_LIST_NODE   *node;
 #if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif
@@ -329,13 +402,8 @@ void OS_Schedule(void)
     OSEnterCriticalSection(cpu_sr);
     if (osIntNesting == 0u) {                           //!< Schedule only if all ISRs done and ...
         if (osLockNesting == 0u) {                      //!< ... scheduler is not locked
-            prio = os_get_highest_prio();               //!< Get the next task
-            node = osRdyList[prio].Next;
-            os_list_del(node);
-            os_list_add(node, osRdyList[prio].Prev);
-            
-            osTCBHighRdy = OS_CONTAINER_OF(node, OS_TCB, OSTCBList);
-            if (osTCBHighRdy != osTCBCur) {             //!< No Ctx Sw if current task is highest rdy
+            OS_SchedulePrio();
+            if (osTCBNextRdy != osTCBCur) {             //!< No Ctx Sw if current task is highest rdy
                 OSExitCriticalSection(cpu_sr);
                 OSCtxSw();                              //!< Perform a context switch
             }
@@ -355,21 +423,25 @@ void OS_Schedule(void)
  *!
  *! \Returns     none
  *!
- *! \Notes       1) This function should be called with interrupts already DISABLED.
- *!              2) You MUST invoke osIntEnter() and osIntExit() in pair.  In other words, for every call
+ *! \Notes       1) You MUST invoke osIntEnter() and osIntExit() in pair.  In other words, for every call
  *!                 to osIntEnter() at the beginning of the ISR you MUST have a call to osIntExit() at the
  *!                 end of the ISR.
- *!              5) You are allowed to nest interrupts up to 255 levels deep.
- *!              6) I removed the OSEnterCriticalSection() and OSExitCriticalSection() around the increment because
- *!                 osIntEnter() is always called with interrupts DISABLED.
+ *!              2) You are allowed to nest interrupts up to 255 levels deep.
  */
 void osIntEnter(void)
 {
+#if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
+    OS_CPU_SR       cpu_sr = 0u;
+#endif
+
+
+    OSEnterCriticalSection(cpu_sr);
     if (osRunning == TRUE) {
         if (osIntNesting < 255u) {
             osIntNesting++;                 //!< Increment ISR nesting level
         }
     }
+    OSExitCriticalSection(cpu_sr);
 }
 
 /*!
@@ -390,30 +462,23 @@ void osIntEnter(void)
  */
 void osIntExit(void)
 {
-    UINT8           prio;
-    OS_LIST_NODE   *node;
 #if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif
 
 
-    if (osRunning != TRUE) {
-        return;
-    }
-    
     OSEnterCriticalSection(cpu_sr);
     if (osIntNesting > 0u) {                            //!< Prevent osIntNesting from wrapping
         osIntNesting--;
     }
+    if (osRunning != TRUE) {
+        OSExitCriticalSection(cpu_sr);
+        return;
+    }
     if (osIntNesting == 0u) {                           //!< Reschedule only if all ISRs complete ...
         if (osLockNesting == 0u) {                      //!< ... and scheduler is not locked.
-            prio = os_get_highest_prio();               //!< Get the next task
-            node = osRdyList[prio].Next;
-            os_list_del(node);
-            os_list_add(node, osRdyList[prio].Prev);
-            
-            osTCBHighRdy = OS_CONTAINER_OF(node, OS_TCB, OSTCBList);
-            if (osTCBHighRdy != osTCBCur) {             //!< No Ctx Sw if current task is highest rdy
+            OS_SchedulePrio();
+            if (osTCBNextRdy != osTCBCur) {             //!< No Ctx Sw if current task is highest rdy
                 OSExitCriticalSection(cpu_sr);
                 OSIntCtxSw();                           //!< Perform interrupt level ctx switch
                 return;
@@ -439,16 +504,16 @@ void osIntExit(void)
 #if OS_SCHED_LOCK_EN > 0u
 void osLockSched(void)
 {
-#if OS_CRITICAL_METHOD == 3u                     //!< Allocate storage for CPU status register
+#if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
     OS_CPU_SR  cpu_sr = 0u;
 #endif
 
 
-    if (osRunning == TRUE) {                  //!< Make sure multitasking is running
-        if (osIntNesting == 0u) {                //!< Can't call from an ISR
+    if (osRunning == TRUE) {                    //!< Make sure multitasking is running
+        if (osIntNesting == 0u) {               //!< Can't call from an ISR
             OSEnterCriticalSection(cpu_sr);
-            if (osLockNesting < 255u) {          //!< Prevent osLockNesting from wrapping back to 0
-                osLockNesting++;                 //!< Increment lock nesting level
+            if (osLockNesting < 255u) {         //!< Prevent osLockNesting from wrapping back to 0
+                osLockNesting++;                //!< Increment lock nesting level
             }
             OSExitCriticalSection(cpu_sr);
         }
@@ -471,25 +536,19 @@ void osLockSched(void)
 #if OS_SCHED_LOCK_EN > 0u
 void osUnlockSched(void)
 {
-    BOOLEAN    shedNew = FALSE;
-#if OS_CRITICAL_METHOD == 3u                               //!< Allocate storage for CPU status register
+#if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
     OS_CPU_SR  cpu_sr = 0u;
 #endif
 
 
-    if (osRunning == TRUE) {                            //!< Make sure multitasking is running
-        if (osIntNesting == 0u) {                          //!< Can't call from an ISR
+    if (osRunning == TRUE) {                    //!< Make sure multitasking is running
+        if (osIntNesting == 0u) {               //!< Can't call from an ISR
             OSEnterCriticalSection(cpu_sr);
-            if (osLockNesting > 0u) {                      //!< Do not decrement if already 0
-                osLockNesting--;                           //!< Decrement lock nesting level
-                if (osLockNesting == 0u) {                 //!< See if scheduler is enabled
-                    shedNew = TRUE;
-                }
+            if (osLockNesting > 0u) {           //!< Do not decrement if already 0
+                osLockNesting--;                //!< Decrement lock nesting level
             }
             OSExitCriticalSection(cpu_sr);
-            if (shedNew) {
-                OS_Schedule();
-            }
+            OS_Schedule();
         }
     }
 }
@@ -509,24 +568,15 @@ void osUnlockSched(void)
  *! \Note        OSStartHighRdy() MUST:
  *!                 a) Call OSTaskSwHook() then,
  *!                 b) Set osRunning to TRUE.
- *!                 c) Load the context of the task pointed to by osTCBHighRdy.
+ *!                 c) Load the context of the task pointed to by osTCBNextRdy.
  *!                 d) Execute the task.
  *!                 e) Enable system-level interrupt.
  */
 void osStart(void)
 {
-    UINT8           prio;
-    OS_LIST_NODE   *node;
-    
-    
     if (osRunning == FALSE) {
-        prio    = os_get_highest_prio();
-        node    = osRdyList[prio].Next;
-        os_list_del(node);
-        os_list_add(node, osRdyList[prio].Prev);
-        
-        osTCBHighRdy    = OS_CONTAINER_OF(node, OS_TCB, OSTCBList);
-        osTCBCur        = osTCBHighRdy;
+        OS_SchedulePrio();
+        osTCBCur = osTCBNextRdy;
         OSStartHighRdy();                       //!< Execute target specific code to start task
     }
 }
@@ -557,8 +607,10 @@ void osTimeTick(void)
     
     if (osRunning == TRUE) {
         OSEnterCriticalSection(cpu_sr);
-        for (node = osPndList.Next; node != &osPndList; node = node->Next) {      //!< Go through all task in TCB list.
+        for (node = osPndList.Next; node != &osPndList; ) {      //!< Go through all task in TCB list.
             ptcb  = OS_CONTAINER_OF(node, OS_TCB, OSTCBList);
+            node = node->Next;
+            
             if ((ptcb->OSTCBDly != 0u) &&
                 (ptcb->OSTCBDly != OS_INFINITE)) {
                 ptcb->OSTCBDly--;
@@ -566,10 +618,10 @@ void osTimeTick(void)
                     if (ptcb->OSTCBWaitNode != NULL) {                          //!< See if waiting for any event
                         ptcb->OSTCBWaitNode->OSWaitNodeRes = OS_STAT_PEND_TO;   //!< ...Indicate PEND timeout.
                         OS_EventTaskRemove(ptcb);                               //!< Yes, Remove from any event and...
+                    } else {
+                        OS_ScheduleUnpendTask(ptcb);
                     }
-
-                    os_list_del(&ptcb->OSTCBList);
-                    OS_AddToReadyList(ptcb);
+                    OS_ScheduleReadyTask(ptcb);
                 }
             }
         }
@@ -606,13 +658,8 @@ void osTimeDelay(UINT32 ticks)
     
     if ((ticks != 0u) && (ticks != OS_INFINITE)) {  //!< 0 means no delay!
         OSEnterCriticalSection(cpu_sr);
-        if (ticks == OS_INFINITE) {
-            osTCBCur->OSTCBDly  = 0u;
-        } else {
-            osTCBCur->OSTCBDly  = ticks;            //!< Store ticks in task's TCB
-        }
-        OS_RemoveFromReadyList(osTCBCur);
-        os_list_add(&osTCBCur->OSTCBList, osPndList.Prev);         //!< add task to the end of PEND task list.
+        OS_ScheduleUnreadyTask(osTCBCur);
+        OS_SchedulePendTask(osTCBCur, ticks);
         OSExitCriticalSection(cpu_sr);
         OS_Schedule();                              //!< Find next task to run!
     }
@@ -923,63 +970,6 @@ void OS_TaskStkChk(OS_TCB *ptcb)
 #endif
 
 /*!
- *! \Brief       CHANGE PRIORITY OF A TASK
- *!
- *! \Description This function changes the priority of a task.
- *!
- *! \Arguments   ptcb     pointer to tcb
- *!
- *!              newp     is the new priority
- *!
- *! \Returns     none
- *!
- *! \Notes       1) This function assumes that interrupts are disabled.
- *!              2) This function is INTERNAL to OS and your application should not call it.
- */
-void OS_TaskChangePrio( OS_TCB     *ptcb,
-                        UINT8       newprio)
-{
-#if (OS_EVENT_EN)
-    OS_WAITBALE_OBJ    *pobj;
-    OS_WAIT_NODE       *pnode;
-#endif
-#if OS_CRITICAL_METHOD == 3u
-    OS_CPU_SR           cpu_sr = 0u;                            //!< Storage for CPU status register
-#endif
-
-
-    OSEnterCriticalSection(cpu_sr);
-    if (ptcb->OSTCBDly != 0u) {
-#if (OS_EVENT_EN)
-        pnode = ptcb->OSTCBWaitNode;
-        if (pnode != NULL) {                                    //!< Is this task pending for any event?
-            pobj = pnode->OSWaitNodeECB;
-            if (OS_OBJ_PRIO_TYPE_GET(pobj->OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {
-                OS_LIST_NODE* list;
-                OS_WAIT_NODE* nextNode;
-                
-                os_list_del(&pnode->OSWaitNodeList);
-                
-                for (list = pobj->OSWaitObjWaitList.Next; list != &pobj->OSWaitObjWaitList; list = list->Next) {
-                    nextNode = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
-                    if (newprio < nextNode->OSWaitNodeTCB->OSTCBPrio) {
-                        break;
-                    }
-                }
-                os_list_add(&pnode->OSWaitNodeList, list->Prev);
-            }
-        }
-#endif
-        ptcb->OSTCBPrio = newprio;                                  //!< Set new task priority
-    } else {
-        OS_RemoveFromReadyList(ptcb);                        //!< Remove TCB from old priority
-        ptcb->OSTCBPrio = newprio;
-        OS_AddToReadyList(ptcb);                           //!< Place TCB @ new priority
-    }
-    OSExitCriticalSection(cpu_sr);
-}
-
-/*!
  *! \Brief       MAKE TASK WAIT FOR EVENT TO OCCUR
  *!
  *! \Description This function is called by other OS services to suspend a task because an event has
@@ -1024,15 +1014,10 @@ void OS_EventTaskWait(  void           *pecb,
     } else {
         list = &pobj->OSWaitObjWaitList;
     }
-    os_list_add(&pnode->OSWaitNodeList, list->Prev);    //!< Link wait node in object's wait list.
+    os_list_add(&pnode->OSWaitNodeList, list->Prev);    //!< add wait node to the end of wait NODE list.
 
-    if (ticks == OS_INFINITE) {
-        osTCBCur->OSTCBDly  = 0u;
-    } else {
-        osTCBCur->OSTCBDly  = ticks;                    //!< Store timeout in task's TCB
-    }
-    OS_RemoveFromReadyList(osTCBCur);
-    os_list_add(&osTCBCur->OSTCBList, osPndList.Prev);  //!< add task to the end of PEND task list.
+    OS_ScheduleUnreadyTask(osTCBCur);
+    OS_SchedulePendTask(osTCBCur, ticks);
 }
 
 /*!
@@ -1052,8 +1037,9 @@ void OS_EventTaskRemove(OS_TCB *ptcb)
     OS_WAIT_NODE *pnode = ptcb->OSTCBWaitNode;
     
 
-    os_list_del(&pnode->OSWaitNodeList);
-    ptcb->OSTCBWaitNode = NULL;                          //!< Unlink event from OS_TCB
+    os_list_del(&pnode->OSWaitNodeList);    //!< remove from wait NODE list.
+    ptcb->OSTCBWaitNode = NULL;
+    OS_ScheduleUnpendTask(ptcb);
 }
 
 /*!
@@ -1075,7 +1061,7 @@ void OS_EventTaskRemove(OS_TCB *ptcb)
  *! \Notes       1) This function assumes that interrupts are disabled.
  *!              2) This function is INTERNAL to OS and your application should not call it.
  */
-OS_TCB* OS_EventTaskRdy(void   *pecb,
+OS_TCB *OS_EventTaskRdy(void   *pecb,
                         UINT8   pendRes)
 {
     OS_WAITBALE_OBJ    *pobj = (OS_WAITBALE_OBJ*)pecb;
@@ -1083,13 +1069,13 @@ OS_TCB* OS_EventTaskRdy(void   *pecb,
     OS_TCB             *ptcb;
 
     
-    pnode   = OS_CONTAINER_OF(&pobj->OSWaitObjWaitList, OS_WAIT_NODE, OSWaitNodeList);
+    pnode   = OS_CONTAINER_OF(pobj->OSWaitObjWaitList.Next, OS_WAIT_NODE, OSWaitNodeList);
     ptcb    = pnode->OSWaitNodeTCB;
         
     ptcb->OSTCBDly       = 0u;
     pnode->OSWaitNodeRes = pendRes;
     OS_EventTaskRemove(ptcb);                           //!< Remove this task from event's wait list
-    OS_AddToReadyList(ptcb);                         //!< Put task in the ready list
+    OS_ScheduleReadyTask(ptcb);                         //!< Put task in the ready list
     return ptcb;
 }
 

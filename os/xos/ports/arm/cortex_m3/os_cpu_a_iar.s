@@ -9,7 +9,7 @@
 
     EXTERN  osRunning
     EXTERN  osTCBCur
-    EXTERN  osTCBHighRdy
+    EXTERN  osTCBNextRdy
     EXTERN  OSIntNesting
     EXTERN  OSIntExit
     EXTERN  OSTaskSwHook
@@ -270,8 +270,8 @@ OSIntCtxSw
 ;              c) Save the process SP in its TCB, osTCBCur->OSTCBStkPtr = SP;
 ;              d) Call OSTaskSwHook();
 ;              e) Get current high priority, OSPrioCur = OSPrioHighRdy;
-;              f) Get current ready thread TCB, osTCBCur = osTCBHighRdy;
-;              g) Get new process SP from TCB, SP = osTCBHighRdy->OSTCBStkPtr;
+;              f) Get current ready thread TCB, osTCBCur = osTCBNextRdy;
+;              g) Get new process SP from TCB, SP = osTCBNextRdy->OSTCBStkPtr;
 ;              h) Restore R4-R11 from new process stack;
 ;              i) Perform exception return which will restore remaining context.
 ;
@@ -281,7 +281,7 @@ OSIntCtxSw
 ;              b) Processor mode is switched to Handler mode (from Thread mode)
 ;              c) Stack is Main stack (switched from Process stack)
 ;              d) osTCBCur      points to the OS_TCB of the task to suspend
-;                 osTCBHighRdy  points to the OS_TCB of the task to resume
+;                 osTCBNextRdy  points to the OS_TCB of the task to resume
 ;
 ;           4) Since PendSV is set to lowest priority in the system (by OSStartHighRdy() above), we
 ;              know that it will only be run when no other exception or interrupt is active, and
@@ -299,9 +299,9 @@ PendSV_Handler
     SUBS    R0, R0, #0x20                           ; There are some threads running. Save regs r4-11 on current thread's stack. r0-r3 have been saved automatically
     STM     R0, {R4 - R11}
     
-	LDR     R1, =osTCBCur                           ; osTCBCur->OSTCBStkPtr = SP
+	LDR     R1, =osTCBCur
     LDR     R1, [R1]
-    STR     R0, [R1, #4]
+    STR     R0, [R1, #8]                            ; osTCBCur->OSTCBStkPtr = SP
                                                     ; At this point, entire context of current thread has been saved.
 __NO_SAVE
     ;PUSH    {LR}                                    ; Save LR(EXC_RETURN value)
@@ -309,12 +309,12 @@ __NO_SAVE
     ;BLX     R0
     ;POP     {LR}
     
-    LDR     R0, =osTCBCur                           ; osTCBCur = osTCBHighRdy;
-    LDR     R1, =osTCBHighRdy
+    LDR     R0, =osTCBCur                           ; osTCBCur = osTCBNextRdy;
+    LDR     R1, =osTCBNextRdy
     LDR     R2, [R1]
     STR     R2, [R0]
     
-    LDR     R0, [R2, #4]                            ; R0 = osTCBHighRdy->OSTCBStkPtr;
+    LDR     R0, [R2, #8]                            ; R0 = osTCBCur->OSTCBStkPtr;
     
     LDM     R0, {R4-R11}                            ; Restore r4-11 from new thread's stack.
     ADDS    R0, R0, #0x20                       

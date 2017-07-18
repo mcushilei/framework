@@ -1,5 +1,7 @@
 
 //! \note do not move this pre-processor statement to other places
+#define  __OS_SEMP_C__
+
 /*============================ INCLUDES ======================================*/
 #include ".\os.h"
 
@@ -108,7 +110,7 @@ OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
 OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
 {
     OS_SEMP    *psemp = (OS_SEMP *)hSemaphore;
-    BOOLEAN     tasks_waiting;
+    BOOL        tasks_waiting;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif

@@ -1,5 +1,7 @@
 
 //! \note do not move this pre-processor statement to other places
+#define  __OS_FLAG_C__
+
 /*============================ INCLUDES ======================================*/
 #include ".\os.h"
 
@@ -28,8 +30,8 @@
  */
 
 OS_ERR   osFlagCreate  (OS_HANDLE  *pFlagHandle,
-                        BOOLEAN     init,
-                        BOOLEAN     manual)
+                        BOOL     init,
+                        BOOL     manual)
 {
     OS_FLAG    *pflag;
 #if OS_CRITICAL_METHOD == 3u
@@ -114,7 +116,7 @@ OS_ERR   osFlagDelete   (OS_HANDLE   hFlag,
                          UINT8       opt)
 {
     OS_FLAG      *pflag = (OS_FLAG *)hFlag;
-    BOOLEAN       waiting;
+    BOOL       waiting;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR     cpu_sr = 0u;
 #endif
@@ -282,7 +284,7 @@ OS_ERR   osFlagPend (OS_HANDLE       hFlag,
 OS_ERR osFlagSet(OS_HANDLE hFlag)
 {
     OS_FLAG      *pflag = (OS_FLAG *)hFlag;
-    BOOLEAN       sched;
+    BOOL       sched;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR     cpu_sr = 0u;
 #endif

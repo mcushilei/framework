@@ -14,7 +14,7 @@
 
 #define OS_DEBUG_EN               1u   //!< Enable(1) debug variables
 
-#define OS_MAX_PRIO_LEVELS      256u   //!< Max. number of priority levels ...
+#define OS_MAX_PRIO_LEVELS      5u   //!< Max. number of priority levels ...
                                        //!< ... MUST be <= 256!
 
 #define OS_MAX_SEMAPHORES        16u   //!< Max. number of semaphore event control blocks in your application
@@ -27,7 +27,7 @@
 #define OS_TICKS_PER_SEC        100u   //!< Set the number of ticks in one second
 #define OS_TIME_TICK_HOOK_EN      1u   //!<     Include code for OSTimeTickHook()
 
-#define OS_STAT_EN                1u   //!<     Enable (1) or Disable(0) the statistics task
+#define OS_STAT_EN                0u   //!<     Enable (1) or Disable(0) the statistics task
 #define OS_STAT_TASK_STK_CHK_EN   1u   //!<     Check task stacks from statistic task
 
 

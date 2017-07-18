@@ -103,7 +103,7 @@ void OSTaskStatHook(void)
  *! \Arguments   none
  *!
  *! \Notes       1) Interrupts are disabled during this call.
- *!              2) It is assumed that the global pointer 'osTCBHighRdy' points to the TCB of the task that
+ *!              2) It is assumed that the global pointer 'osTCBNextRdy' points to the TCB of the task that
  *!                 will be 'switched in' (i.e. the highest priority task) and, 'osTCBCur' points to the
  *!                 task being switched out (i.e. the preempted task).
  */
@@ -111,7 +111,7 @@ void OSTaskStatHook(void)
 void OSTaskSwHook(void)
 {
 #if OS_TASK_PROFILE_EN > 0u
-    osTCBHighRdy->OSTCBCtxSwCtr++;          //!< Inc. # of context switches to this task
+    osTCBNextRdy->OSTCBCtxSwCtr++;          //!< Inc. # of context switches to this task
 #endif
 #if OS_STAT_EN > 0u
     osCtxSwCtr++;                           //!< Increment context switch counter

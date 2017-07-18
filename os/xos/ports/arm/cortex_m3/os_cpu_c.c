@@ -32,7 +32,7 @@ uint32_t OSCriticalNesting = 0;                      //!<  关中断计数器（
 *              been placed on the stack in the proper order.
 *
 * Note(s)    : 1) Interrupts are enabled when your task starts executing.
-*              2) All tasks run in Thread mode, using process stack.
+*              2) All tasks run in THREAD mode, using process stack.
 *********************************************************************************************************
 */
 
@@ -53,7 +53,7 @@ OS_STK *OSTaskStkInit(OS_STK *ptos, void *wrap, void *task, void *parg)
     *(--stk)  = (uint32_t)parg;                     //!< R1: argument of task
     *(--stk)  = (uint32_t)task;                     //!< R0: task function
 
-                                                    //!< Remaining registers saved on thread's stack
+                                                    //!< Remaining registers saved on task's stack
     *(--stk)  = (uint32_t)0x11111111u;              //!< R11
     *(--stk)  = (uint32_t)0x10101010u;              //!< R10
     *(--stk)  = (uint32_t)0x09090909u;              //!< R9

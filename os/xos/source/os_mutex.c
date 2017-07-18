@@ -1,5 +1,7 @@
 
 //! \note do not move this pre-processor statement to other places
+#define  __OS_MUTEX_C__
+
 /*============================ INCLUDES ======================================*/
 #include ".\os.h"
 
@@ -117,7 +119,7 @@ OS_ERR   osMutexDelete  (OS_HANDLE  hMutex,
 {
     OS_MUTEX   *pmutex = (OS_MUTEX *)hMutex;
     OS_TCB     *powner;
-    BOOLEAN     tasks_waiting;
+    BOOL        tasks_waiting;
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
@@ -141,7 +143,7 @@ OS_ERR   osMutexDelete  (OS_HANDLE  hMutex,
     if (powner != NULL) {                                           //!< See if this mutex has been owned by any task.
         powner->OSTCBOwnMutex = NULL;                               //!< Yes.
         if (pmutex->OSMutexCeilingPrio == powner->OSTCBPrio) {      //!< If this task's prio has been changed,
-            OS_TaskChangePrio(powner, pmutex->OSMutexOwnerPrio);    //!< then restore task's prio.
+            OS_ScheduleChangePrio(powner, pmutex->OSMutexOwnerPrio);    //!< then restore task's prio.
         }
     }
 
@@ -221,7 +223,8 @@ OS_ERR  osMutexPend (OS_HANDLE  hMutex,
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif
-    UINT8           err;
+    OS_ERR          err;
+    UINT8           prio;
 
 
     if (osIntNesting > 0u) {                //!< See if called from ISR ...
@@ -253,11 +256,16 @@ OS_ERR  osMutexPend (OS_HANDLE  hMutex,
         return OS_ERR_TIMEOUT;
     }
 
-    if (pmutex->OSMutexOwnerPrio > pmutex->OSMutexCeilingPrio) {                //!< Owner's prio lower than ceiling.
-        OS_TaskChangePrio(pmutex->OSMutexOwnerTCB, pmutex->OSMutexCeilingPrio); //!< change owner's prio to ceiling.
+    if (pmutex->OSMutexCeilingPrio < osTCBCur->OSTCBPrio) {
+        prio = pmutex->OSMutexCeilingPrio;
+    } else {
+        prio = osTCBCur->OSTCBPrio;
+    }
+    if (pmutex->OSMutexOwnerTCB->OSTCBPrio > prio) {          //!< Is owner has a lower priority?
+        OS_ScheduleChangePrio(pmutex->OSMutexOwnerTCB, prio); //!< Yes. Rise owner's priority.
     }
     
-    OS_EventTaskWait(pmutex, &node, timeout);           //!< Suspend current task until event or timeout occurs
+    OS_EventTaskWait(pmutex, &node, timeout);           //!< Suspend current task.
     OSExitCriticalSection(cpu_sr);
     OS_Schedule();
 
@@ -323,7 +331,7 @@ OS_ERR   osMutexPost (OS_HANDLE  hMutex)
     
     osTCBCur->OSTCBOwnMutex  = NULL;
     if (pmutex->OSMutexCeilingPrio == osTCBCur->OSTCBPrio) {    //!< If this task's prio has been changed...
-        OS_TaskChangePrio(osTCBCur, pmutex->OSMutexOwnerPrio);  //!< ... restore task's prio.
+        OS_ScheduleChangePrio(osTCBCur, pmutex->OSMutexOwnerPrio);  //!< ... restore task's prio.
     }
     
     if (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) { //!< Any task waiting for the mutex?

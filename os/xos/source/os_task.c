@@ -1,5 +1,7 @@
 
 //! \note do not move this pre-processor statement to other places
+#define  __OS_TASK_C__
+
 /*============================ INCLUDES ======================================*/
 #include ".\os.h"
 
@@ -43,7 +45,7 @@ OS_ERR  osTaskChangePrio   (OS_HANDLE   handle,
                             UINT8       newprio)
 {
     OS_TCB     *ptcb = (OS_TCB *)handle;
-#if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
+#if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
     
@@ -64,10 +66,10 @@ OS_ERR  osTaskChangePrio   (OS_HANDLE   handle,
         ptcb->OSTCBOwnMutex->OSMutexOwnerPrio = newprio;//!< Yes.
         if (newprio < ptcb->OSTCBPrio) {                //!  Change the priority only if the new one
                                                         //!  is higher than the task's current.
-            OS_TaskChangePrio(ptcb, newprio);
+            OS_ScheduleChangePrio(ptcb, newprio);
         }
     } else {
-        OS_TaskChangePrio(ptcb, newprio);
+        OS_ScheduleChangePrio(ptcb, newprio);
     }
     OSExitCriticalSection(cpu_sr);
     
@@ -118,11 +120,11 @@ OS_ERR  osTaskChangePrio   (OS_HANDLE   handle,
  *!                        OS_TASK_OPT_SAVE_FP      If the CPU has floating-point registers, save them
  *!                                                 during a context switch.
  *!
- *! \Returns     OS_ERR_NONE              if the function was successful.
- *!              OS_ERR_TASK_EXIST        if the task priority already exist
- *!                                       (each task MUST have a unique priority).
- *!              OS_ERR_INVALID_PRIO      if the priority you specify is higher that the maximum
- *!              OS_ERR_CREATE_ISR        if you tried to create a task from an ISR.
+ *! \Returns     OS_ERR_NONE            if the function was successful.
+ *!              OS_ERR_TASK_EXIST      if the task priority already exist
+ *!                                     (each task MUST have a unique priority).
+ *!              OS_ERR_INVALID_PRIO    if the priority you specify is higher that the maximum
+ *!              OS_ERR_CREATE_ISR      if you tried to create a task from an ISR.
  */
 
 OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
@@ -135,24 +137,24 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
 {
     OS_TCB     *ptcb;
     OS_STK     *psp;
-#if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
+#if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
 
 
-    if (osIntNesting > 0u) {                //!< Make sure we don't create the task from within an ISR
+    if (osIntNesting > 0u) {            //!< Make sure we don't create the task from within an ISR
         return OS_ERR_CREATE_ISR;
     }
 #if OS_ARG_CHK_EN > 0u
 #if OS_MAX_PRIO_LEVELS <= 255
-    if (prio >= OS_MAX_PRIO_LEVELS) {       //!< Make sure priority is within allowable range
+    if (prio >= OS_MAX_PRIO_LEVELS) {   //!< Make sure priority is within allowable range
         return OS_ERR_INVALID_PRIO;
     }
 #endif
 #endif
     
     OSEnterCriticalSection(cpu_sr);
-    ptcb = OS_ObjPoolNew(&osTCBFreeList);    //!< Get a free TCB from the free TCB list
+    ptcb = OS_ObjPoolNew(&osTCBFreeList);   //!< Get a free TCB from the free TCB list
     if (ptcb == NULL) {                     //!< See if pool of free TCB pool was empty
         OSExitCriticalSection(cpu_sr);
         return OS_ERR_EVENT_DEPLETED;       //!< No more task control blocks
@@ -177,7 +179,7 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
 #endif
 
     OSEnterCriticalSection(cpu_sr);
-    OS_AddToReadyList(ptcb);                //!< Add task to prio table
+    OS_ScheduleReadyTask(ptcb);
     osTaskCtr++;                            //!< Increment the #tasks counter
     OSExitCriticalSection(cpu_sr);
     
@@ -206,29 +208,27 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
 static void os_task_del(void)
 {
     OS_TCB     *ptcb;
-#if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
+#if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
 
 
     OSEnterCriticalSection(cpu_sr);
     ptcb = osTCBCur;
-    if (ptcb->OSTCBDly != 0u) {                         //!< Is this task pending...
-        os_list_del(&ptcb->OSTCBList);
-        ptcb->OSTCBDly = 0u;
-    } else {                                            //!< ...or ready?
-        OS_RemoveFromReadyList(ptcb);
-    }
-    osTaskCtr--;                                        //!< One less task being managed
 
-    if (ptcb->OSTCBWaitNode != NULL) {                  //!< Remove this task from any event.
+    if (ptcb->OSTCBWaitNode != NULL) {  //!< Is this task pend for any event?
         OS_EventTaskRemove(ptcb);
+    } else if (ptcb->OSTCBDly != 0u) {  //!< Is this task sleep?
+        OS_ScheduleUnpendTask(ptcb);
+    } else {                            //!< It's ready.
+        OS_ScheduleUnreadyTask(ptcb);
     }
 
-    OS_ObjPoolFree(&osTCBFreeList, ptcb);                //!< Return TCB to free TCB list
+    OS_ObjPoolFree(&osTCBFreeList, ptcb);   //!< Return TCB to free TCB list
+    osTaskCtr--;                            //!< One less task being managed
     OSExitCriticalSection(cpu_sr);
     
-    OS_Schedule();                                      //!< Find new highest priority task
+    OS_Schedule();
 }
 
 /*!

@@ -93,7 +93,7 @@ const UINT16  OSDataSize =
                           + sizeof(osIdleCtr)
                           + sizeof(osTaskIdleStk)
                           + sizeof(osTCBCur)
-                          + sizeof(osTCBHighRdy)
+                          + sizeof(osTCBNextRdy)
                           + sizeof(osTCBFreeTbl)
                           + sizeof(osTCBFreeList)
                           + sizeof(osRdyGrp)
