@@ -163,7 +163,7 @@ OS_ERR   osFlagDelete   (OS_HANDLE   hFlag,
             pflag->OSFlagFlags    = 0u;
             OS_ObjPoolFree(&osFlagFreeList, pflag);
             OSExitCriticalSection(cpu_sr);
-            if (waiting == TRUE) {          //!< Reschedule only if task(s) were waiting
+            if (waiting != FALSE) {          //!< Reschedule only if task(s) were waiting
                 OS_Schedule();
             }
             err = OS_ERR_NONE;
@@ -312,7 +312,7 @@ OS_ERR osFlagSet(OS_HANDLE hFlag)
         }
     }
     OSExitCriticalSection(cpu_sr);
-    if (sched == TRUE) {
+    if (sched != FALSE) {
         OS_Schedule();
     }
     return OS_ERR_NONE;

@@ -279,6 +279,35 @@ void OS_ScheduleUnpendTask(OS_TCB *ptcb)
     ptcb->OSTCBDly = 0u;
 }
 
+static UINT8 os_schedule_get_highest_prio(void)
+{
+    UINT8   y;
+    UINT8   prio;
+    OS_PRIO tblVal;
+
+
+    //! find the highest priority of ready task.
+#if OS_MAX_PRIO_LEVELS <= 64u               //!< See if we support up to 64 tasks
+    y       = OS_COUNT_LEADING_ZERO(osRdyGrp);
+    tblVal  = osRdyTbl[y];
+    prio    = (y * 8u) + OS_COUNT_LEADING_ZERO(tblVal);
+#else                                       //!< We support up to 256 tasks
+    if ((osRdyGrp & 0xFFu) != 0u) {
+        y =      OS_COUNT_LEADING_ZERO(osRdyGrp & 0xFFu);
+    } else {
+        y = 8u + OS_COUNT_LEADING_ZERO((osRdyGrp >> 8u) & 0xFFu);
+    }
+    tblVal = osRdyTbl[y];
+    if ((tblVal & 0xFFu) != 0u) {
+        prio = (y * 16u) +      OS_COUNT_LEADING_ZERO(tblVal & 0xFFu);
+    } else {
+        prio = (y * 16u) + 8u + OS_COUNT_LEADING_ZERO((tblVal >> 8u) & 0xFFu);
+    }
+#endif
+    
+    return prio;
+}
+
 /*!
  *! \Brief       CHANGE PRIORITY OF A TASK
  *!
@@ -293,15 +322,18 @@ void OS_ScheduleUnpendTask(OS_TCB *ptcb)
  *! \Notes       1) This function assumes that interrupts are disabled.
  *!              2) This function is INTERNAL to OS and your application should not call it.
  */
-void OS_ScheduleChangePrio( OS_TCB     *ptcb,
-                        UINT8       newprio)
+void OS_ScheduleChangePrio(OS_TCB *ptcb, UINT8 newprio)
 {
 #if (OS_EVENT_EN)
     OS_WAITBALE_OBJ    *pobj;
     OS_WAIT_NODE       *pnode;
 #endif
+#if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
+    OS_CPU_SR   cpu_sr = 0u;
+#endif
 
 
+    OSEnterCriticalSection(cpu_sr);
     if (ptcb->OSTCBDly != 0u) {
 #if (OS_EVENT_EN)
         pnode = ptcb->OSTCBWaitNode;
@@ -329,6 +361,7 @@ void OS_ScheduleChangePrio( OS_TCB     *ptcb,
         ptcb->OSTCBPrio = newprio;
         OS_ScheduleReadyTask(ptcb);                           //!< Place TCB @ new priority
     }
+    OSExitCriticalSection(cpu_sr);
 }
 
 /*!
@@ -342,40 +375,22 @@ void OS_ScheduleChangePrio( OS_TCB     *ptcb,
  *! \Returns     none
  *!
  *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
- *!              2) Interrupts are assumed to be disabled when this function is called.
+ *!              2) Interrupts are assumed to be DISABLED when this function is called.
  */
 
 void OS_SchedulePrio(void)
 {
-    UINT8   y;
     UINT8   prio;
-    OS_PRIO tbl_val;
     OS_LIST_NODE   *node;
 
 
-#if OS_MAX_PRIO_LEVELS <= 64u               //!< See if we support up to 64 tasks
-    y       = OS_COUNT_LEADING_ZERO(osRdyGrp);
-    tbl_val = osRdyTbl[y];
-    prio    = (y * 8u) + OS_COUNT_LEADING_ZERO(tbl_val);
-#else                                       //!< We support up to 256 tasks
-    if ((osRdyGrp & 0xFFu) != 0u) {
-        y =      OS_COUNT_LEADING_ZERO(osRdyGrp & 0xFFu);
-    } else {
-        y = 8u + OS_COUNT_LEADING_ZERO((osRdyGrp >> 8u) & 0xFFu);
+    prio = os_schedule_get_highest_prio();
+    if (prio != osTCBCur->OSTCBPrio) {
+        node = osRdyList[prio].Next;
+        os_list_del(node);
+        os_list_add(node, osRdyList[prio].Prev);
+        osTCBNextRdy = OS_CONTAINER_OF(node, OS_TCB, OSTCBList);
     }
-    tbl_val = osRdyTbl[y];
-    if ((tbl_val & 0xFFu) != 0u) {
-        prio = (y * 16u) +      OS_COUNT_LEADING_ZERO(tbl_val & 0xFFu);
-    } else {
-        prio = (y * 16u) + 8u + OS_COUNT_LEADING_ZERO((tbl_val >> 8u) & 0xFFu);
-    }
-#endif
-    
-    node = osRdyList[prio].Next;
-    os_list_del(node);
-    os_list_add(node, osRdyList[prio].Prev);
-    
-    osTCBNextRdy = OS_CONTAINER_OF(node, OS_TCB, OSTCBList);
 }
 
 /*!
@@ -394,6 +409,8 @@ void OS_SchedulePrio(void)
  */
 void OS_Schedule(void)
 {
+    UINT8   prio;
+    OS_LIST_NODE   *node;
 #if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif
@@ -435,11 +452,13 @@ void osIntEnter(void)
 #endif
 
 
+    if (osRunning == FALSE) {
+        return;
+    }
+    
     OSEnterCriticalSection(cpu_sr);
-    if (osRunning == TRUE) {
-        if (osIntNesting < 255u) {
-            osIntNesting++;                 //!< Increment ISR nesting level
-        }
+    if (osIntNesting < 255u) {
+        osIntNesting++;                 //!< Increment ISR nesting level
     }
     OSExitCriticalSection(cpu_sr);
 }
@@ -467,13 +486,13 @@ void osIntExit(void)
 #endif
 
 
+    if (osRunning == FALSE) {
+        return;
+    }
+    
     OSEnterCriticalSection(cpu_sr);
     if (osIntNesting > 0u) {                            //!< Prevent osIntNesting from wrapping
         osIntNesting--;
-    }
-    if (osRunning != TRUE) {
-        OSExitCriticalSection(cpu_sr);
-        return;
     }
     if (osIntNesting == 0u) {                           //!< Reschedule only if all ISRs complete ...
         if (osLockNesting == 0u) {                      //!< ... and scheduler is not locked.
@@ -486,6 +505,42 @@ void osIntExit(void)
         }
     }
     OSExitCriticalSection(cpu_sr);
+}
+
+void OS_LockSched(void)
+{
+#if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
+    OS_CPU_SR  cpu_sr = 0u;
+#endif
+
+
+    if (osRunning != FALSE) {                   //!< Make sure multitasking is running
+        if (osIntNesting == 0u) {               //!< Can't call from an ISR
+            OSEnterCriticalSection(cpu_sr);
+            if (osLockNesting < 255u) {         //!< Prevent osLockNesting from wrapping back to 0
+                osLockNesting++;                //!< Increment lock nesting level
+            }
+            OSExitCriticalSection(cpu_sr);
+        }
+    }
+}
+
+void OS_UnlockSched(void)
+{
+#if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
+    OS_CPU_SR  cpu_sr = 0u;
+#endif
+
+
+    if (osRunning != FALSE) {                   //!< Make sure multitasking is running
+        if (osIntNesting == 0u) {               //!< Can't call from an ISR
+            OSEnterCriticalSection(cpu_sr);
+            if (osLockNesting > 0u) {           //!< Do not decrement if already 0
+                osLockNesting--;                //!< Decrement lock nesting level
+            }
+            OSExitCriticalSection(cpu_sr);
+        }
+    }
 }
 
 /*!
@@ -501,7 +556,6 @@ void osIntExit(void)
  *! \Notes       1) You MUST invoke osLockSched() and osUnlockSched() in pair.  In other words, for every
  *!                 call to osLockSched() you MUST have a call to osUnlockSched().
  */
-#if OS_SCHED_LOCK_EN > 0u
 void osLockSched(void)
 {
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
@@ -509,7 +563,7 @@ void osLockSched(void)
 #endif
 
 
-    if (osRunning == TRUE) {                    //!< Make sure multitasking is running
+    if (osRunning != FALSE) {                   //!< Make sure multitasking is running
         if (osIntNesting == 0u) {               //!< Can't call from an ISR
             OSEnterCriticalSection(cpu_sr);
             if (osLockNesting < 255u) {         //!< Prevent osLockNesting from wrapping back to 0
@@ -519,7 +573,6 @@ void osLockSched(void)
         }
     }
 }
-#endif
 
 /*!
  *! \Brief       ENABLE SCHEDULING
@@ -533,7 +586,6 @@ void osLockSched(void)
  *! \Notes       1) You MUST invoke osLockSched() and osUnlockSched() in pair.  In other words, for every
  *!                 call to osLockSched() you MUST have a call to osUnlockSched().
  */
-#if OS_SCHED_LOCK_EN > 0u
 void osUnlockSched(void)
 {
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
@@ -541,7 +593,7 @@ void osUnlockSched(void)
 #endif
 
 
-    if (osRunning == TRUE) {                    //!< Make sure multitasking is running
+    if (osRunning != FALSE) {                   //!< Make sure multitasking is running
         if (osIntNesting == 0u) {               //!< Can't call from an ISR
             OSEnterCriticalSection(cpu_sr);
             if (osLockNesting > 0u) {           //!< Do not decrement if already 0
@@ -552,7 +604,6 @@ void osUnlockSched(void)
         }
     }
 }
-#endif
 
 /*!
  *! \Brief       START MULTITASKING
@@ -605,8 +656,7 @@ void osTimeTick(void)
     OSTimeTickHook();
 #endif
     
-    if (osRunning == TRUE) {
-        OSEnterCriticalSection(cpu_sr);
+    if (osRunning != FALSE) {
         for (node = osPndList.Next; node != &osPndList; ) {      //!< Go through all task in TCB list.
             ptcb  = OS_CONTAINER_OF(node, OS_TCB, OSTCBList);
             node = node->Next;
@@ -621,11 +671,12 @@ void osTimeTick(void)
                     } else {
                         OS_ScheduleUnpendTask(ptcb);
                     }
+                    OSEnterCriticalSection(cpu_sr);
                     OS_ScheduleReadyTask(ptcb);
+                    OSExitCriticalSection(cpu_sr);
                 }
             }
         }
-        OSExitCriticalSection(cpu_sr);
     }
 }
 
@@ -994,8 +1045,12 @@ void OS_EventTaskWait(  void           *pecb,
 {
     OS_WAITBALE_OBJ    *pobj = (OS_WAITBALE_OBJ *)pecb;
     OS_LIST_NODE       *list;
+#if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
+    OS_CPU_SR     cpu_sr = 0u;
+#endif
 
 
+    OSEnterCriticalSection(cpu_sr);
     os_list_init_head(&pnode->OSWaitNodeList);
     pnode->OSWaitNodeTCB    = osTCBCur;             //!< Link to task's TCB
     pnode->OSWaitNodeECB    = pecb;                 //!< Link to node
@@ -1018,6 +1073,7 @@ void OS_EventTaskWait(  void           *pecb,
 
     OS_ScheduleUnreadyTask(osTCBCur);
     OS_SchedulePendTask(osTCBCur, ticks);
+    OSExitCriticalSection(cpu_sr);
 }
 
 /*!
@@ -1058,7 +1114,7 @@ void OS_EventTaskRemove(OS_TCB *ptcb)
  *!
  *! \Returns     none
  *!
- *! \Notes       1) This function assumes that interrupts are disabled.
+ *! \Notes       1) This function assumes that interrupts are DISABLED.
  *!              2) This function is INTERNAL to OS and your application should not call it.
  */
 OS_TCB *OS_EventTaskRdy(void   *pecb,

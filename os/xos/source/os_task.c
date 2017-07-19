@@ -73,7 +73,7 @@ OS_ERR  osTaskChangePrio   (OS_HANDLE   handle,
     }
     OSExitCriticalSection(cpu_sr);
     
-    if (osRunning == TRUE) {
+    if (osRunning != FALSE) {
         OS_Schedule();                                  //!< Find new highest priority task
     }
     
@@ -186,7 +186,7 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
     if (pHandle != NULL) {
         *pHandle = ptcb;
     }
-    if (osRunning == TRUE) {
+    if (osRunning != FALSE) {
         OS_Schedule();
     }
     return OS_ERR_NONE;

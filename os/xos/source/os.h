@@ -111,28 +111,23 @@ enum {
     OS_ERR_PDATA_NULL               = 2u,
     OS_ERR_INVALID_HANDLE           = 3u,
     OS_ERR_INVALID_OPT              = 4u,
-    OS_ERR_DEL_ISR                  = 5u,
-    OS_ERR_CREATE_ISR               = 6u,
+    OS_ERR_USE_IN_ISR               = 5u,
+    OS_ERR_OBJ_DEPLETED             = 6u,
 
     OS_ERR_TIMEOUT                  = 30u,
-    OS_ERR_PEND_ISR                 = 31u,
-    OS_ERR_PEND_LOCKED              = 32u,
-    OS_ERR_PEND_ABORT               = 33u,
-    OS_ERR_POST_ISR                 = 34u,
-    OS_ERR_TASK_WAITING             = 35u,
+    OS_ERR_PEND_LOCKED              = 31u,
+    OS_ERR_PEND_ABORT               = 32u,
+    OS_ERR_TASK_WAITING             = 33u,
 
-    OS_ERR_TASK_DEPLETED            = 60u,
+    OS_ERR_INVALID_PRIO             = 60u,
     OS_ERR_TASK_OPT                 = 61u,
     OS_ERR_TASK_EXIST               = 62u,
     OS_ERR_TASK_NOT_EXIST           = 63u,
-    OS_ERR_INVALID_PRIO             = 64u,
 
-    OS_ERR_FLAG_DEPLETED            = 80u,
 
-    OS_ERR_EVENT_DEPLETED           = 90u,
-    OS_ERR_SEM_OVF                  = 91u,
-    OS_ERR_NOT_MUTEX_OWNER          = 92u,
-    OS_ERR_HAS_OWN_MUTEX            = 93u,
+    OS_ERR_SEM_OVF                  = 90u,
+    OS_ERR_NOT_MUTEX_OWNER          = 91u,
+    OS_ERR_HAS_OWN_MUTEX            = 92u,
 };
     
 /*!
@@ -175,16 +170,24 @@ struct os_mem_pool {
 };
 
 struct os_wait_node {                           //!< Event Wait List Node.
-    OS_LIST_NODE        OSWaitNodeList;         //!< Pointer to previous NODE in wait list.
     OS_TCB             *OSWaitNodeTCB;          //!< Pointer to TCB of waiting task.
     OS_WAITBALE_OBJ    *OSWaitNodeECB;          //!< Pointer to ECB wait for.
+    OS_LIST_NODE        OSWaitNodeList;         //!< waiting NODE list.
+    UINT32              OSWaitNodeDly;          //!< Ticks to wait this object.
     UINT8               OSWaitNodeRes;          //!< Event wait resault.
+};
+
+struct os_sleep_node {                          //!< Task sleep List Node.
+    OS_TCB             *OSSleepNodeTCB;         //!< Pointer to sleep TCB.
+    OS_LIST_NODE        OSSleepNodeList;        //!< sleep NODE list.
+    UINT32              OSWaitNodeDly;          //!< Ticks to sleep.
 };
     
 struct os_waitable_obj {                        //!< Waitable object head.
     OS_OBJ_HEAD;
     UINT16          OSWaitObjCnt;               //!< counter.
-    OS_LIST_NODE    OSWaitObjWaitList;          //!< Pointer to first NODE of task waiting on this object.
+    OS_LIST_NODE    OSWaitObjWaitNodeList;      //!< Pointer to waiting NODE of task waits on this object.
+    OS_LIST_NODE    OSWaitObjList;
 };
     
 /*!
@@ -195,6 +198,7 @@ struct os_semp {
     OS_OBJ_HEAD;
     UINT16          OSSempCnt;                  //!< Semaphore count.
     OS_LIST_NODE    OSSempWaitList;             //!< Pointer to first NODE of task waiting on semaphore
+    OS_LIST_NODE    OSSempObjList;
 };
 #endif
 
@@ -207,6 +211,7 @@ struct os_mutex {
     UINT8           OSMutexCeilingPrio;         //!< Mutex's ceiling prio.
     UINT8           OSMutexOwnerPrio;           //!< Mutex owner's prio.
     OS_LIST_NODE    OSMutexWaitList;            //!< Pointer to first NODE of task waiting on mutex
+    OS_LIST_NODE    OSMutexObjList;
     OS_TCB         *OSMutexOwnerTCB;            //!< Pointer to mutex owner's TCB
 };
 #endif
@@ -219,6 +224,7 @@ struct os_flag {
     OS_OBJ_HEAD;
     UINT16          OSFlagFlags;                //!< Flag options
     OS_LIST_NODE    OSFlagWaitList;             //!< Pointer to first NODE of task waiting on flag
+    OS_LIST_NODE    OSFlagObjList;
 };
 #endif
 
@@ -231,17 +237,16 @@ struct os_tcb {
     UINT8           OSTCBOpt;                   //!< Task options as passed by osTaskCreate()
     UINT8           OSTCBPrio;                  //!< Task priority (0 == highest)
     
-    UINT32          OSTCBDly;                   //!< Ticks to pend task.
+    UINT16          OSTCBTimeSlice;
+    UINT16          OSTCBTimeSliceCnt;
 
     OS_STK         *OSTCBStkPtr;                //!< Pointer to current TOP of stack
 
-    OS_LIST_NODE    OSTCBList;                  //!< TCB list node.
+    OS_LIST_NODE    OSTCBList;                  //!< TCB list node for scheduler.
 
     OS_WAIT_NODE   *OSTCBWaitNode;
     
     OS_MUTEX       *OSTCBOwnMutex;
-    
-    UINT16          OSTCBTimeSlice;
     
 #if OS_TASK_PROFILE_EN > 0u
     UINT8           OSTCBStatus;
@@ -309,28 +314,28 @@ OS_EXT  OS_FLAG         osFlagFreeTbl[OS_MAX_FLAGS];        //!< Table of flag c
 OS_EXT  OS_LIST_NODE   *osTCBFreeList;                                  //!< List of free TCBs
 OS_EXT  OS_TCB          osTCBFreeTbl[OS_MAX_TASKS + OS_N_SYS_TASKS];    //!< Table of free TCBs
 
-OS_EXT  OS_LIST_NODE    osPndList;                          //!< Doubly linked list of active task's TCB
+OS_EXT  UINT32          osTaskCtr;
+
+OS_EXT  OS_LIST_NODE    osPendList;                         //!< Doubly linked list of pend task's TCB
+OS_EXT  OS_LIST_NODE    osSleepList;                        //!< Doubly linked list of sleep task's TCB
 
 OS_EXT  OS_PRIO         osRdyGrp;                           //!< Ready bitmap
 OS_EXT  OS_PRIO         osRdyTbl[OS_BITMAP_TBL_SIZE];
 OS_EXT  OS_LIST_NODE    osRdyList[OS_MAX_PRIO_LEVELS];      //!< Table of pointers to TCB of active task
 
-OS_EXT  UINT32      osTaskCtr;
-
-OS_EXT  UINT16      osCurTimeSlice;
 OS_EXT  OS_TCB     *osTCBCur;                       //!< Pointer to currently running TCB
 OS_EXT  OS_TCB     *osTCBNextRdy;                   //!< Pointer to highest priority TCB Ready-to-Run
 
 OS_EXT  UINT8       osIntNesting;                   //!< Interrupt nesting level
 OS_EXT  UINT8       osLockNesting;                  //!< Multitasking lock nesting level
 
-OS_EXT  BOOL     osRunning;                      //!< Flag indicating that kernel is running
+OS_EXT  BOOL        osRunning;                      //!< Flag indicating that kernel is running
 
 #if OS_STAT_EN > 0u
 OS_EXT  UINT32      osCtxSwCtr;                     //!< Counter of number of context switches
 OS_EXT  UINT32      osIdleCtrMax;                   //!< Max. value that idle ctr can take in 1 sec.
 OS_EXT  UINT8       osCPUUsage;                     //!< Percentage of CPU used
-OS_EXT  BOOL     osStatRunning;                  //!< Flag indicating that the statistic task is running
+OS_EXT  BOOL        osStatRunning;                  //!< Flag indicating that the statistic task is running
 OS_EXT  OS_STK      osTaskStatStk[OS_TASK_STAT_STK_SIZE];   //!< Statistics task stack
 #endif
 
@@ -463,10 +468,8 @@ void        osInit                 (void);
 void        osIntEnter             (void);
 void        osIntExit              (void);
 
-#if OS_SCHED_LOCK_EN > 0u
 void        osLockSched            (void);
 void        osUnlockSched          (void);
-#endif
 
 void        osStart                (void);
 
@@ -547,6 +550,8 @@ void        OS_ScheduleChangePrio  (OS_TCB         *ptcb,
 void        OS_SchedulePrio        (void);
 
 void        OS_Schedule            (void);
+void        OS_LockSched(void);
+void        OS_UnlockSched(void);
 
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
 void        OS_TaskStkChk          (OS_TCB         *ptcb);
@@ -712,10 +717,6 @@ void        OS_MemCopy             (UINT8          *pdest,
 #   endif
 #endif
 
-#ifndef OS_SCHED_LOCK_EN
-#   error "OS_CFG.H, Missing OS_SCHED_LOCK_EN: Include code for osLockSched() and osUnlockSched()"
-#endif
-
 #ifndef OS_TASK_SW_HOOK_EN
 #   error "OS_CFG.H, Missing OS_TASK_SW_HOOK_EN: Allows you to include the code for OSTaskSwHook() or not"
 #endif
@@ -735,10 +736,6 @@ void        OS_MemCopy             (UINT8          *pdest,
 
 #if    OS_DEBUG_EN > 0u
 #   error "OS_CFG.H, OS_DEBUG_EN must be disabled for safety-critical release code"
-#endif
-
-#ifdef OS_SCHED_LOCK_EN
-#   error "OS_CFG.H, OS_SCHED_LOCK_EN must be disabled for safety-critical release code"
 #endif
 
 #if    OS_STAT_EN > 0u

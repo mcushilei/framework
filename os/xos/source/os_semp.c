@@ -30,7 +30,7 @@
  *! \Returns     OS_ERR_NONE            If the call was successful.
  *!              OS_ERR_CREATE_ISR      If you attempted to create a MUTEX from an ISR
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is a NULL pointer.
- *!              OS_ERR_EVENT_DEPLETED  No more event control blocks available.
+ *!              OS_ERR_OBJ_DEPLETED    No more event control blocks available.
  */
 
 OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
@@ -55,7 +55,7 @@ OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
     psemp = OS_ObjPoolNew(&osSempFreeList);
     if (psemp == NULL) {
         OSExitCriticalSection(cpu_sr);
-        return OS_ERR_EVENT_DEPLETED;
+        return OS_ERR_OBJ_DEPLETED;
     }
     OSExitCriticalSection(cpu_sr);
 
@@ -137,36 +137,38 @@ OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
     }
     switch (opt) {
         case OS_DEL_NO_PEND:                                    //!< Delete semaphore only if no task waiting
-             if (tasks_waiting == FALSE) {
-                 psemp->OSObjType = OS_OBJ_TYPE_UNUSED;
-                 psemp->OSSempCnt = 0u;
-                 OS_ObjPoolFree(&osSempFreeList, psemp);
-                 OSExitCriticalSection(cpu_sr);
-                 err = OS_ERR_NONE;
-             } else {
-                 OSExitCriticalSection(cpu_sr);
-                 err = OS_ERR_TASK_WAITING;
-             }
-             break;
+            if (tasks_waiting != FALSE) {
+                OSExitCriticalSection(cpu_sr);
+                err = OS_ERR_TASK_WAITING;
+                break;
+            }
+            psemp->OSObjType = OS_OBJ_TYPE_UNUSED;
+            psemp->OSSempCnt = 0u;
+            OS_ObjPoolFree(&osSempFreeList, psemp);
+            OSExitCriticalSection(cpu_sr);
+            err = OS_ERR_NONE;
+            break;
 
         case OS_DEL_ALWAYS:
-             while (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList) { //!< Ready ALL tasks waiting for semaphore
-                 (void)OS_EventTaskRdy(psemp, OS_STAT_PEND_ABORT);
-             }
-             psemp->OSObjType = OS_OBJ_TYPE_UNUSED;
-             psemp->OSSempCnt = 0u;
-             OS_ObjPoolFree(&osSempFreeList, psemp);
-             OSExitCriticalSection(cpu_sr);
-             if (tasks_waiting == TRUE) {           //!< Reschedule only if task(s) were waiting.
-                 OS_Schedule();
-             }
-             err = OS_ERR_NONE;
-             break;
+            OS_LockSched();
+            OSExitCriticalSection(cpu_sr);
+            while (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList) { //!< Ready ALL tasks waiting for semaphore
+                (void)OS_EventTaskRdy(psemp, OS_STAT_PEND_ABORT);
+            }
+            OSEnterCriticalSection(cpu_sr);
+            OS_UnlockSched();
+            psemp->OSObjType = OS_OBJ_TYPE_UNUSED;
+            psemp->OSSempCnt = 0u;
+            OS_ObjPoolFree(&osSempFreeList, psemp);
+            OSExitCriticalSection(cpu_sr);
+            OS_Schedule();
+            err = OS_ERR_NONE;
+            break;
 
         default:
-             OSExitCriticalSection(cpu_sr);
-             err = OS_ERR_INVALID_OPT;
-             break;
+            OSExitCriticalSection(cpu_sr);
+            err = OS_ERR_INVALID_OPT;
+            break;
     }
     return err;
 }
@@ -198,8 +200,7 @@ OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
  *!                                     would lead to a suspension.
  */
 
-OS_ERR   osSemPend (OS_HANDLE  hSemaphore,
-                    UINT32     timeout)
+OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
 {
     OS_SEMP       *psemp = (OS_SEMP *)hSemaphore;
     OS_WAIT_NODE    node;
@@ -283,8 +284,7 @@ OS_ERR   osSemPend (OS_HANDLE  hSemaphore,
  */
 
 #if OS_SEMP_PEND_ABORT_EN > 0u
-OS_ERR  osSemPendAbort (OS_HANDLE  hSemaphore,
-                        UINT8      opt)
+OS_ERR osSemPendAbort(OS_HANDLE hSemaphore, UINT8 opt)
 {
     OS_SEMP   *psemp = (OS_SEMP *)hSemaphore;
     UINT8       err;
@@ -306,15 +306,15 @@ OS_ERR  osSemPendAbort (OS_HANDLE  hSemaphore,
     if (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList) {                 //!< See if any task waiting on semaphore?
         switch (opt) {
             case OS_PEND_OPT_BROADCAST:                                         //!< Do we need to abort ALL waiting tasks?
-                 while (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList) { //!< Yes, ready ALL tasks waiting on semaphore
-                     (void)OS_EventTaskRdy(psemp, OS_STAT_PEND_ABORT);
-                 }
-                 break;
+                while (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList) { //!< Yes, ready ALL tasks waiting on semaphore
+                    (void)OS_EventTaskRdy(psemp, OS_STAT_PEND_ABORT);
+                }
+                break;
 
             case OS_PEND_OPT_NONE:
             default:                                                            //!< No, ready HPT waiting on semaphore
-                 OS_EventTaskRdy(psemp, OS_STAT_PEND_ABORT);
-                 break;
+                OS_EventTaskRdy(psemp, OS_STAT_PEND_ABORT);
+                break;
         }
         OSExitCriticalSection(cpu_sr);
         OS_Schedule();
@@ -323,6 +323,7 @@ OS_ERR  osSemPendAbort (OS_HANDLE  hSemaphore,
         OSExitCriticalSection(cpu_sr);
         err = OS_ERR_NONE;
     }
+    
     return err;
 }
 #endif
@@ -346,10 +347,9 @@ OS_ERR  osSemPendAbort (OS_HANDLE  hSemaphore,
  *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
  */
 
-OS_ERR  osSemPost  (OS_HANDLE hSemaphore,
-                    UINT16    cnt)
+OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
 {
-    OS_SEMP   *psemp = (OS_SEMP *)hSemaphore;
+    OS_SEMP    *psemp = (OS_SEMP *)hSemaphore;
     UINT8       err;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
@@ -411,8 +411,7 @@ OS_ERR  osSemPost  (OS_HANDLE hSemaphore,
  */
 
 #if OS_SEMP_SET_EN > 0u
-OS_ERR   osSemSet   (OS_HANDLE  hSemaphore,
-                     UINT16     cnt)
+OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
 {
     OS_SEMP  *psemp = (OS_SEMP *)hSemaphore;
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
@@ -464,8 +463,7 @@ OS_ERR   osSemSet   (OS_HANDLE  hSemaphore,
  */
 
 #if OS_SEMP_QUERY_EN > 0u
-OS_ERR  osSemQuery (OS_HANDLE    hSemaphore,
-                    OS_SEM_INFO *pInfo)
+OS_ERR osSemQuery(OS_HANDLE hSemaphore, OS_SEM_INFO *pInfo)
 {
     OS_SEMP       *psemp = (OS_SEMP *)hSemaphore;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register

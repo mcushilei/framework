@@ -29,12 +29,11 @@
  *! \Returns     OS_ERR_NONE            If the call was successful.
  *!              OS_ERR_CREATE_ISR      If you attempted to create a MUTEX from an ISR
  *!              OS_ERR_INVALID_HANDLE  If 'ppevent' is a NULL pointer.
- *!              OS_ERR_EVENT_DEPLETED  No more event control blocks available.
+ *!              OS_ERR_OBJ_DEPLETED    No more event control blocks available.
  *!              OS_ERR_TASK_EXIST      The ceiling priority has been used by task.
  */
 
-OS_ERR   osMutexCreate (OS_HANDLE  *pMutexHandle,
-                        UINT8       ceilingPrio)
+OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
 {
     OS_MUTEX   *pmutex;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
@@ -56,7 +55,7 @@ OS_ERR   osMutexCreate (OS_HANDLE  *pMutexHandle,
     pmutex = OS_ObjPoolNew(&osMutexFreeList);
     if (pmutex == NULL) {
         OSExitCriticalSection(cpu_sr);
-        return OS_ERR_EVENT_DEPLETED;
+        return OS_ERR_OBJ_DEPLETED;
     }
     OSExitCriticalSection(cpu_sr);
 
@@ -114,8 +113,7 @@ OS_ERR   osMutexCreate (OS_HANDLE  *pMutexHandle,
  */
 
 #if OS_MUTEX_DEL_EN > 0u
-OS_ERR   osMutexDelete  (OS_HANDLE  hMutex,
-                         UINT8      opt)
+OS_ERR osMutexDelete(OS_HANDLE hMutex, UINT8 opt)
 {
     OS_MUTEX   *pmutex = (OS_MUTEX *)hMutex;
     OS_TCB     *powner;
@@ -154,29 +152,27 @@ OS_ERR   osMutexDelete  (OS_HANDLE  hMutex,
     }
     switch (opt) {
         case OS_DEL_NO_PEND:                                        //!< Delete mutex if NO task waiting.
-             if (tasks_waiting != FALSE) {
-                 OSExitCriticalSection(cpu_sr);
-                 err = OS_ERR_TASK_WAITING;
-                 break;
-             }
-             pmutex->OSObjType = OS_OBJ_TYPE_UNUSED;
-             OS_ObjPoolFree(&osMutexFreeList, pmutex);
-             OSExitCriticalSection(cpu_sr);
-             err = OS_ERR_NONE;
-             break;
+            if (tasks_waiting != FALSE) {
+                OSExitCriticalSection(cpu_sr);
+                err = OS_ERR_TASK_WAITING;
+                break;
+            }
+            pmutex->OSObjType = OS_OBJ_TYPE_UNUSED;
+            OS_ObjPoolFree(&osMutexFreeList, pmutex);
+            OSExitCriticalSection(cpu_sr);
+            err = OS_ERR_NONE;
+            break;
 
         case OS_DEL_ALWAYS:
-             while (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {
-                 (void)OS_EventTaskRdy(pmutex, OS_STAT_PEND_ABORT); //!< Ready ALL tasks waiting for mutex
-             }
-             pmutex->OSObjType = OS_OBJ_TYPE_UNUSED;
-             OS_ObjPoolFree(&osMutexFreeList, pmutex);
-             OSExitCriticalSection(cpu_sr);
-             if (tasks_waiting == TRUE) {                           //!< Reschedule only if task(s) were waiting
-                 OS_Schedule();
-             }
-             err = OS_ERR_NONE;
-             break;
+            while (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {
+                (void)OS_EventTaskRdy(pmutex, OS_STAT_PEND_ABORT); //!< Ready ALL tasks waiting for mutex
+            }
+            pmutex->OSObjType = OS_OBJ_TYPE_UNUSED;
+            OS_ObjPoolFree(&osMutexFreeList, pmutex);
+            OSExitCriticalSection(cpu_sr);
+            OS_Schedule();
+            err = OS_ERR_NONE;
+            break;
 
         default:
              OSExitCriticalSection(cpu_sr);
@@ -215,8 +211,7 @@ OS_ERR   osMutexDelete  (OS_HANDLE  hMutex,
  *! \Notes       1) The task that owns the mutex MUST NOT try to owns the same mutex.
  */
 
-OS_ERR  osMutexPend (OS_HANDLE  hMutex,
-                     UINT32     timeout)
+OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
 {
     OS_MUTEX       *pmutex = (OS_MUTEX *)hMutex;
     OS_WAIT_NODE    node;
@@ -303,12 +298,13 @@ OS_ERR  osMutexPend (OS_HANDLE  hMutex,
  *! \Notes       1) The mutex can ONLY be released by it's owner.
  */
 
-OS_ERR   osMutexPost (OS_HANDLE  hMutex)
+OS_ERR osMutexPost(OS_HANDLE hMutex)
 {
     OS_MUTEX   *pmutex = (OS_MUTEX *)hMutex;
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
+    OS_TCB     *ptcb;
 
 
     if (osIntNesting > 0u) {                //!< See if called from ISR ...
@@ -336,7 +332,7 @@ OS_ERR   osMutexPost (OS_HANDLE  hMutex)
     
     if (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) { //!< Any task waiting for the mutex?
                                                                     //!< Yes, Make HPT waiting for mutex ready
-        OS_TCB *ptcb = OS_EventTaskRdy(pmutex, OS_STAT_PEND_OK);
+        ptcb = OS_EventTaskRdy(pmutex, OS_STAT_PEND_OK);
         pmutex->OSMutexOwnerTCB  = ptcb;
         pmutex->OSMutexOwnerPrio = ptcb->OSTCBPrio;
         OSExitCriticalSection(cpu_sr);
@@ -367,8 +363,7 @@ OS_ERR   osMutexPost (OS_HANDLE  hMutex)
  */
 
 #if OS_MUTEX_QUERY_EN > 0u
-OS_ERR  osMutexQuery   (OS_HANDLE      hMutex,
-                        OS_MUTEX_INFO *pInfo)
+OS_ERR osMutexQuery(OS_HANDLE hMutex, OS_MUTEX_INFO *pInfo)
 {
     OS_MUTEX       *pmutex = (OS_MUTEX *)hMutex;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register

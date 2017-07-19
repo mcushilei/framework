@@ -22,8 +22,6 @@
 #define OS_MAX_FLAGS             16u   //!< Max. number of flag      event control blocks in your application
 #define OS_MAX_TASKS             16u   //!< Max. number of tasks in YOUR application
 
-#define OS_SCHED_LOCK_EN          1u   //!< Include code for osLockSched() and osUnlockSched()
-
 #define OS_TICKS_PER_SEC        100u   //!< Set the number of ticks in one second
 #define OS_TIME_TICK_HOOK_EN      1u   //!<     Include code for OSTimeTickHook()
 
