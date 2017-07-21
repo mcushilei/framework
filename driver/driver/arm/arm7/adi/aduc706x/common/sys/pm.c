@@ -39,10 +39,10 @@ typedef enum {
 //! \name the lowpower mode
 //! @{
 typedef enum {
-    WAIT            = 0,
-    SLEEP           = 1,
-    DEEP_SLEEP      = 2,
-    POWER_DOWN      = 3,
+    SLEEP           = 0,
+    DEEP_SLEEP,
+    POWER_DOWN,
+    DEEP_POWER_DOWN,
 } em_lowpower_mode_t;
 //! @}
 
@@ -301,7 +301,6 @@ bool enter_lowpower_mode(uint32_t wMode)
     uint32_t wReg;
     
     switch (wMode) {
-        case WAIT:
         case SLEEP:
             wReg = PLL_REG.POWCON0 & (~(1u << 3));
             break;

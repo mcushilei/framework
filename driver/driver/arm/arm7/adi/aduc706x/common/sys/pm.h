@@ -60,10 +60,10 @@ typedef enum {
 //! \name the lowpower mode
 //! @{
 typedef enum {
-    WAIT            = 0,
-    SLEEP           = 1,
-    DEEP_SLEEP      = 2,
-    POWER_DOWN      = 3,
+    SLEEP           = 0,
+    DEEP_SLEEP,
+    POWER_DOWN,
+    DEEP_POWER_DOWN,
 } em_lowpower_mode_t;
 //! @}
 
