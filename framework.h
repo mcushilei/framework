@@ -22,7 +22,7 @@
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include ".\hal\hal.h"
+#include ".\driver\driver.h"
 #include ".\os\os.h"
 #include ".\service\service.h"
 

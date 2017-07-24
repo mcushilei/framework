@@ -19,7 +19,7 @@
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include ".\hal\hal.h"
+#include ".\driver\driver.h"
 #include ".\service\service.h"
 
 /*============================ MACROS ========================================*/
@@ -39,9 +39,14 @@ bool platform_init( void )
     bool Result = false;
 
     do {
-        /*! initialize hardware abstract layer */
-        if ( !hal_init() ) {
-            break;
+        /*! initialize drivers */
+        if ( !driver_init() ) {
+            return false;
+        }
+
+        /*! initialize components */
+        if ( !component_init() ) {
+            return false;
         }
 
         /*! initialize system services */
