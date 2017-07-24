@@ -25,7 +25,7 @@
  *!              manual         If this flag is auto reset.
  *!
  *! \Returns     OS_ERR_NONE            If the call was successful.
- *!              OS_ERR_CREATE_ISR      If you attempted to create an Event Flag from an ISR.
+ *!              OS_ERR_USE_IN_ISR      If you attempted to create an Event Flag from an ISR.
  *!              OS_ERR_OBJ_DEPLETED    If there are no more event flag control block
  */
 
@@ -39,7 +39,7 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manual)
 
 
     if (osIntNesting > 0u) {            //!< Should not CREATE from an ISR
-        return OS_ERR_CREATE_ISR;
+        return OS_ERR_USE_IN_ISR;
     }
 #if OS_ARG_CHK_EN > 0u
     if (pFlagHandle == NULL) {          //!< Validate handle
@@ -98,7 +98,7 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manual)
  *!                                                    pending will be readied.
  *!
  *! \Returns     OS_ERR_NONE            The event flag was deleted successfully.
- *!              OS_ERR_DEL_ISR         If you attempted to delete the event flag from an ISR.
+ *!              OS_ERR_USE_IN_ISR         If you attempted to delete the event flag from an ISR.
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
  *!              OS_ERR_EVENT_TYPE      If you didn't pass a event flag object.
  *!              OS_ERR_INVALID_OPT     An invalid option was specified.
@@ -127,7 +127,7 @@ OS_ERR osFlagDelete(OS_HANDLE hFlag, UINT8 opt)
 
 
     if (osIntNesting > 0u) {            //!< Can't DELETE from an ISR
-        return OS_ERR_DEL_ISR;
+        return OS_ERR_USE_IN_ISR;
     }
 #if OS_ARG_CHK_EN > 0u
     if (pflag == NULL) {                //!< Validate 'pflag'
@@ -198,7 +198,7 @@ OS_ERR osFlagDelete(OS_HANDLE hFlag, UINT8 opt)
  *!                            a message arrives.
  *!
  *!  \Returns    OS_ERR_NONE            The flag have been set within the specified 'timeout'.
- *!              OS_ERR_PEND_ISR        If you tried to PEND from an ISR.
+ *!              OS_ERR_USE_IN_ISR        If you tried to PEND from an ISR.
  *!              OS_ERR_PEND_LOCKED     If you called this function when the scheduler is locked.
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
  *!              OS_ERR_EVENT_TYPE      If you didn't pass a event flag object.
@@ -219,7 +219,7 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
 
 
     if (osIntNesting > 0u) {            //!< Can't PEND from an ISR
-        return OS_ERR_PEND_ISR;
+        return OS_ERR_USE_IN_ISR;
     }
     if (osLockNesting > 0u) {           //!< Can't PEND when locked
         return OS_ERR_PEND_LOCKED;
@@ -296,7 +296,7 @@ OS_ERR osFlagSet(OS_HANDLE hFlag)
 
 
     if (osIntNesting > 0u) {            //!< Should not CREATE from an ISR
-        return OS_ERR_CREATE_ISR;
+        return OS_ERR_USE_IN_ISR;
     }
 #if OS_ARG_CHK_EN > 0u
     if (pflag == NULL) {                //!< Validate 'pflag'
@@ -348,7 +348,7 @@ OS_ERR osFlagReset(OS_HANDLE hFlag)
 
 
     if (osIntNesting > 0u) {            //!< Should not CREATE from an ISR
-        return OS_ERR_CREATE_ISR;
+        return OS_ERR_USE_IN_ISR;
     }
 #if OS_ARG_CHK_EN > 0u
     if (pflag == NULL) {                //!< Validate 'pflag'.

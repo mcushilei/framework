@@ -53,7 +53,7 @@
 #define OS_FLAG_WAIT(__FLAG, __TIME)        osFlagPend(__FLAG, __TIME)
 
 
-#define OS_TASK_SLEEP(__T)                  osTimeDelay(__T)
+#define OS_TASK_SLEEP(__T)                  osTaskSleep(__T)
                                                 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/

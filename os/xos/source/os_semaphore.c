@@ -28,7 +28,7 @@
  *!                            available.
  *!
  *! \Returns     OS_ERR_NONE            If the call was successful.
- *!              OS_ERR_CREATE_ISR      If you attempted to create a MUTEX from an ISR
+ *!              OS_ERR_USE_IN_ISR      If you attempted to create a MUTEX from an ISR
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is a NULL pointer.
  *!              OS_ERR_OBJ_DEPLETED    No more event control blocks available.
  */
@@ -42,7 +42,7 @@ OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
 
 
     if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_CREATE_ISR;       //!< ... can't CREATE from an ISR
+        return OS_ERR_USE_IN_ISR;       //!< ... can't CREATE from an ISR
     }
 #if OS_ARG_CHK_EN > 0u
     if (pSemaphoreHandle == NULL) {     //!< Validate handle
@@ -92,7 +92,7 @@ OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
  *!                                                     will be readied.
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and the semaphore was deleted
- *!              OS_ERR_DEL_ISR         If you attempted to delete the semaphore from an ISR
+ *!              OS_ERR_USE_IN_ISR         If you attempted to delete the semaphore from an ISR
  *!              OS_ERR_INVALID_OPT     An invalid option was specified
  *!              OS_ERR_TASK_WAITING    One or more tasks were waiting on the semaphore
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
@@ -123,7 +123,7 @@ OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
 
 
     if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_DEL_ISR;          //!< ... can't DELETE from an ISR
+        return OS_ERR_USE_IN_ISR;          //!< ... can't DELETE from an ISR
     }
 #if OS_ARG_CHK_EN > 0u
     if (psemp == NULL) {                //!< Validate 'psemp'
@@ -203,7 +203,7 @@ OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
  *!              OS_ERR_PEND_ABORT      The wait on the semaphore was aborted.
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
  *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
- *!              OS_ERR_PEND_ISR        If you called this function from an ISR and the result
+ *!              OS_ERR_USE_IN_ISR        If you called this function from an ISR and the result
  *!              OS_ERR_PEND_LOCKED     If you called this function when the scheduler is locked
  *!                                     would lead to a suspension.
  */
@@ -219,7 +219,7 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
 
 
     if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_PEND_ISR;         //!< ... can't PEND from an ISR
+        return OS_ERR_USE_IN_ISR;         //!< ... can't PEND from an ISR
     }
     if (osLockNesting > 0u) {           //!< See if called with scheduler locked ...
         return OS_ERR_PEND_LOCKED;      //!< ... can't PEND when locked
@@ -302,7 +302,7 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore, UINT8 opt)
 
 
     if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_PEND_ISR;         //!< ... can't PEND from an ISR
+        return OS_ERR_USE_IN_ISR;         //!< ... can't PEND from an ISR
     }
 #if OS_ARG_CHK_EN > 0u
     if (psemp == NULL) {                //!< Validate 'psemp'
@@ -368,7 +368,7 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
 
 
     if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_PEND_ISR;         //!< ... can't PEND from an ISR
+        return OS_ERR_USE_IN_ISR;         //!< ... can't PEND from an ISR
     }
 #if OS_ARG_CHK_EN > 0u
     if (psemp == NULL) {                //!< Validate 'psemp'
@@ -435,7 +435,7 @@ OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
 
 
     if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_PEND_ISR;         //!< ... can't PEND from an ISR
+        return OS_ERR_USE_IN_ISR;         //!< ... can't PEND from an ISR
     }
 #if OS_ARG_CHK_EN > 0u
     if (psemp == NULL) {                    //!< Validate 'psemp'

@@ -176,12 +176,6 @@ struct os_wait_node {                           //!< Event Wait List Node.
     UINT32              OSWaitNodeDly;          //!< Ticks to wait this object.
     UINT8               OSWaitNodeRes;          //!< Event wait resault.
 };
-
-struct os_sleep_node {                          //!< Task sleep List Node.
-    OS_TCB             *OSSleepNodeTCB;         //!< Pointer to sleep TCB.
-    OS_LIST_NODE        OSSleepNodeList;        //!< sleep NODE list.
-    UINT32              OSWaitNodeDly;          //!< Ticks to sleep.
-};
     
 struct os_waitable_obj {                        //!< Waitable object head.
     OS_OBJ_HEAD;
@@ -247,6 +241,8 @@ struct os_tcb {
     OS_WAIT_NODE   *OSTCBWaitNode;
     
     OS_MUTEX       *OSTCBOwnMutex;
+    
+    UINT32          OSTCBDly;
     
 #if OS_TASK_PROFILE_EN > 0u
     UINT8           OSTCBStatus;
@@ -454,11 +450,11 @@ OS_ERR      osTaskChangePrio       (OS_HANDLE       handle,
                                     UINT8           newprio);
 #endif
 
+void        osTaskSleep            (UINT32          ticks);
+
 /*!
  *! TIME MANAGEMENT
  */
-void        osTimeDelay            (UINT32          ticks);
-
 void        osTimeTick             (void);
 
 /*!
@@ -541,7 +537,7 @@ void       *OS_ObjPoolNew          (OS_LIST_NODE  **ppObj);
 /*!
  *! OS SCHEDULE INTERFACE
  */
-void        os_schedule_init(void)
+void        os_schedule_init       (void);
 void        OS_ScheduleReadyTask   (OS_TCB         *ptcb);
 void        OS_ScheduleUnreadyTask (OS_TCB         *ptcb);
 void        OS_ScheduleChangePrio  (OS_TCB         *ptcb,
@@ -555,6 +551,8 @@ void        OS_UnlockSched(void);
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
 void        OS_TaskStkChk          (OS_TCB         *ptcb);
 #endif
+
+void        OS_WaitNodeRemove     (OS_TCB         *ptcb);
 
 void        OS_RegWaitableObj      (OS_WAITBALE_OBJ *pobj);
 void        OS_DeregWaitableObj    (OS_WAITBALE_OBJ *pobj);
@@ -572,8 +570,6 @@ OS_TCB     *OS_EventTaskRdy        (void           *pecb,
 void        OS_EventTaskWait       (void           *pecb,
                                     OS_WAIT_NODE   *pnode,
                                     UINT32          timeout);
-
-void        OS_EventTaskRemove     (OS_TCB         *ptcb);
 
 void        OS_MemClr              (UINT8          *pdest,
                                     UINT32          size);

@@ -66,8 +66,6 @@ void os_schedule_init(void)
 
     osTCBCur      = NULL;
     osTCBNextRdy  = NULL;
-    
-    os_list_init_head(&osPndList);
 }
 
 void OS_LockSched(void)
@@ -199,27 +197,24 @@ static UINT8 os_schedule_get_highest_prio(void)
  */
 void OS_ScheduleChangePrio(OS_TCB *ptcb, UINT8 newprio)
 {
-#if (OS_EVENT_EN)
     OS_WAITBALE_OBJ    *pobj;
     OS_WAIT_NODE       *pnode;
-#endif
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
 
 
     OSEnterCriticalSection(cpu_sr);
-    if (ptcb->OSTCBDly != 0u) {
-#if (OS_EVENT_EN)
-        pnode = ptcb->OSTCBWaitNode;
-        if (pnode != NULL) {                                        //!< Is this task pending for any event?...
-            pobj = pnode->OSWaitNodeECB;                            //!< ...Yes.
-            if (OS_OBJ_PRIO_TYPE_GET(pobj->OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {  //!< Has this event a prio-wait list?
+    pnode = ptcb->OSTCBWaitNode;
+    if (pnode != NULL) {
+        pobj = pnode->OSWaitNodeECB;
+        if (pobj != NULL) {                     //!< Is this task pending for any event?...
+            if (OS_OBJ_PRIO_TYPE_GET(pobj->OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {  //!< ...Yes. Has this event a prio-wait list?
                 OS_LIST_NODE *list;
                 OS_WAIT_NODE *nextNode;
                 
                 os_list_del(&pnode->OSWaitNodeList);                //!< remove wait node from old priority.
-                for (list = pobj->OSWaitObjWaitList.Next; list != &pobj->OSWaitObjWaitList; list = list->Next) {    //!< find new position
+                for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; list = list->Next) {    //!< find new position
                     nextNode = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
                     if (newprio < nextNode->OSWaitNodeTCB->OSTCBPrio) {
                         break;
@@ -228,7 +223,6 @@ void OS_ScheduleChangePrio(OS_TCB *ptcb, UINT8 newprio)
                 os_list_add(&pnode->OSWaitNodeList, list->Prev);    //!< and place at the new place.
             }
         }
-#endif
         ptcb->OSTCBPrio = newprio;              //!< Set new task priority
     } else {
         OS_ScheduleUnreadyTask(ptcb);           //!< Remove TCB from old priority
@@ -283,8 +277,6 @@ void OS_SchedulePrio(void)
  */
 void OS_Schedule(void)
 {
-    UINT8   prio;
-    OS_LIST_NODE   *node;
 #if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif

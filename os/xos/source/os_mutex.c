@@ -27,7 +27,7 @@
  *!                            the mutex by setting this value to OS_TASK_LOWEST_PRIO.
  *!
  *! \Returns     OS_ERR_NONE            If the call was successful.
- *!              OS_ERR_CREATE_ISR      If you attempted to create a MUTEX from an ISR
+ *!              OS_ERR_USE_IN_ISR      If you attempted to create a MUTEX from an ISR
  *!              OS_ERR_INVALID_HANDLE  If 'ppevent' is a NULL pointer.
  *!              OS_ERR_OBJ_DEPLETED    No more event control blocks available.
  *!              OS_ERR_TASK_EXIST      The ceiling priority has been used by task.
@@ -42,7 +42,7 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
 
 
     if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_CREATE_ISR;       //!< ... can't CREATE mutex from an ISR
+        return OS_ERR_USE_IN_ISR;       //!< ... can't CREATE mutex from an ISR
     }
 #if OS_ARG_CHK_EN > 0u
     if (pMutexHandle == NULL) {         //!< Validate handle
@@ -95,7 +95,7 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
  *!                                                     be readied.
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and the mutex was deleted
- *!              OS_ERR_DEL_ISR         If you attempted to delete the MUTEX from an ISR
+ *!              OS_ERR_USE_IN_ISR         If you attempted to delete the MUTEX from an ISR
  *!              OS_ERR_INVALID_OPT     An invalid option was specified
  *!              OS_ERR_TASK_WAITING    One or more tasks were waiting on the mutex
  *!              OS_ERR_INVALID_HANDLE  If 'hMutex' is an invalid handle.
@@ -130,7 +130,7 @@ OS_ERR osMutexDelete(OS_HANDLE hMutex, UINT8 opt)
 
 
     if (osIntNesting > 0u) {                    //!< Can't DELETE from an ISR.
-        return OS_ERR_DEL_ISR;
+        return OS_ERR_USE_IN_ISR;
     }
 #if OS_ARG_CHK_EN > 0u
     if (pmutex == NULL) {                       //!< Validate 'pmutex'
@@ -208,7 +208,7 @@ OS_ERR osMutexDelete(OS_HANDLE hMutex, UINT8 opt)
  *! \Returns     OS_ERR_NONE            The call was successful and your task owns the mutex
  *!              OS_ERR_TIMEOUT         The mutex was not available within the specified 'timeout'.
  *!              OS_ERR_PEND_ABORT      The wait on the mutex was aborted.
- *!              OS_ERR_PEND_ISR        If you called this function from an ISR and the result
+ *!              OS_ERR_USE_IN_ISR        If you called this function from an ISR and the result
  *!                                     would lead to a suspension.
  *!              OS_ERR_PEND_LOCKED     If you called this function when the scheduler is locked
  *!              OS_ERR_INVALID_HANDLE  If 'hMutex' is an invalid handle.
@@ -230,7 +230,7 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
 
 
     if (osIntNesting > 0u) {                //!< See if called from ISR ...
-        return OS_ERR_PEND_ISR;             //!< ... can't PEND from an ISR
+        return OS_ERR_USE_IN_ISR;             //!< ... can't PEND from an ISR
     }
     if (osLockNesting > 0u) {               //!< See if called with scheduler locked ...
         return OS_ERR_PEND_LOCKED;          //!< ... can't PEND when locked
@@ -297,7 +297,7 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
  *!                                  desired mutex.
  *!
  *! \Returns     OS_ERR_NONE                The call was successful and the mutex was signaled.
- *!              OS_ERR_POST_ISR            Attempted to post from an ISR (not valid for MUTEXes)
+ *!              OS_ERR_USE_IN_ISR            Attempted to post from an ISR (not valid for MUTEXes)
  *!              OS_ERR_INVALID_HANDLE      If 'hMutex' is an invalid handle.
  *!              OS_ERR_EVENT_TYPE          If you didn't pass a event mutex object.
  *!              OS_ERR_NOT_MUTEX_OWNER     The task that did the post is NOT the owner of the MUTEX.
@@ -315,7 +315,7 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
 
 
     if (osIntNesting > 0u) {                //!< See if called from ISR ...
-        return OS_ERR_POST_ISR;             //!< ... can't POST mutex from an ISR
+        return OS_ERR_USE_IN_ISR;             //!< ... can't POST mutex from an ISR
     }
 #if OS_ARG_CHK_EN > 0u
     if (pmutex == NULL) {                   //!< Validate 'pmutex'

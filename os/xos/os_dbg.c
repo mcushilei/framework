@@ -99,7 +99,7 @@ const UINT16  OSDataSize =
                           + sizeof(osRdyGrp)
                           + sizeof(osRdyTbl)
                           + sizeof(osRdyList)
-                          + sizeof(osPndList)
+                          + sizeof(osSleepList)
                           ;
 #endif
 

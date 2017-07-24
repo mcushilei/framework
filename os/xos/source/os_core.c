@@ -88,7 +88,7 @@ static void os_init_misc(void)
     osStatRunning            = FALSE;                  //!< Statistic task is not ready
 #endif
     
-    os_list_init_head(%osWaitableObjList);
+    os_list_init_head(&osWaitableObjList);
 }
 
 /*!
@@ -337,10 +337,10 @@ void osStart(void)
  */
 void osTimeTick(void)
 {
-    OS_LIST_NODE   *list, *listObj;
-    OS_TCB         *ptcb;
-    OS_WAIT_NODE   *pobj;
-    OS_WAIT_NODE   *pnode;
+    OS_LIST_NODE       *list, *listObj;
+    OS_TCB             *ptcb;
+    OS_WAITBALE_OBJ    *pobj;
+    OS_WAIT_NODE       *pnode;
 #if OS_CRITICAL_METHOD == 3u                               //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif
@@ -352,18 +352,18 @@ void osTimeTick(void)
     
     if (osRunning != FALSE) {
         for (listObj = osWaitableObjList.Next; listObj != &osWaitableObjList; listObj = listObj->Next) {
-            pobj = OS_CONTAINER_OF(listObj, OS_WAIT_NODE, OSWaitObjList);
+            pobj = OS_CONTAINER_OF(listObj, OS_WAITBALE_OBJ, OSWaitObjList);
             //! if this objcet is not locked.
-            for (list = pobj->OSWaitNodeList.Next; list != &pobj->OSWaitNodeList; ) {   //!< Go through all task in TCB list.
+            for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; ) {   //!< Go through all task in TCB list.
                 pnode  = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
                 list = list->Next;
                 ptcb = pnode->OSWaitNodeTCB;
                 
-                if (ptcb->OSTCBDly != 0u && ptcb->OSTCBDly != OS_INFINITE) {
-                    ptcb->OSTCBDly--;
-                    if (ptcb->OSTCBDly == 0u) {                     //!< If timeout
-                        pnode->OSWaitNodeRes = OS_STAT_PEND_TO;     //!< Indicate PEND timeout.
-                        OS_EventTaskRemove(ptcb);
+                if (pnode->OSWaitNodeDly != 0u) {
+                    pnode->OSWaitNodeDly--;
+                    if (pnode->OSWaitNodeDly == 0u) {                   //!< If timeout
+                        pnode->OSWaitNodeRes = OS_STAT_PEND_TO;         //!< Indicate PEND timeout.
+                        OS_WaitNodeRemove(ptcb);
                         OSEnterCriticalSection(cpu_sr);
                         OS_ScheduleReadyTask(ptcb);
                         OSExitCriticalSection(cpu_sr);
@@ -371,14 +371,15 @@ void osTimeTick(void)
                 }
             }
         }
-        for (list = osSleepList.Next; list != &osSleepList; ) {      //!< Go through all task in sleep TCB list.
-            ptcb  = OS_CONTAINER_OF(list, OS_TCB, OSTCBList);
+        for (list = osSleepList.Next; list != &osSleepList; ) {         //!< Go through all task in sleep TCB list.
+            pnode  = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
             list = list->Next;
+            ptcb = pnode->OSWaitNodeTCB;
             
-            if (ptcb->OSTCBDly != 0u && ptcb->OSTCBDly != OS_INFINITE) {
-                ptcb->OSTCBDly--;
-                if (ptcb->OSTCBDly == 0u) {                         //!< If timeout
-                    OS_WakeupTask(ptcb);
+            if (pnode->OSWaitNodeDly != 0u) {
+                pnode->OSWaitNodeDly--;
+                if (pnode->OSWaitNodeDly == 0u) {                       //!< If timeout
+                    OS_WaitNodeRemove(ptcb);
                     OSEnterCriticalSection(cpu_sr);
                     OS_ScheduleReadyTask(ptcb);
                     OSExitCriticalSection(cpu_sr);
@@ -388,24 +389,44 @@ void osTimeTick(void)
     }
 }
 
-void OS_SleepTask(OS_TCB *ptcb, UINT32 ticks)
+void OS_SleepTask(  OS_TCB         *ptcb,
+                    OS_WAIT_NODE   *pnode,
+                    UINT32          ticks)
 {
     if (ticks == OS_INFINITE) {
         ticks = 0u;
     }
-    ptcb->OSTCBDly = ticks;
+    ptcb->OSTCBWaitNode     = pnode;
+    pnode->OSWaitNodeTCB    = ptcb;
+    pnode->OSWaitNodeDly    = ticks;
     
-    os_list_add(&ptcb->OSTCBList, osPndList.Prev);  //!< add task to the end of PEND task list.
+    os_list_add(&pnode->OSWaitNodeList, osSleepList.Prev);  //!< add task to the end of PEND task list.
 }
 
-void OS_WakeupTask(OS_TCB *ptcb)
+
+/*!
+ *! \Brief       REMOVE TASK FROM EVENT WAIT LIST
+ *!
+ *! \Description Remove a task from an event's wait list.
+ *!
+ *! \Arguments   ptcb     is a pointer to the task to remove.
+ *!
+ *! \Returns     none
+ *!
+ *! \Notes       1) This function assumes that interrupts are DISABLED.
+ *!              2) This function is INTERNAL to OS and your application should not call it.
+ */
+void OS_WaitNodeRemove(OS_TCB *ptcb)
 {
-    os_list_del(&ptcb->OSTCBList);
-    ptcb->OSTCBDly = 0u;
+    OS_WAIT_NODE *pnode = ptcb->OSTCBWaitNode;
+    
+
+    os_list_del(&pnode->OSWaitNodeList);    //!< remove from wait NODE list.
+    ptcb->OSTCBWaitNode = NULL;
 }
 
 /*!
- *! \Brief       DELAY TASK 'n' TICKS
+ *! \Brief       SEND TASK TO SLEEP FOR 'n' TICKS
  *!
  *! \Description This function is called to delay execution of the currently running task until the
  *!              specified number of system ticks expires.  This, of course, directly equates to delaying
@@ -417,10 +438,11 @@ void OS_WakeupTask(OS_TCB *ptcb)
  *!
  *! \Returns     none
  */
-void osTimeDelay(UINT32 ticks)
+void osTaskSleep(UINT32 ticks)
 {
+    OS_WAIT_NODE    node;
 #if OS_CRITICAL_METHOD == 3u                        //!< Allocate storage for CPU status register
-    OS_CPU_SR  cpu_sr = 0u;
+    OS_CPU_SR       cpu_sr = 0u;
 #endif
 
 
@@ -437,7 +459,7 @@ void osTimeDelay(UINT32 ticks)
     
     OSEnterCriticalSection(cpu_sr);
     OS_ScheduleUnreadyTask(osTCBCur);
-    OS_SleepTask(osTCBCur, ticks);
+    OS_SleepTask(osTCBCur, &node, ticks);
     OSExitCriticalSection(cpu_sr);
     OS_Schedule();                              //!< Find next task to run!
 }
@@ -467,11 +489,11 @@ void osStatInit(void)
 #endif
 
 
-    osTimeDelay(2u);                            //!< Synchronize with clock tick
+    osTaskSleep(2u);                            //!< Synchronize with clock tick
     OSEnterCriticalSection(cpu_sr);
     osIdleCtr       = 0u;                       //!< Clear idle counter
     OSExitCriticalSection(cpu_sr);
-    osTimeDelay(OS_TICKS_PER_SEC);              //!< Determine MAX. idle counter value for 1 second
+    osTaskSleep(OS_TICKS_PER_SEC);              //!< Determine MAX. idle counter value for 1 second
     OSEnterCriticalSection(cpu_sr);
     osIdleCtrMax    = osIdleCtr;                //!< Store maximum idle counter count in 1 second
     osStatRunning   = TRUE;
@@ -584,9 +606,10 @@ static void os_task_idle(void *parg)
 static void os_task_statistics(void *parg)
 {
     UINT32          idl_cnt;                        //!< Val. reached by idle ctr at run time in 1 sec.
-    OS_LIST_NODE   *list;
-    UINT8           i;
-    OS_TCB         *ptcb;
+    OS_LIST_NODE       *list, *listObj;
+    OS_TCB             *ptcb;
+    OS_WAITBALE_OBJ    *pobj;
+    OS_WAIT_NODE       *pnode;
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif
@@ -595,12 +618,12 @@ static void os_task_statistics(void *parg)
     parg = parg;                                //!< Prevent compiler warning for not using 'parg'
     
     while (osStatRunning == FALSE) {         //!< Wait until osIdleCtrMax has been measured.
-        osTimeDelay(OS_TICKS_PER_SEC);
+        osTaskSleep(OS_TICKS_PER_SEC);
     }
     osIdleCtrMax /= 100u;
     if (osIdleCtrMax == 0u) {
         osCPUUsage = 0u;
-        osTimeDelay(OS_INFINITE);
+        osTaskSleep(OS_INFINITE);
     }
     
     OSEnterCriticalSection(cpu_sr);                        //!< Initial CPU usage as 0%
@@ -615,13 +638,16 @@ static void os_task_statistics(void *parg)
         osCPUUsage  = 100u - idl_cnt / osIdleCtrMax;
         
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
-        for (list = osPndList.Next; list != &osPndList; list = list->Next) {
-            ptcb = OS_CONTAINER_OF(list, OS_TCB, OSTCBList);
+        for (list = osSleepList.Next; list != &osSleepList; list = list->Next) {
+            pnode = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
+            ptcb  = pnode->OSWaitNodeTCB;
             OS_TaskStkChk(ptcb);
         }
-        for (i = 0; i < OS_BITMAP_TBL_SIZE; i++) {
-            for (list = osRdyList[i].Next; list != &osRdyList[i]; list = list->Next) {
-                ptcb = OS_CONTAINER_OF(list, OS_TCB, OSTCBList);
+        for (listObj = osWaitableObjList.Next; listObj != &osWaitableObjList; listObj = listObj->Next) {
+            pobj = OS_CONTAINER_OF(listObj, OS_WAITBALE_OBJ, OSWaitObjList);
+            for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; list = list->Next) {   //!< Go through all task in TCB list.
+                pnode  = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
+                ptcb = pnode->OSWaitNodeTCB;
                 OS_TaskStkChk(ptcb);
             }
         }
@@ -631,7 +657,7 @@ static void os_task_statistics(void *parg)
         OSTaskStatHook();                       //!< Invoke user definable hook
 #endif
         
-        osTimeDelay(OS_TICKS_PER_SEC);          //!< Accumulate osIdleCtr for the next 1/10 second
+        osTaskSleep(OS_TICKS_PER_SEC);          //!< Accumulate osIdleCtr for the next 1/10 second
     }
 }
 #endif
@@ -748,7 +774,7 @@ void OS_TaskStkChk(OS_TCB *ptcb)
 
 void OS_RegWaitableObj(OS_WAITBALE_OBJ *pobj)
 {
-    os_list_add(&pobj->OSWaitObjList, osWaitableObjList->Prev);    //!< and object at the end of list.
+    os_list_add(&pobj->OSWaitObjList, osWaitableObjList.Prev);    //!< and object at the end of list.
 }
 
 void OS_DeregWaitableObj(OS_WAITBALE_OBJ *pobj)
@@ -794,16 +820,16 @@ void OS_EventTaskWait(  void           *pecb,
 
     osTCBCur->OSTCBWaitNode = pnode;                    //!< Store node in task's TCB
     if (OS_OBJ_PRIO_TYPE_GET(pobj->OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {
-        OS_WAIT_NODE* nextNode;
+        OS_WAIT_NODE *nextNode;
         
-        for (list = pobj->OSWaitObjWaitList.Next; list != &pobj->OSWaitObjWaitList; list = list->Next) {
+        for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; list = list->Next) {
             nextNode = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
             if (osTCBCur->OSTCBPrio < nextNode->OSWaitNodeTCB->OSTCBPrio) {
                 break;
             }
         }
     } else {
-        list = &pobj->OSWaitObjWaitList;
+        list = &pobj->OSWaitObjWaitNodeList;
     }
     os_list_add(&pnode->OSWaitNodeList, list->Prev);    //!< add wait node to the end of wait NODE list.
 
@@ -813,28 +839,6 @@ void OS_EventTaskWait(  void           *pecb,
     }
     osTCBCur->OSTCBDly = ticks;
     OSExitCriticalSection(cpu_sr);
-}
-
-/*!
- *! \Brief       REMOVE TASK FROM EVENT WAIT LIST
- *!
- *! \Description Remove a task from an event's wait list.
- *!
- *! \Arguments   ptcb     is a pointer to the task to remove.
- *!
- *! \Returns     none
- *!
- *! \Notes       1) This function assumes that interrupts are DISABLED.
- *!              2) This function is INTERNAL to OS and your application should not call it.
- */
-void OS_EventTaskRemove(OS_TCB *ptcb)
-{
-    OS_WAIT_NODE *pnode = ptcb->OSTCBWaitNode;
-    
-
-    os_list_del(&pnode->OSWaitNodeList);    //!< remove from wait NODE list.
-    ptcb->OSTCBWaitNode = NULL;
-    OS_WakeupTask(ptcb);
 }
 
 /*!
@@ -864,12 +868,12 @@ OS_TCB *OS_EventTaskRdy(void   *pecb,
     OS_TCB             *ptcb;
 
     
-    pnode   = OS_CONTAINER_OF(pobj->OSWaitObjWaitList.Next, OS_WAIT_NODE, OSWaitNodeList);
+    pnode   = OS_CONTAINER_OF(pobj->OSWaitObjWaitNodeList.Next, OS_WAIT_NODE, OSWaitNodeList);
     ptcb    = pnode->OSWaitNodeTCB;
         
     ptcb->OSTCBDly       = 0u;
     pnode->OSWaitNodeRes = pendRes;
-    OS_EventTaskRemove(ptcb);                           //!< Remove this task from event's wait list
+    OS_WaitNodeRemove(ptcb);                           //!< Remove this task from event's wait list
     OS_ScheduleReadyTask(ptcb);                         //!< Put task in the ready list
     return ptcb;
 }

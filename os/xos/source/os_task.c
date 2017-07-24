@@ -124,7 +124,7 @@ OS_ERR  osTaskChangePrio   (OS_HANDLE   handle,
  *!              OS_ERR_TASK_EXIST      if the task priority already exist
  *!                                     (each task MUST have a unique priority).
  *!              OS_ERR_INVALID_PRIO    if the priority you specify is higher that the maximum
- *!              OS_ERR_CREATE_ISR      if you tried to create a task from an ISR.
+ *!              OS_ERR_USE_IN_ISR      if you tried to create a task from an ISR.
  */
 
 OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
@@ -143,7 +143,7 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
 
 
     if (osIntNesting > 0u) {            //!< Make sure we don't create the task from within an ISR
-        return OS_ERR_CREATE_ISR;
+        return OS_ERR_USE_IN_ISR;
     }
 #if OS_ARG_CHK_EN > 0u
 #if OS_MAX_PRIO_LEVELS <= 255
@@ -157,7 +157,7 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
     ptcb = OS_ObjPoolNew(&osTCBFreeList);   //!< Get a free TCB from the free TCB list
     if (ptcb == NULL) {                     //!< See if pool of free TCB pool was empty
         OSExitCriticalSection(cpu_sr);
-        return OS_ERR_EVENT_DEPLETED;       //!< No more task control blocks
+        return OS_ERR_OBJ_DEPLETED;       //!< No more task control blocks
     }
     OSExitCriticalSection(cpu_sr);
 
@@ -215,11 +215,9 @@ static void os_task_del(void)
 
     OSEnterCriticalSection(cpu_sr);
     ptcb = osTCBCur;
-
+    osTCBCur = NULL;
     if (ptcb->OSTCBWaitNode != NULL) {  //!< Is this task pend for any event?
-        OS_EventTaskRemove(ptcb);
-    } else if (ptcb->OSTCBDly != 0u) {  //!< Is this task sleep?
-        OS_WakeupTask(ptcb);
+        OS_WaitNodeRemove(ptcb);
     } else {                            //!< It's ready.
         OS_ScheduleUnreadyTask(ptcb);
     }
