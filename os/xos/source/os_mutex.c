@@ -70,6 +70,11 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
     pmutex->OSMutexOwnerTCB     = NULL;
     os_list_init_head(&pmutex->OSMutexWaitList);
     
+    //! reg waitable object.
+    OSEnterCriticalSection(cpu_sr);
+    OS_RegWaitableObj((OS_WAITBALE_OBJ *)pmutex);
+    OSExitCriticalSection(cpu_sr);
+
     *pMutexHandle = pmutex;
     return OS_ERR_NONE;
 }
@@ -157,6 +162,7 @@ OS_ERR osMutexDelete(OS_HANDLE hMutex, UINT8 opt)
                 err = OS_ERR_TASK_WAITING;
                 break;
             }
+            OS_DeregWaitableObj((OS_WAITBALE_OBJ *)pmutex);
             pmutex->OSObjType = OS_OBJ_TYPE_UNUSED;
             OS_ObjPoolFree(&osMutexFreeList, pmutex);
             OSExitCriticalSection(cpu_sr);
@@ -167,6 +173,7 @@ OS_ERR osMutexDelete(OS_HANDLE hMutex, UINT8 opt)
             while (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {
                 (void)OS_EventTaskRdy(pmutex, OS_STAT_PEND_ABORT); //!< Ready ALL tasks waiting for mutex
             }
+            OS_DeregWaitableObj((OS_WAITBALE_OBJ *)pmutex);
             pmutex->OSObjType = OS_OBJ_TYPE_UNUSED;
             OS_ObjPoolFree(&osMutexFreeList, pmutex);
             OSExitCriticalSection(cpu_sr);
@@ -232,7 +239,7 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
     if (pmutex == NULL) {                   //!< Validate 'pmutex'
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(pmutex->OSObjType) != OS_OBJ_TYPE_MUTEX) {   //!< Validate event block type
+    if (OS_OBJ_TYPE_GET(pmutex->OSObjType) != OS_OBJ_TYPE_MUTEX) {  //!< Validate event block type
         return OS_ERR_EVENT_TYPE;
     }
 #endif
@@ -256,8 +263,8 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
     } else {
         prio = osTCBCur->OSTCBPrio;
     }
-    if (pmutex->OSMutexOwnerTCB->OSTCBPrio > prio) {          //!< Is owner has a lower priority?
-        OS_ScheduleChangePrio(pmutex->OSMutexOwnerTCB, prio); //!< Yes. Rise owner's priority.
+    if (pmutex->OSMutexOwnerTCB->OSTCBPrio > prio) {                //!< Is owner has a lower priority?
+        OS_ScheduleChangePrio(pmutex->OSMutexOwnerTCB, prio);       //!< Yes. Rise owner's priority.
     }
     
     OS_EventTaskWait(pmutex, &node, timeout);           //!< Suspend current task.
@@ -326,7 +333,7 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
     }
     
     osTCBCur->OSTCBOwnMutex  = NULL;
-    if (pmutex->OSMutexCeilingPrio == osTCBCur->OSTCBPrio) {    //!< If this task's prio has been changed...
+    if (pmutex->OSMutexOwnerPrio != osTCBCur->OSTCBPrio) {    //!< If this task's prio has been changed...
         OS_ScheduleChangePrio(osTCBCur, pmutex->OSMutexOwnerPrio);  //!< ... restore task's prio.
     }
     

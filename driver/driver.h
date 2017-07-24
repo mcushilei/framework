@@ -17,6 +17,9 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+#ifndef __HAL_H__
+#define __HAL_H__
+
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include ".\driver\driver.h"
@@ -28,25 +31,7 @@
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
-/*============================ IMPLEMENTATION ================================*/
-/*! \note initialize hardware abstract layer
- *  \param none
- *  \retval true hal initialization succeeded.
- *  \retval false hal initialization failed
- */
-bool hal_init( void )
-{  
-    /*! initialize drivers */
-    if ( !driver_init() ) {
-        return false;
-    }
 
-    /*! initialize components */
-    if ( !component_init() ) {
-        return false;
-    }
 
-    return true;
-}
-
+#endif
 /* EOF */

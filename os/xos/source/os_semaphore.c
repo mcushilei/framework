@@ -68,6 +68,11 @@ OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
     psemp->OSSempCnt  = cnt;
     os_list_init_head(&psemp->OSSempWaitList);
     
+    //! reg waitable object.
+    OSEnterCriticalSection(cpu_sr);
+    OS_RegWaitableObj((OS_WAITBALE_OBJ *)psemp);
+    OSExitCriticalSection(cpu_sr);
+
     *pSemaphoreHandle = psemp;
     return OS_ERR_NONE;
 }
@@ -142,6 +147,7 @@ OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
                 err = OS_ERR_TASK_WAITING;
                 break;
             }
+            OS_DeregWaitableObj((OS_WAITBALE_OBJ *)psemp);
             psemp->OSObjType = OS_OBJ_TYPE_UNUSED;
             psemp->OSSempCnt = 0u;
             OS_ObjPoolFree(&osSempFreeList, psemp);
@@ -157,6 +163,7 @@ OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
             }
             OSEnterCriticalSection(cpu_sr);
             OS_UnlockSched();
+            OS_DeregWaitableObj((OS_WAITBALE_OBJ *)psemp);
             psemp->OSObjType = OS_OBJ_TYPE_UNUSED;
             psemp->OSSempCnt = 0u;
             OS_ObjPoolFree(&osSempFreeList, psemp);
@@ -170,6 +177,7 @@ OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
             err = OS_ERR_INVALID_OPT;
             break;
     }
+    
     return err;
 }
 #endif
@@ -293,6 +301,9 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore, UINT8 opt)
 #endif
 
 
+    if (osIntNesting > 0u) {            //!< See if called from ISR ...
+        return OS_ERR_PEND_ISR;         //!< ... can't PEND from an ISR
+    }
 #if OS_ARG_CHK_EN > 0u
     if (psemp == NULL) {                //!< Validate 'psemp'
         return OS_ERR_INVALID_HANDLE;
@@ -356,6 +367,9 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
 #endif
 
 
+    if (osIntNesting > 0u) {            //!< See if called from ISR ...
+        return OS_ERR_PEND_ISR;         //!< ... can't PEND from an ISR
+    }
 #if OS_ARG_CHK_EN > 0u
     if (psemp == NULL) {                //!< Validate 'psemp'
         return OS_ERR_INVALID_HANDLE;
@@ -420,6 +434,9 @@ OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
     UINT8      err;
 
 
+    if (osIntNesting > 0u) {            //!< See if called from ISR ...
+        return OS_ERR_PEND_ISR;         //!< ... can't PEND from an ISR
+    }
 #if OS_ARG_CHK_EN > 0u
     if (psemp == NULL) {                    //!< Validate 'psemp'
         return OS_ERR_INVALID_HANDLE;

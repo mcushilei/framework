@@ -313,10 +313,9 @@ OS_EXT  OS_FLAG         osFlagFreeTbl[OS_MAX_FLAGS];        //!< Table of flag c
 
 OS_EXT  OS_LIST_NODE   *osTCBFreeList;                                  //!< List of free TCBs
 OS_EXT  OS_TCB          osTCBFreeTbl[OS_MAX_TASKS + OS_N_SYS_TASKS];    //!< Table of free TCBs
+     
+OS_EXT  OS_LIST_NODE    osWaitableObjList;
 
-OS_EXT  UINT32          osTaskCtr;
-
-OS_EXT  OS_LIST_NODE    osPendList;                         //!< Doubly linked list of pend task's TCB
 OS_EXT  OS_LIST_NODE    osSleepList;                        //!< Doubly linked list of sleep task's TCB
 
 OS_EXT  OS_PRIO         osRdyGrp;                           //!< Ready bitmap
@@ -330,6 +329,8 @@ OS_EXT  UINT8       osIntNesting;                   //!< Interrupt nesting level
 OS_EXT  UINT8       osLockNesting;                  //!< Multitasking lock nesting level
 
 OS_EXT  BOOL        osRunning;                      //!< Flag indicating that kernel is running
+
+OS_EXT  UINT32      osTaskCtr;
 
 #if OS_STAT_EN > 0u
 OS_EXT  UINT32      osCtxSwCtr;                     //!< Counter of number of context switches
@@ -540,11 +541,9 @@ void       *OS_ObjPoolNew          (OS_LIST_NODE  **ppObj);
 /*!
  *! OS SCHEDULE INTERFACE
  */
+void        os_schedule_init(void)
 void        OS_ScheduleReadyTask   (OS_TCB         *ptcb);
 void        OS_ScheduleUnreadyTask (OS_TCB         *ptcb);
-void        OS_SchedulePendTask    (OS_TCB         *ptcb,
-                                    UINT32          ticks);
-void        OS_ScheduleUnpendTask  (OS_TCB         *ptcb);
 void        OS_ScheduleChangePrio  (OS_TCB         *ptcb,
                                     UINT8           newprio);
 void        OS_SchedulePrio        (void);
@@ -556,6 +555,9 @@ void        OS_UnlockSched(void);
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
 void        OS_TaskStkChk          (OS_TCB         *ptcb);
 #endif
+
+void        OS_RegWaitableObj      (OS_WAITBALE_OBJ *pobj);
+void        OS_DeregWaitableObj    (OS_WAITBALE_OBJ *pobj);
 
 void        OS_TCBInit             (OS_TCB         *ptcb,
                                     UINT8           prio,

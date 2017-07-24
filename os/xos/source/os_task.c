@@ -219,7 +219,7 @@ static void os_task_del(void)
     if (ptcb->OSTCBWaitNode != NULL) {  //!< Is this task pend for any event?
         OS_EventTaskRemove(ptcb);
     } else if (ptcb->OSTCBDly != 0u) {  //!< Is this task sleep?
-        OS_ScheduleUnpendTask(ptcb);
+        OS_WakeupTask(ptcb);
     } else {                            //!< It's ready.
         OS_ScheduleUnreadyTask(ptcb);
     }
