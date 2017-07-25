@@ -163,7 +163,7 @@ OS_ERR osFlagDelete(OS_HANDLE hFlag, UINT8 opt)
             OS_LockSched();
             OSExitCriticalSection(cpu_sr);
             while (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) {
-                 (void)OS_EventTaskRdy(pflag, OS_STAT_PEND_ABORT);  //!< Ready ALL tasks waiting for this flag.
+                OS_EventTaskRdy(pflag, OS_STAT_PEND_ABORT);  //!< Ready ALL tasks waiting for this flag.
             }
             OSEnterCriticalSection(cpu_sr);
             OS_UnlockSched();
@@ -310,13 +310,10 @@ OS_ERR osFlagSet(OS_HANDLE hFlag)
     OSEnterCriticalSection(cpu_sr);
     pflag->OSFlagFlags |= 0x01u;                //!< Set the flags.
     if (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) { //!< See if any task is waiting for this flag.
-        OS_LockSched();
-        OSExitCriticalSection(cpu_sr);
         while (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) {  //!< Ready ALL tasks waiting for this flag.
-            (void)OS_EventTaskRdy(pflag, OS_STAT_PEND_OK);
+            OS_EventTaskRdy(pflag, OS_STAT_PEND_OK);
         }
         OSEnterCriticalSection(cpu_sr);
-        OS_UnlockSched();
         if (pflag->OSFlagFlags & 0x80u) {       //!< Is this a auto-reset flag?
             pflag->OSFlagFlags &= ~0x01u;       //!< Yes, Reset the flag.
         }

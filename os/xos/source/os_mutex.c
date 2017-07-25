@@ -176,7 +176,7 @@ OS_ERR osMutexDelete(OS_HANDLE hMutex, UINT8 opt)
 
         case OS_DEL_ALWAYS:
             while (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {
-                (void)OS_EventTaskRdy(pmutex, OS_STAT_PEND_ABORT); //!< Ready ALL tasks waiting for mutex
+                OS_EventTaskRdy(pmutex, OS_STAT_PEND_ABORT); //!< Ready ALL tasks waiting for mutex
             }
             OS_DeregWaitableObj((OS_WAITBALE_OBJ *)pmutex);
             pmutex->OSObjType = OS_OBJ_TYPE_UNUSED;

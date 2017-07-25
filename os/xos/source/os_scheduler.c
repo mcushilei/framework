@@ -50,7 +50,7 @@ static const UINT8 OSUnMapTbl[256] = {
  *!
  *! \Returns     none
  */
-void os_schedule_init(void)
+void OS_ScheduleInit(void)
 {
     UINT16 i;
 

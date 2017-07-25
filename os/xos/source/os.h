@@ -45,7 +45,7 @@ extern "C" {
 #   define OS_BITMAP_TBL_SIZE       ((OS_MAX_PRIO_LEVELS + 15u) / 16u)  //!< Size of ready table
 #endif
 
-#define OS_EVENT_EN                 (OS_MUTEX_EN | OS_FLAG_EN |OS_SEMP_EN)
+#define OS_EVENT_EN                 (OS_MUTEX_EN | OS_FLAG_EN |OS_SEM_EN)
     
 #define OS_CONTAINER_OF(__ptr, __type, __member) (              \
         (__type*)( (char*)(__ptr) - offsetof(__type, __member) ))
@@ -62,7 +62,7 @@ extern "C" {
  */
 enum {
     OS_OBJ_TYPE_UNUSED = 0,
-    OS_OBJ_TYPE_SEMP,
+    OS_OBJ_TYPE_SEM,
     OS_OBJ_TYPE_MUTEX,
     OS_OBJ_TYPE_FLAG,
     OS_OBJ_TYPE_TCB,
@@ -151,7 +151,7 @@ typedef struct os_waitable_obj  OS_WAITBALE_OBJ;
 typedef struct os_tcb           OS_TCB;
 typedef struct os_flag          OS_FLAG;
 typedef struct os_mutex         OS_MUTEX;
-typedef struct os_semp          OS_SEMP;
+typedef struct os_semp          OS_SEM;
 typedef struct os_wait_node     OS_WAIT_NODE;
 
 typedef struct {
@@ -187,7 +187,7 @@ struct os_waitable_obj {                            //!< Waitable object head.
 /*!
  *! SEMAPHORE CONTROL BLOCK
  */
-#if (OS_SEMP_EN) && (OS_MAX_SEMAPHORES > 0u)
+#if (OS_SEM_EN) && (OS_MAX_SEMAPHORES > 0u)
 struct os_semp {
     OS_OBJ_HEAD;
     UINT16              OSSempCnt;                  //!< Semaphore count.
@@ -279,7 +279,7 @@ typedef struct {
 /*!
  *! SEMAPHORE DATA
  */
-#if (OS_SEMP_EN) && (OS_MAX_SEMAPHORES > 0u)
+#if (OS_SEM_EN) && (OS_MAX_SEMAPHORES > 0u)
 typedef struct {
     UINT16              OSCnt;                      //!< Semaphore count
     OS_LIST_NODE        OSWaitList;
@@ -289,9 +289,9 @@ typedef struct {
 /*!
  *! GLOBAL VARIABLES
  */
-#if (OS_SEMP_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
+#if (OS_SEM_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
 OS_EXT  OS_LIST_NODE   *osSempFreeList;                     //!< Pointer to list of free semaphore control blocks
-OS_EXT  OS_SEMP         osSempFreeTbl[OS_MAX_SEMAPHORES];   //!< Table of semaphore control blocks
+OS_EXT  OS_SEM         osSempFreeTbl[OS_MAX_SEMAPHORES];   //!< Table of semaphore control blocks
 #endif
 
 #if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
@@ -397,12 +397,12 @@ OS_ERR      osMutexQuery           (OS_HANDLE       hMutex,
 /*!
  *! SEMAPHORE MANAGEMENT
  */
-#if (OS_SEMP_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
+#if (OS_SEM_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
 
 OS_ERR      osSemCreate            (OS_HANDLE      *pSemaphoreHandle,
                                     UINT16          cnt);
 
-#if OS_SEMP_DEL_EN > 0u
+#if OS_SEM_DEL_EN > 0u
 OS_ERR      osSemDelete            (OS_HANDLE       hSemaphore,
                                     UINT8           opt);
 #endif
@@ -410,7 +410,7 @@ OS_ERR      osSemDelete            (OS_HANDLE       hSemaphore,
 OS_ERR      osSemPend              (OS_HANDLE       hSemaphore,
                                     UINT32          timeout);
 
-#if OS_SEMP_PEND_ABORT_EN > 0u
+#if OS_SEM_PEND_ABORT_EN > 0u
 OS_ERR      osSemPendAbort         (OS_HANDLE       hSemaphore,
                                     UINT8           opt);
 #endif
@@ -418,12 +418,12 @@ OS_ERR      osSemPendAbort         (OS_HANDLE       hSemaphore,
 OS_ERR      osSemPost              (OS_HANDLE       hSemaphore,
                                     UINT16          cnt);
 
-#if OS_SEMP_SET_EN > 0u
+#if OS_SEM_SET_EN > 0u
 OS_ERR      osSemSet               (OS_HANDLE       hSemaphore,
                                     UINT16          cnt);
 #endif
 
-#if OS_SEMP_QUERY_EN > 0u
+#if OS_SEM_QUERY_EN > 0u
 OS_ERR      osSemQuery             (OS_HANDLE       hSemaphore,
                                     OS_SEM_INFO    *pInfo);
 #endif
@@ -533,7 +533,7 @@ void       *OS_ObjPoolNew          (OS_LIST_NODE  **ppObj);
 /*!
  *! OS SCHEDULE INTERFACE
  */
-void        os_schedule_init       (void);
+void        OS_ScheduleInit        (void);
 void        OS_ScheduleReadyTask   (OS_TCB         *ptcb);
 void        OS_ScheduleUnreadyTask (OS_TCB         *ptcb);
 void        OS_ScheduleChangePrio  (OS_TCB         *ptcb,
@@ -623,20 +623,20 @@ void        OS_MemCopy             (UINT8          *pdest,
 /*!
  *!                                             SEMAPHORES
  */
-#ifndef OS_SEMP_EN
-#   error "OS_CFG.H, Missing OS_SEMP_EN: Enable (1) or Disable (0) code generation for SEMAPHORES"
+#ifndef OS_SEM_EN
+#   error "OS_CFG.H, Missing OS_SEM_EN: Enable (1) or Disable (0) code generation for SEMAPHORES"
 #else
-#   ifndef  OS_SEMP_DEL_EN
-#       error "OS_CFG.H, Missing OS_SEMP_DEL_EN: Include code for osSemDelete()"
+#   ifndef  OS_SEM_DEL_EN
+#       error "OS_CFG.H, Missing OS_SEM_DEL_EN: Include code for osSemDelete()"
 #   endif
-#   ifndef  OS_SEMP_PEND_ABORT_EN
-#       error "OS_CFG.H, Missing OS_SEMP_PEND_ABORT_EN: Include code for osSemPendAbort()"
+#   ifndef  OS_SEM_PEND_ABORT_EN
+#       error "OS_CFG.H, Missing OS_SEM_PEND_ABORT_EN: Include code for osSemPendAbort()"
 #   endif
-#   ifndef  OS_SEMP_QUERY_EN
-#       error "OS_CFG.H, Missing OS_SEMP_QUERY_EN: Include code for osSemQuery()"
+#   ifndef  OS_SEM_QUERY_EN
+#       error "OS_CFG.H, Missing OS_SEM_QUERY_EN: Include code for osSemQuery()"
 #   endif
-#   ifndef  OS_SEMP_SET_EN
-#       error "OS_CFG.H, Missing OS_SEMP_SET_EN: Include code for osSemSet()"
+#   ifndef  OS_SEM_SET_EN
+#       error "OS_CFG.H, Missing OS_SEM_SET_EN: Include code for osSemSet()"
 #   endif
 #endif
 
@@ -749,9 +749,9 @@ void        OS_MemCopy             (UINT8          *pdest,
 #   endif
 #endif
 
-#if    OS_SEMP_EN > 0u
-#   if OS_SEMP_DEL_EN > 0u
-#       error "OS_CFG.H, OS_SEMP_DEL_EN must be disabled for safety-critical release code"
+#if    OS_SEM_EN > 0u
+#   if OS_SEM_DEL_EN > 0u
+#       error "OS_CFG.H, OS_SEM_DEL_EN must be disabled for safety-critical release code"
 #   endif
 #endif
 

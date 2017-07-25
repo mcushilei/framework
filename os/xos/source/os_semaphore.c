@@ -1,11 +1,11 @@
 
 //! \note do not move this pre-processor statement to other places
-#define  __OS_SEMP_C__
+#define  __OS_SEM_C__
 
 /*============================ INCLUDES ======================================*/
 #include ".\os.h"
 
-#if (OS_SEMP_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
+#if (OS_SEM_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
@@ -35,7 +35,7 @@
 
 OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
 {
-    OS_SEMP    *psemp;
+    OS_SEM    *psemp;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
@@ -62,7 +62,7 @@ OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
     //! Set object type.
     //! Init semaphore value.
     //! Init wait list head.
-    psemp->OSObjType   = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_SEMP)
+    psemp->OSObjType   = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_SEM)
                         | OS_OBJ_WAITABLE
                         | OS_OBJ_PRIO_TYPE_SET(OS_OBJ_PRIO_TYPE_PRIO_LIST);
     psemp->OSSempCnt  = cnt;
@@ -111,10 +111,10 @@ OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
  *!                 OS_ERR_PEND_ABORT if osSemDelete() was called with OS_DEL_ALWAYS
  */
 
-#if OS_SEMP_DEL_EN > 0u
+#if OS_SEM_DEL_EN > 0u
 OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
 {
-    OS_SEMP    *psemp = (OS_SEMP *)hSemaphore;
+    OS_SEM    *psemp = (OS_SEM *)hSemaphore;
     BOOL        tasks_waiting;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
@@ -129,7 +129,7 @@ OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
     if (psemp == NULL) {                //!< Validate 'psemp'
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEMP) {   //!< Validate event block type
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {   //!< Validate event block type
         return OS_ERR_EVENT_TYPE;
     }
 #endif
@@ -159,7 +159,7 @@ OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
             OS_LockSched();
             OSExitCriticalSection(cpu_sr);
             while (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList) { //!< Ready ALL tasks waiting for semaphore
-                (void)OS_EventTaskRdy(psemp, OS_STAT_PEND_ABORT);
+                OS_EventTaskRdy(psemp, OS_STAT_PEND_ABORT);
             }
             OSEnterCriticalSection(cpu_sr);
             OS_UnlockSched();
@@ -210,7 +210,7 @@ OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
 
 OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
 {
-    OS_SEMP       *psemp = (OS_SEMP *)hSemaphore;
+    OS_SEM        *psemp = (OS_SEM *)hSemaphore;
     OS_WAIT_NODE    node;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
@@ -228,7 +228,7 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
     if (psemp == NULL) {                //!< Validate 'psemp'
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEMP) {    //!< Validate event type
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event type
         return OS_ERR_EVENT_TYPE;
     }
 #endif
@@ -291,10 +291,10 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
  *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
  */
 
-#if OS_SEMP_PEND_ABORT_EN > 0u
+#if OS_SEM_PEND_ABORT_EN > 0u
 OS_ERR osSemPendAbort(OS_HANDLE hSemaphore, UINT8 opt)
 {
-    OS_SEMP   *psemp = (OS_SEMP *)hSemaphore;
+    OS_SEM    *psemp = (OS_SEM *)hSemaphore;
     UINT8       err;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
@@ -308,7 +308,7 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore, UINT8 opt)
     if (psemp == NULL) {                //!< Validate 'psemp'
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEMP) {    //!< Validate event block type
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
         return OS_ERR_EVENT_TYPE;
     }
 #endif
@@ -318,7 +318,7 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore, UINT8 opt)
         switch (opt) {
             case OS_PEND_OPT_BROADCAST:                                         //!< Do we need to abort ALL waiting tasks?
                 while (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList) { //!< Yes, ready ALL tasks waiting on semaphore
-                    (void)OS_EventTaskRdy(psemp, OS_STAT_PEND_ABORT);
+                    OS_EventTaskRdy(psemp, OS_STAT_PEND_ABORT);
                 }
                 break;
 
@@ -360,7 +360,7 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore, UINT8 opt)
 
 OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
 {
-    OS_SEMP    *psemp = (OS_SEMP *)hSemaphore;
+    OS_SEM    *psemp = (OS_SEM *)hSemaphore;
     UINT8       err;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
@@ -374,7 +374,7 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
     if (psemp == NULL) {                //!< Validate 'psemp'
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEMP) { //!< Validate event block type
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate event block type
         return OS_ERR_EVENT_TYPE;
     }
 #endif
@@ -424,10 +424,10 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
  *!              OS_ERR_TASK_WAITING    If tasks are waiting on the semaphore.
  */
 
-#if OS_SEMP_SET_EN > 0u
+#if OS_SEM_SET_EN > 0u
 OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
 {
-    OS_SEMP  *psemp = (OS_SEMP *)hSemaphore;
+    OS_SEM  *psemp = (OS_SEM *)hSemaphore;
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
     OS_CPU_SR  cpu_sr = 0u;
 #endif
@@ -441,7 +441,7 @@ OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
     if (psemp == NULL) {                    //!< Validate 'psemp'
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEMP) {    //!< Validate event block type
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
         return OS_ERR_EVENT_TYPE;
     }
 #endif
@@ -479,10 +479,10 @@ OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
  *!              OS_ERR_PDATA_NULL      If 'pInfo' is a NULL pointer
  */
 
-#if OS_SEMP_QUERY_EN > 0u
+#if OS_SEM_QUERY_EN > 0u
 OS_ERR osSemQuery(OS_HANDLE hSemaphore, OS_SEM_INFO *pInfo)
 {
-    OS_SEMP       *psemp = (OS_SEMP *)hSemaphore;
+    OS_SEM       *psemp = (OS_SEM *)hSemaphore;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif
@@ -492,7 +492,7 @@ OS_ERR osSemQuery(OS_HANDLE hSemaphore, OS_SEM_INFO *pInfo)
     if (psemp == NULL) {                //!< Validate 'psemp'
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEMP) {    //!< Validate event block type
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
         return OS_ERR_EVENT_TYPE;
     }
     if (pInfo == NULL) {                //!< Validate 'pInfo'
@@ -506,6 +506,6 @@ OS_ERR osSemQuery(OS_HANDLE hSemaphore, OS_SEM_INFO *pInfo)
     OSExitCriticalSection(cpu_sr);
     return OS_ERR_NONE;
 }
-#endif      //!< OS_SEMP_QUERY_EN
+#endif      //!< OS_SEM_QUERY_EN
 
-#endif      //!< OS_SEMP_EN
+#endif      //!< OS_SEM_EN

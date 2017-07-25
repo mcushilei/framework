@@ -45,7 +45,7 @@ void osInit(void)
 
     os_init_free_obj_list();                                           //!< Initialize the free list of OS_TCBs
 
-    os_schedule_init();                                          //!< Initialize the Ready List
+    OS_ScheduleInit();                                          //!< Initialize the Ready List
 
     os_init_idle_task();                                          //!< Create the Idle Task
 #if OS_STAT_EN > 0u
@@ -147,9 +147,9 @@ static void os_init_free_obj_list(void)
     OS_MemClr((UINT8 *)osTCBFreeTbl, sizeof(osTCBFreeTbl));
     os_obj_pool_init(&osTCBFreeList, osTCBFreeTbl, sizeof(osTCBFreeTbl) / sizeof(OS_TCB), sizeof(OS_TCB));
 
-#if (OS_FLAG_EN | OS_MUTEX_EN | OS_SEMP_EN)
+#if (OS_FLAG_EN | OS_MUTEX_EN | OS_SEM_EN)
     OS_MemClr((UINT8 *)osSempFreeTbl, sizeof(osSempFreeTbl));
-    os_obj_pool_init(&osSempFreeList, osSempFreeTbl, sizeof(osSempFreeTbl) / sizeof(OS_SEMP), sizeof(OS_SEMP));
+    os_obj_pool_init(&osSempFreeList, osSempFreeTbl, sizeof(osSempFreeTbl) / sizeof(OS_SEM), sizeof(OS_SEM));
 
     OS_MemClr((UINT8 *)osMutexFreeTbl, sizeof(osMutexFreeTbl));
     os_obj_pool_init(&osMutexFreeList, osMutexFreeTbl, sizeof(osMutexFreeTbl) / sizeof(OS_MUTEX), sizeof(OS_MUTEX));
@@ -251,20 +251,7 @@ void osIntExit(void)
  */
 void osLockSched(void)
 {
-#if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
-    OS_CPU_SR  cpu_sr = 0u;
-#endif
-
-
-    if (osRunning != FALSE) {                   //!< Make sure multitasking is running
-        if (osIntNesting == 0u) {               //!< Can't call from an ISR
-            OSEnterCriticalSection(cpu_sr);
-            if (osLockNesting < 255u) {         //!< Prevent osLockNesting from wrapping back to 0
-                osLockNesting++;                //!< Increment lock nesting level
-            }
-            OSExitCriticalSection(cpu_sr);
-        }
-    }
+    OS_LockSched();
 }
 
 /*!
@@ -281,21 +268,8 @@ void osLockSched(void)
  */
 void osUnlockSched(void)
 {
-#if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
-    OS_CPU_SR  cpu_sr = 0u;
-#endif
-
-
-    if (osRunning != FALSE) {                   //!< Make sure multitasking is running
-        if (osIntNesting == 0u) {               //!< Can't call from an ISR
-            OSEnterCriticalSection(cpu_sr);
-            if (osLockNesting > 0u) {           //!< Do not decrement if already 0
-                osLockNesting--;                //!< Decrement lock nesting level
-            }
-            OSExitCriticalSection(cpu_sr);
-            OS_Schedule();
-        }
-    }
+    OS_UnlockSched();
+    OS_Schedule();
 }
 
 /*!

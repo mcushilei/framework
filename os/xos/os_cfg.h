@@ -53,11 +53,11 @@
 
 
                                        //!< ------------------------ SEMPAPHORES ------------------------
-#define OS_SEMP_EN                1u   //!< Enable (1) or Disable (0) code generation for SEMPAPHORES
-#define OS_SEMP_DEL_EN            1u   //!<    Include code for osSemDelete()
-#define OS_SEMP_QUERY_EN          1u   //!<    Include code for osSemQuery()
-#define OS_SEMP_SET_EN            1u   //!<    Include code for OSSemSet()
-#define OS_SEMP_PEND_ABORT_EN     1u   //!<    Include code for osSemPendAbort()
+#define OS_SEM_EN                1u   //!< Enable (1) or Disable (0) code generation for SEMPAPHORES
+#define OS_SEM_DEL_EN            1u   //!<    Include code for osSemDelete()
+#define OS_SEM_QUERY_EN          1u   //!<    Include code for osSemQuery()
+#define OS_SEM_SET_EN            1u   //!<    Include code for OSSemSet()
+#define OS_SEM_PEND_ABORT_EN     1u   //!<    Include code for osSemPendAbort()
 
 //#define SAFETY_CRITICAL_RELEASE
 

@@ -10,10 +10,10 @@ const UINT16  OSDebugEn           = OS_DEBUG_EN;               //!< Debug consta
 
 const UINT32  OSEndiannessTest    = 0x00000001u;               //!< Variable to test CPU endianness    
 
-const UINT16  OSSempEn           = OS_SEMP_EN;
+const UINT16  OSSempEn           = OS_SEM_EN;
 const UINT16  OSSempMax          = OS_MAX_SEMAPHORES;             //!< Number of event control blocks     
-#if (OS_SEMP_EN) && (OS_MAX_SEMAPHORES > 0u)
-const UINT16  OSSempSize         = sizeof(OS_SEMP);          //!< Size in Bytes of OS_EVENT          
+#if (OS_SEM_EN) && (OS_MAX_SEMAPHORES > 0u)
+const UINT16  OSSempSize         = sizeof(OS_SEM);          //!< Size in Bytes of OS_EVENT          
 #else
 const UINT16  OSSempSize         = 0u;
 #endif
@@ -65,7 +65,7 @@ const UINT16  OSVersionNbr        = OS_VERSION;
  *! TOTAL DATA SPACE (in RAM) USED BY OS
  */
 const UINT16  OSDataSize =
-#if (OS_SEMP_EN) && (OS_MAX_SEMAPHORES > 0u)
+#if (OS_SEM_EN) && (OS_MAX_SEMAPHORES > 0u)
                           + sizeof(osSempFreeTbl)
                           + sizeof(osSempFreeList)
 #endif
