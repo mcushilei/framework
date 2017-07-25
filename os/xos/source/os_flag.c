@@ -116,14 +116,14 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manual)
  */
 
 #if OS_FLAG_DEL_EN > 0u
-OS_ERR osFlagDelete(OS_HANDLE hFlag, UINT8 opt)
+OS_ERR osFlagDelete(OS_HANDLE *pFlagHandle, UINT8 opt)
 {
-    OS_FLAG      *pflag = (OS_FLAG *)hFlag;
-    BOOL       waiting;
+    OS_FLAG    *pflag = (OS_FLAG *)*pFlagHandle;
+    BOOL        waiting;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR     cpu_sr = 0u;
+    OS_CPU_SR   cpu_sr = 0u;
 #endif
-    UINT8         err;
+    UINT8       err;
 
 
     if (osIntNesting > 0u) {            //!< Can't DELETE from an ISR
@@ -295,9 +295,6 @@ OS_ERR osFlagSet(OS_HANDLE hFlag)
 #endif
 
 
-    if (osIntNesting > 0u) {            //!< Should not CREATE from an ISR
-        return OS_ERR_USE_IN_ISR;
-    }
 #if OS_ARG_CHK_EN > 0u
     if (pflag == NULL) {                //!< Validate 'pflag'
         return OS_ERR_INVALID_HANDLE;
@@ -344,9 +341,6 @@ OS_ERR osFlagReset(OS_HANDLE hFlag)
 #endif
 
 
-    if (osIntNesting > 0u) {            //!< Should not CREATE from an ISR
-        return OS_ERR_USE_IN_ISR;
-    }
 #if OS_ARG_CHK_EN > 0u
     if (pflag == NULL) {                //!< Validate 'pflag'.
         return OS_ERR_INVALID_HANDLE;

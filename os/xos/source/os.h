@@ -10,7 +10,7 @@ extern "C" {
 /*!
  *! OS VERSION NUMBER
  */
-#define  OS_VERSION                 1000u       //!< Version (Vxx.yyy mult. by 1000)
+#define  OS_VERSION                 100u       //!< Version (Vxx.yyy mult. by 1000)
 
 /*!
  *! INCLUDE HEADER FILES
@@ -187,7 +187,7 @@ struct os_waitable_obj {                            //!< Waitable object head.
 /*!
  *! SEMAPHORE CONTROL BLOCK
  */
-#if (OS_SEM_EN) && (OS_MAX_SEMAPHORES > 0u)
+#if (OS_SEM_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
 struct os_semp {
     OS_OBJ_HEAD;
     UINT16              OSSempCnt;                  //!< Semaphore count.
@@ -199,7 +199,7 @@ struct os_semp {
 /*!
  *! MUTEX SEMAPHORE CONTROL BLOCK
  */
-#if (OS_MUTEX_EN) && (OS_MAX_MUTEXES > 0u)
+#if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 struct os_mutex {
     OS_OBJ_HEAD;
     UINT8               OSMutexCeilingPrio;         //!< Mutex's ceiling prio.
@@ -266,7 +266,7 @@ typedef struct {
 /*!
  *! MUTUAL EXCLUSION SEMAPHORE DATA
  */
-#if (OS_MUTEX_EN) && (OS_MAX_MUTEXES > 0u)
+#if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 typedef struct {
     OS_TCB             *OSOwnerTCB;
     UINT8               OSOwnerPrio;
@@ -279,7 +279,7 @@ typedef struct {
 /*!
  *! SEMAPHORE DATA
  */
-#if (OS_SEM_EN) && (OS_MAX_SEMAPHORES > 0u)
+#if (OS_SEM_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
 typedef struct {
     UINT16              OSCnt;                      //!< Semaphore count
     OS_LIST_NODE        OSWaitList;
@@ -347,11 +347,11 @@ OS_EXT  OS_STK          osTaskIdleStk[OS_TASK_IDLE_STK_SIZE];   //!< Idle task s
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 
 OS_ERR      osFlagCreate           (OS_HANDLE      *pFlagHandle,
-                                    BOOL         init,
-                                    BOOL         manual);
+                                    BOOL            init,
+                                    BOOL            manual);
 
 #if OS_FLAG_DEL_EN > 0u
-OS_ERR      osFlagDelete           (OS_HANDLE       hFlag,
+OS_ERR      osFlagDelete           (OS_HANDLE      *pFlagHandle,
                                     UINT8           opt);
 #endif
 
@@ -378,7 +378,7 @@ OS_ERR      osMutexCreate          (OS_HANDLE      *pMutexHandle,
                                     UINT8           ceilingPrio);
 
 #if OS_MUTEX_DEL_EN > 0u
-OS_ERR      osMutexDelete          (OS_HANDLE       hMutex,
+OS_ERR      osMutexDelete          (OS_HANDLE      *pMutexHandle,
                                     UINT8           opt);
 #endif
 
@@ -403,7 +403,7 @@ OS_ERR      osSemCreate            (OS_HANDLE      *pSemaphoreHandle,
                                     UINT16          cnt);
 
 #if OS_SEM_DEL_EN > 0u
-OS_ERR      osSemDelete            (OS_HANDLE       hSemaphore,
+OS_ERR      osSemDelete            (OS_HANDLE      *pSemaphoreHandle,
                                     UINT8           opt);
 #endif
 
@@ -545,7 +545,7 @@ void        OS_Schedule            (void);
 void        OS_LockSched(void);
 void        OS_UnlockSched(void);
 
-#if (OS_STAT_TASK_STK_CHK_EN > 0u)
+#if OS_STAT_TASK_STK_CHK_EN > 0u
 void        OS_TaskStkChk          (OS_TCB         *ptcb);
 #endif
 

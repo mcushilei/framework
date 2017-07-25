@@ -35,7 +35,7 @@
 
 OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
 {
-    OS_SEM    *psemp;
+    OS_SEM     *psemp;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
@@ -112,9 +112,9 @@ OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
  */
 
 #if OS_SEM_DEL_EN > 0u
-OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
+OS_ERR osSemDelete(OS_HANDLE *pSemaphoreHandle, UINT8 opt)
 {
-    OS_SEM    *psemp = (OS_SEM *)hSemaphore;
+    OS_SEM     *psemp = (OS_SEM *)*pSemaphoreHandle;
     BOOL        tasks_waiting;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
@@ -123,7 +123,7 @@ OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
 
 
     if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_USE_IN_ISR;          //!< ... can't DELETE from an ISR
+        return OS_ERR_USE_IN_ISR;       //!< ... can't DELETE from an ISR
     }
 #if OS_ARG_CHK_EN > 0u
     if (psemp == NULL) {                //!< Validate 'psemp'
@@ -210,7 +210,7 @@ OS_ERR osSemDelete(OS_HANDLE hSemaphore, UINT8 opt)
 
 OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
 {
-    OS_SEM        *psemp = (OS_SEM *)hSemaphore;
+    OS_SEM         *psemp = (OS_SEM *)hSemaphore;
     OS_WAIT_NODE    node;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
@@ -219,7 +219,7 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
 
 
     if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_USE_IN_ISR;         //!< ... can't PEND from an ISR
+        return OS_ERR_USE_IN_ISR;       //!< ... can't PEND from an ISR
     }
     if (osLockNesting > 0u) {           //!< See if called with scheduler locked ...
         return OS_ERR_PEND_LOCKED;      //!< ... can't PEND when locked
@@ -294,16 +294,13 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
 #if OS_SEM_PEND_ABORT_EN > 0u
 OS_ERR osSemPendAbort(OS_HANDLE hSemaphore, UINT8 opt)
 {
-    OS_SEM    *psemp = (OS_SEM *)hSemaphore;
+    OS_SEM     *psemp = (OS_SEM *)hSemaphore;
     UINT8       err;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
 
 
-    if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_USE_IN_ISR;         //!< ... can't PEND from an ISR
-    }
 #if OS_ARG_CHK_EN > 0u
     if (psemp == NULL) {                //!< Validate 'psemp'
         return OS_ERR_INVALID_HANDLE;
@@ -360,16 +357,13 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore, UINT8 opt)
 
 OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
 {
-    OS_SEM    *psemp = (OS_SEM *)hSemaphore;
+    OS_SEM     *psemp = (OS_SEM *)hSemaphore;
     UINT8       err;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
 
 
-    if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_USE_IN_ISR;         //!< ... can't PEND from an ISR
-    }
 #if OS_ARG_CHK_EN > 0u
     if (psemp == NULL) {                //!< Validate 'psemp'
         return OS_ERR_INVALID_HANDLE;
@@ -427,16 +421,13 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
 #if OS_SEM_SET_EN > 0u
 OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
 {
-    OS_SEM  *psemp = (OS_SEM *)hSemaphore;
+    OS_SEM     *psemp = (OS_SEM *)hSemaphore;
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
-    OS_CPU_SR  cpu_sr = 0u;
+    OS_CPU_SR   cpu_sr = 0u;
 #endif
-    UINT8      err;
+    UINT8       err;
 
 
-    if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_USE_IN_ISR;         //!< ... can't PEND from an ISR
-    }
 #if OS_ARG_CHK_EN > 0u
     if (psemp == NULL) {                    //!< Validate 'psemp'
         return OS_ERR_INVALID_HANDLE;
@@ -482,9 +473,9 @@ OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
 #if OS_SEM_QUERY_EN > 0u
 OS_ERR osSemQuery(OS_HANDLE hSemaphore, OS_SEM_INFO *pInfo)
 {
-    OS_SEM       *psemp = (OS_SEM *)hSemaphore;
+    OS_SEM     *psemp = (OS_SEM *)hSemaphore;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR       cpu_sr = 0u;
+    OS_CPU_SR   cpu_sr = 0u;
 #endif
 
 

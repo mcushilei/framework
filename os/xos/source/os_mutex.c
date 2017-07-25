@@ -123,9 +123,9 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
  */
 
 #if OS_MUTEX_DEL_EN > 0u
-OS_ERR osMutexDelete(OS_HANDLE hMutex, UINT8 opt)
+OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
 {
-    OS_MUTEX   *pmutex = (OS_MUTEX *)hMutex;
+    OS_MUTEX   *pmutex = (OS_MUTEX *)*pMutexHandle;
     OS_TCB     *powner;
     BOOL        tasks_waiting;
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register

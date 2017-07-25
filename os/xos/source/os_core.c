@@ -331,6 +331,7 @@ void osTimeTick(void)
     
     for (listObj = osWaitableObjList.Next; listObj != &osWaitableObjList; listObj = listObj->Next) {
         pobj = OS_CONTAINER_OF(listObj, OS_WAITBALE_OBJ, OSWaitObjList);
+        OSEnterCriticalSection(cpu_sr);
         //! if this objcet is not locked.
         for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; ) {   //!< Go through all task in TCB list.
             pnode  = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
@@ -348,6 +349,7 @@ void osTimeTick(void)
                 }
             }
         }
+        OSExitCriticalSection(cpu_sr);
     }
     for (list = osSleepList.Next; list != &osSleepList; ) {         //!< Go through all task in sleep TCB list.
         pnode  = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
@@ -466,10 +468,18 @@ void osStatInit(void)
 #endif
 
 
+    if (osIntNesting != 0u) {                       //!< See if trying to call from an ISR
+        return;
+    }
+    if (osLockNesting != 0u) {                      //!< See if called with scheduler locked
+        return;
+    }
+    
     osTaskSleep(2u);                            //!< Synchronize with clock tick
     OSEnterCriticalSection(cpu_sr);
     osIdleCtr       = 0u;                       //!< Clear idle counter
     OSExitCriticalSection(cpu_sr);
+    
     osTaskSleep(OS_TICKS_PER_SEC);              //!< Determine MAX. idle counter value for 1 second
     OSEnterCriticalSection(cpu_sr);
     osIdleCtrMax    = osIdleCtr;                //!< Store maximum idle counter count in 1 second
