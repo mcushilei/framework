@@ -21,10 +21,10 @@
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 
-#if     defined(__LPC1754__)
-    #include ".\LPC1754\driver.h"
+#if defined(__LPC1754__)
+#   include ".\LPC1754\driver.h"
 #else
-    #error "No supported arm devices, please check whether you forget defining the core family."
+#   error "No supported arm devices, please check whether you forget defining the core family."
 #endif
 
 /*============================ MACROS ========================================*/

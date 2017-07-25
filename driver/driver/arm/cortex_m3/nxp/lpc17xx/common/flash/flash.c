@@ -16,9 +16,13 @@
 *******************************************************************************/
 
 
+//! \note do not move this pre-processor statement to other places
+#define __DRIVER_LPC17XX_FLASH_C__
+
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include "..\..\..\..\..\..\..\..\service\debug\debug.h"
+#include "..\device.h"
+#include "..\scon\pm.h"
 
 /*============================ MACROS ========================================*/
 #define IAP_LOCATION                (0x1FFF1FF1u)
@@ -61,8 +65,6 @@
 typedef void fn_iap_t(uint32_t [], uint32_t []);
 
 /*============================ LOCAL VARIABLES ===============================*/
-DEBUG_DEFINE_THIS_FILE("flash");
-
 /*============================ PROTOTYPES ====================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
@@ -340,13 +342,11 @@ uint32_t flash_write(uint32_t wDstAddr, uint32_t wSrcAddr, uint32_t wLen)
     }
     
     wErrorCode = IAP_PrepareSectors(wStartSector, wEndSector);
-    DEBUG_ASSERT_EQUAL_UINT(0, wErrorCode);
 	if (IAP_RET_CMD_SUCCESS != wErrorCode) {
         return (wErrorCode);
     }
 
     wErrorCode = IAP_CopyRAMToFlash(wDstAddr, wSrcAddr, wLen);
-    DEBUG_ASSERT_EQUAL_UINT(0, wErrorCode);
     return (wErrorCode);
 }
 
@@ -355,13 +355,11 @@ uint32_t flash_erase_sector(uint32_t wStartSector, uint32_t wEndSector)
     uint32_t wErrorCode = 0;
     
     wErrorCode = IAP_PrepareSectors(wStartSector, wEndSector);
-    DEBUG_ASSERT_EQUAL_UINT(0, wErrorCode);
 	if (IAP_RET_CMD_SUCCESS != wErrorCode) {
         return (wErrorCode);
     }
     
     wErrorCode = IAP_EraseSectors(wStartSector, wEndSector);
-    DEBUG_ASSERT_EQUAL_UINT(0, wErrorCode);
     return (wErrorCode);
 }
 

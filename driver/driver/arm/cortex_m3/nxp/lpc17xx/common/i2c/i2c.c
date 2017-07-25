@@ -15,6 +15,10 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
+
+//! \note do not move this pre-processor statement to other places
+#define __DRIVER_LPC17XX_I2C_C__
+
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\device.h"

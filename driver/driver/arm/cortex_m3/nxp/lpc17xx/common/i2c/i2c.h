@@ -15,6 +15,7 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
+#ifndef __DRIVER_LPC17XX_I2C_C__
 #ifndef __DRIVER_LPC17XX_I2C_H__
 #define __DRIVER_LPC17XX_I2C_H__
 
@@ -128,4 +129,5 @@ extern const i_i2c_t I2C[I2C_COUNT];
 
 
 
+#endif
 #endif

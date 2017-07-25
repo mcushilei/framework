@@ -23,7 +23,7 @@
     PUBLIC  EXIT_CRITICAL
     PUBLIC  SET_INTERRUPT_MASK
     PUBLIC  TASK_SW
-    PUBLIC  OSStartHighRdy
+    PUBLIC  OSStartTheFirst
     PUBLIC  OSCtxSw
     PUBLIC  OSIntCtxSw
     PUBLIC  SVC_Handler
@@ -169,12 +169,12 @@ TASK_SW
 
 ;********************************************************************************************************
 ;                                          START MULTITASKING
-;                                       void OSStartHighRdy(void)
+;                                       void OSStartTheFirst(void)
 ;
 ; Note(s) : 1) This function triggers a PendSV exception (essentially, causes a context switch) to cause
 ;              the first task to start.
 ;
-;           2) OSStartHighRdy() MUST:
+;           2) OSStartTheFirst() MUST:
 ;              a) Setup PendSV exception priority to lowest;
 ;              b) Set initial PSP to 0, to tell context switcher this is first run;
 ;              c) Set osRunning to TRUE;
@@ -182,7 +182,7 @@ TASK_SW
 ;              e) Enable interrupts (tasks will run with interrupts enabled).
 ;********************************************************************************************************
 
-OSStartHighRdy
+OSStartTheFirst
     LDR     R0, =NVIC_SVC_REG                       ; Set the SVC exception priority
     LDR     R1, =NVIC_SVC_PRI
     STRB    R1, [R0]
@@ -264,7 +264,7 @@ OSIntCtxSw
 ;              a thread or occurs due to an interrupt or exception.
 ;
 ;           2) Pseudo-code is:
-;              a) Get the process SP, if 0 (by OSStartHighRdy() above) then skip (goto d) the saving 
+;              a) Get the process SP, if 0 (by OSStartTheFirst() above) then skip (goto d) the saving 
 ;                 part (first context switch);
 ;              b) Save remaining regs r4-r11 on process stack;
 ;              c) Save the process SP in its TCB, osTCBCur->OSTCBStkPtr = SP;
@@ -283,7 +283,7 @@ OSIntCtxSw
 ;              d) osTCBCur      points to the OS_TCB of the task to suspend
 ;                 osTCBNextRdy  points to the OS_TCB of the task to resume
 ;
-;           4) Since PendSV is set to lowest priority in the system (by OSStartHighRdy() above), we
+;           4) Since PendSV is set to lowest priority in the system (by OSStartTheFirst() above), we
 ;              know that it will only be run when no other exception or interrupt is active, and
 ;              therefore safe to assume that context being switched out was using the process stack (PSP).
 ;********************************************************************************************************

@@ -48,6 +48,11 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
     if (pMutexHandle == NULL) {         //!< Validate handle
         return OS_ERR_INVALID_HANDLE;
     }
+#if OS_MAX_PRIO_LEVELS <= 255
+    if (ceilingPrio >= OS_MAX_PRIO_LEVELS) {    //!< Make sure priority is within allowable range
+        return OS_ERR_INVALID_PRIO;
+    }
+#endif
 #endif
 
     //! malloc an ECB from pool.

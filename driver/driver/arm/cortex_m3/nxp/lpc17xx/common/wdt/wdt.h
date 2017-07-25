@@ -16,8 +16,9 @@
 *******************************************************************************/
 
 
-#ifndef __WDT_H__
-#define __WDT_H__
+#ifndef __DRIVER_LPC17XX_WDT_C__
+#ifndef __DRIVER_LPC17XX_WDT_H__
+#define __DRIVER_LPC17XX_WDT_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
@@ -60,4 +61,5 @@ extern uint32_t watchdog_get_count_value(void);
 extern bool watchdog_feed_timeout_flag_get(void);
 extern void watchdog_feed_timeout_flag_clear(void);
 
+#endif
 #endif

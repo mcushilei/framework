@@ -20,6 +20,9 @@
  *!  http://csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf
  */
 
+//! \note do not move this pre-processor statement to other places
+#define __SHA256_C__
+
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 

@@ -165,12 +165,13 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
     os_task_stk_clr(pstk, stkSize, opt);    //!< Clear the task's stack
 #endif
 #if OS_STK_GROWTH_DOWN == 1u                //!< Initialize the task's stack
-    if (stkSize != 0) {
-        stkSize--;
+    if (stkSize != 0u) {
+        psp = OSTaskStkInit(pstk + stkSize - 1u, (void *)&os_task_wrapper, (void *)task, parg);
+    } else {
+        psp = OSTaskStkInit(pstk + stkSize,      (void *)&os_task_wrapper, (void *)task, parg);
     }
-    psp = OSTaskStkInit(pstk + stkSize, (void *)&os_task_wrapper, (void *)task, parg);
 #else
-    psp = OSTaskStkInit(pstk          , (void *)&os_task_wrapper, (void *)task, parg);
+    psp = OSTaskStkInit(pstk, (void *)&os_task_wrapper, (void *)task, parg);
 #endif
     OS_TCBInit(ptcb, prio, psp, pstk, stkSize, opt);
     

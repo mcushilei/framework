@@ -17,6 +17,7 @@
 
 
 //! \note do not move this pre-processor statement to other places
+#ifndef __SHA256_C__
 #ifndef __SHA256_H__
 #define __SHA256_H__
 
@@ -43,4 +44,5 @@ extern void sha256_finish(sha256_context_t *ptCtx, uint8_t *pchChecksum);
 extern void sha256_checksum(uint8_t *pchChecksum, const uint8_t *pchData, uint32_t wLen);
 
 #endif  //!< #ifndef __SHA256_H__
+#endif  //!< #ifndef __SHA256_C__
 /* EOF */

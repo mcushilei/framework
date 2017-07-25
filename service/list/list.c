@@ -16,7 +16,8 @@
 *******************************************************************************/
 
 
-
+//! \note do not move this pre-processor statement to other places
+#define __LIST_C__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"

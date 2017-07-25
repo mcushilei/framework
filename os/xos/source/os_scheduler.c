@@ -248,7 +248,7 @@ void OS_ScheduleChangePrio(OS_TCB *ptcb, UINT8 newprio)
 
 void OS_SchedulePrio(void)
 {
-    UINT8   prio;
+    UINT8           prio;
     OS_LIST_NODE   *node;
 
 
@@ -275,22 +275,42 @@ void OS_SchedulePrio(void)
  *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
  *!              2) Rescheduling is prevented when the scheduler is locked (see OS_SchedLock())
  */
+
+void OS_ScheduleNext(void)
+{
+    UINT8           prio;
+    OS_LIST_NODE   *node;
+
+
+    prio = os_schedule_get_highest_prio();
+    node = osRdyList[prio].Next;
+    os_list_del(node);
+    os_list_add(node, osRdyList[prio].Prev);
+    osTCBNextRdy = OS_CONTAINER_OF(node, OS_TCB, OSTCBList);
+}
+
 void OS_Schedule(void)
 {
+    UINT8           prio;
+    OS_LIST_NODE   *node;
 #if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif
 
+    if (osIntNesting != 0u) {                           //!< Schedule only if all ISRs done and ...
+        return;
+    }
+    
+    if (osLockNesting != 0u) {                      //!< ... scheduler is not locked
+        return;
+    }
 
     OSEnterCriticalSection(cpu_sr);
-    if (osIntNesting == 0u) {                           //!< Schedule only if all ISRs done and ...
-        if (osLockNesting == 0u) {                      //!< ... scheduler is not locked
-            OS_SchedulePrio();
-            if (osTCBNextRdy != osTCBCur) {             //!< No Ctx Sw if current task is highest rdy
-                OSExitCriticalSection(cpu_sr);
-                OSCtxSw();                              //!< Perform a context switch
-            }
-        }
+    OS_ScheduleNext();
+    if (osTCBNextRdy != osTCBCur) {
+        OSExitCriticalSection(cpu_sr);
+        OSCtxSw();                              //!< Perform a context switch
+        return;
     }
     OSExitCriticalSection(cpu_sr);
 }

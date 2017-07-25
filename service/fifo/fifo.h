@@ -32,7 +32,7 @@
 
 /*============================ TYPES =========================================*/
 typedef struct {
-    void *              pBuffer;
+    void               *pBuffer;
     __fifo_uint_t       fifoSize;       //!< fifo size.
     __fifo_uint_t       itemSize;       //!< fifo size.
     __fifo_uint_t       Out;
@@ -41,15 +41,15 @@ typedef struct {
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool fifo_init       (void *fifoObj, void *pBuffer, __fifo_uint_t fifoSize, __fifo_uint_t itemSize);
+extern bool fifo_init       (void *fifoObj, void *pBuffer, size_t fifoSize, size_t itemSize);
 extern bool fifo_in         (void *fifoObj, const void *pBuffer);
 extern bool fifo_out        (void *fifoObj, void *pBuffer);
 
-extern bool fifo8_init      (void *fifoObj, uint8_t *pBuffer, __fifo_uint_t fifoSize);
+extern bool fifo8_init      (void *fifoObj, uint8_t *pBuffer, size_t fifoSize);
 extern bool fifo8_in        (void *fifoObj, const uint8_t *pBuffer);
 extern bool fifo8_out       (void *fifoObj, uint8_t *pBuffer);
-//extern bool fifo8_in_burst  (void *fifoObj, const uint8_t *pBuffer, __fifo_uint_t Size);
-//extern bool fifo8_out_burst (void *fifoObj, uint8_t *pBuffer, __fifo_uint_t Size);
+//extern bool fifo8_in_burst  (void *fifoObj, const uint8_t *pBuffer, size_t Size);
+//extern bool fifo8_out_burst (void *fifoObj, uint8_t *pBuffer, size_t Size);
 
 #endif
 #endif

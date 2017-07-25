@@ -16,8 +16,9 @@
 *******************************************************************************/
 
 
-#ifndef __PM_H__
-#define __PM_H__
+#ifndef __DRIVER_LPC17XX_PM_C__
+#ifndef __DRIVER_LPC17XX_PM_H__
+#define __DRIVER_LPC17XX_PM_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
@@ -131,4 +132,5 @@ extern bool     peripheral_clock_config         (uint32_t tPer, uint32_t tDiv);
 extern uint32_t peripheral_clock_get            (uint32_t tPer);
 extern bool     clock_out_config(em_out_clk_src_t tSrc, uint32_t wDiv);
 
+#endif
 #endif

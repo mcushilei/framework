@@ -30,7 +30,7 @@
 
 
                                        //!< --------------------- TASK STACK SIZE ----------------------
-#define OS_TASK_STAT_STK_SIZE    32u   //!< Statistics task stack size (# of OS_STK wide entries)
+#define OS_TASK_STAT_STK_SIZE    56u   //!< Statistics task stack size (# of OS_STK wide entries)
 #define OS_TASK_IDLE_STK_SIZE    32u   //!< Idle       task stack size (# of OS_STK wide entries)
 
 

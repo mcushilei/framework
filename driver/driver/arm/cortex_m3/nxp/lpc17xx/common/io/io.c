@@ -17,6 +17,10 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+
+//! \note do not move this pre-processor statement to other places
+#define __DRIVER_LPC17XX_IO_C__
+
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\device.h"

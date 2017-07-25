@@ -37,7 +37,7 @@ extern "C" {
 
 #define OS_TASK_LOWEST_PRIO         (OS_MAX_PRIO_LEVELS - 1u)
 #define OS_TASK_IDLE_PRIO           (OS_MAX_PRIO_LEVELS - 1u)           //!< IDLE task priority
-#define OS_TASK_STAT_PRIO           (OS_MAX_PRIO_LEVELS - 2u)           //!< Statistic task priority
+#define OS_TASK_STAT_PRIO           (OS_MAX_PRIO_LEVELS - 1u)           //!< Statistic task priority
 
 #if OS_MAX_PRIO_LEVELS <= 64u
 #   define OS_BITMAP_TBL_SIZE       ((OS_MAX_PRIO_LEVELS + 7u) / 8u)    //!< Size of ready table
@@ -143,7 +143,7 @@ typedef UINT16  OS_PRIO;
 
 typedef void    OS_TASK(void *);
 
-typedef void*   OS_HANDLE;
+typedef void   *OS_HANDLE;
 
 typedef struct list_node        OS_LIST_NODE;
 typedef struct os_mem_pool      OS_MEM_POOL;
@@ -155,33 +155,33 @@ typedef struct os_semp          OS_SEMP;
 typedef struct os_wait_node     OS_WAIT_NODE;
 
 typedef struct {
-    UINT16          OSObjType;
+    UINT16              OSObjType;
 } OS_OBJ_HEAD;
 
 //! list type
 struct list_node {
-    OS_LIST_NODE   *Prev;
-    OS_LIST_NODE   *Next;
+    OS_LIST_NODE       *Prev;
+    OS_LIST_NODE       *Next;
 };
 
 //! memory pool.
 struct os_mem_pool {
-    OS_LIST_NODE    OSMemList;
+    OS_LIST_NODE        OSMemList;
 };
 
-struct os_wait_node {                           //!< Event Wait List Node.
-    OS_TCB             *OSWaitNodeTCB;          //!< Pointer to TCB of waiting task.
-    OS_WAITBALE_OBJ    *OSWaitNodeECB;          //!< Pointer to ECB wait for.
-    OS_LIST_NODE        OSWaitNodeList;         //!< waiting NODE list.
-    UINT32              OSWaitNodeDly;          //!< Ticks to wait this object.
-    UINT8               OSWaitNodeRes;          //!< Event wait resault.
+struct os_wait_node {                               //!< Event Wait List Node.
+    OS_TCB             *OSWaitNodeTCB;              //!< Pointer to TCB of waiting task.
+    OS_WAITBALE_OBJ    *OSWaitNodeECB;              //!< Pointer to ECB wait for.
+    OS_LIST_NODE        OSWaitNodeList;             //!< waiting NODE list.
+    UINT32              OSWaitNodeDly;              //!< Ticks to wait this object.
+    UINT8               OSWaitNodeRes;              //!< Event wait resault.
 };
     
-struct os_waitable_obj {                        //!< Waitable object head.
+struct os_waitable_obj {                            //!< Waitable object head.
     OS_OBJ_HEAD;
-    UINT16          OSWaitObjCnt;               //!< counter.
-    OS_LIST_NODE    OSWaitObjWaitNodeList;      //!< Pointer to waiting NODE of task waits on this object.
-    OS_LIST_NODE    OSWaitObjList;
+    UINT16              OSWaitObjCnt;               //!< counter.
+    OS_LIST_NODE        OSWaitObjWaitNodeList;      //!< Pointer to waiting NODE of task waits on this object.
+    OS_LIST_NODE        OSWaitObjList;
 };
     
 /*!
@@ -190,9 +190,9 @@ struct os_waitable_obj {                        //!< Waitable object head.
 #if (OS_SEMP_EN) && (OS_MAX_SEMAPHORES > 0u)
 struct os_semp {
     OS_OBJ_HEAD;
-    UINT16          OSSempCnt;                  //!< Semaphore count.
-    OS_LIST_NODE    OSSempWaitList;             //!< Pointer to first NODE of task waiting on semaphore
-    OS_LIST_NODE    OSSempObjList;
+    UINT16              OSSempCnt;                  //!< Semaphore count.
+    OS_LIST_NODE        OSSempWaitList;             //!< Pointer to first NODE of task waiting on semaphore
+    OS_LIST_NODE        OSSempObjList;
 };
 #endif
 
@@ -202,11 +202,11 @@ struct os_semp {
 #if (OS_MUTEX_EN) && (OS_MAX_MUTEXES > 0u)
 struct os_mutex {
     OS_OBJ_HEAD;
-    UINT8           OSMutexCeilingPrio;         //!< Mutex's ceiling prio.
-    UINT8           OSMutexOwnerPrio;           //!< Mutex owner's prio.
-    OS_LIST_NODE    OSMutexWaitList;            //!< Pointer to first NODE of task waiting on mutex
-    OS_LIST_NODE    OSMutexObjList;
-    OS_TCB         *OSMutexOwnerTCB;            //!< Pointer to mutex owner's TCB
+    UINT8               OSMutexCeilingPrio;         //!< Mutex's ceiling prio.
+    UINT8               OSMutexOwnerPrio;           //!< Mutex owner's prio.
+    OS_LIST_NODE        OSMutexWaitList;            //!< Pointer to first NODE of task waiting on mutex
+    OS_LIST_NODE        OSMutexObjList;
+    OS_TCB             *OSMutexOwnerTCB;            //!< Pointer to mutex owner's TCB
 };
 #endif
 
@@ -216,9 +216,9 @@ struct os_mutex {
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 struct os_flag {
     OS_OBJ_HEAD;
-    UINT16          OSFlagFlags;                //!< Flag options
-    OS_LIST_NODE    OSFlagWaitList;             //!< Pointer to first NODE of task waiting on flag
-    OS_LIST_NODE    OSFlagObjList;
+    UINT16              OSFlagFlags;                //!< Flag options
+    OS_LIST_NODE        OSFlagWaitList;             //!< Pointer to first NODE of task waiting on flag
+    OS_LIST_NODE        OSFlagObjList;
 };
 #endif
 
@@ -226,32 +226,29 @@ struct os_flag {
  *! TASK CONTROL BLOCK
  */
 struct os_tcb {
-    OS_OBJ_HEAD;
+    OS_OBJ_HEAD         OSTCBObjHead;
     
-    UINT8           OSTCBOpt;                   //!< Task options as passed by osTaskCreate()
-    UINT8           OSTCBPrio;                  //!< Task priority (0 == highest)
+    UINT8               OSTCBOpt;                   //!< Task options as passed by osTaskCreate()
+    UINT8               OSTCBPrio;                  //!< Task priority (0 == highest)
     
-    UINT16          OSTCBTimeSlice;
-    UINT16          OSTCBTimeSliceCnt;
+    UINT16              OSTCBTimeSlice;
+    UINT16              OSTCBTimeSliceCnt;
 
-    OS_STK         *OSTCBStkPtr;                //!< Pointer to current TOP of stack
+    OS_STK             *OSTCBStkPtr;                //!< Pointer to current TOP of stack
 
-    OS_LIST_NODE    OSTCBList;                  //!< TCB list node for scheduler.
+    OS_LIST_NODE        OSTCBList;                  //!< TCB list node for scheduler.
 
-    OS_WAIT_NODE   *OSTCBWaitNode;
+    OS_WAIT_NODE       *OSTCBWaitNode;
     
-    OS_MUTEX       *OSTCBOwnMutex;
-    
-    UINT32          OSTCBDly;
+    OS_MUTEX           *OSTCBOwnMutex;
     
 #if OS_TASK_PROFILE_EN > 0u
-    UINT8           OSTCBStatus;
-    UINT16          OSTCBStkSize;               //!< Size of task stack (in number of stack elements)
-    UINT16          OSTCBStkUsed;               //!< Number of BYTES used from the stack
-    OS_STK         *OSTCBStkBase;               //!< Base address of the task stack
-    UINT32          OSTCBCtxSwCtr;              //!< Number of times the task was switched in
-    UINT32          OSTCBCyclesTot;             //!< Total number of ticks the task has been running
-    UINT32          OSTCBCyclesStart;           //!< Snapshot of tick at start of task
+    UINT16              OSTCBStkSize;               //!< Size of task stack (in number of stack elements)
+    UINT16              OSTCBStkUsed;               //!< Number of BYTES used from the stack
+    OS_STK             *OSTCBStkBase;               //!< Base address of the task stack
+    UINT32              OSTCBCtxSwCtr;              //!< Number of times the task was switched in
+    UINT32              OSTCBCyclesTot;             //!< Total number of ticks the task has been running
+    UINT32              OSTCBCyclesStart;           //!< Snapshot of tick at start of task
 #endif
 };
 
@@ -260,9 +257,9 @@ struct os_tcb {
  */
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 typedef struct {
-    BOOL         OSFlagAutoReset;
-    BOOL         OSFlagStatus;
-    OS_LIST_NODE    OSWaitList;
+    BOOL                OSFlagAutoReset;
+    BOOL                OSFlagStatus;
+    OS_LIST_NODE        OSWaitList;
 } OS_FLAG_INFO;
 #endif
 
@@ -271,11 +268,11 @@ typedef struct {
  */
 #if (OS_MUTEX_EN) && (OS_MAX_MUTEXES > 0u)
 typedef struct {
-    OS_TCB         *OSOwnerTCB;
-    UINT8           OSOwnerPrio;
-    UINT8           OSCeilingPrio;
-    OS_LIST_NODE    OSWaitList;
-    BOOL         OSValue;                    //!< Mutex value (OS_FALSE = used, TRUE = available)
+    OS_TCB             *OSOwnerTCB;
+    UINT8               OSOwnerPrio;
+    UINT8               OSCeilingPrio;
+    OS_LIST_NODE        OSWaitList;
+    BOOL                OSValue;                    //!< Mutex value (OS_FALSE = used, TRUE = available)
 } OS_MUTEX_INFO;
 #endif
 
@@ -284,20 +281,20 @@ typedef struct {
  */
 #if (OS_SEMP_EN) && (OS_MAX_SEMAPHORES > 0u)
 typedef struct {
-    UINT16          OSCnt;                      //!< Semaphore count
-    OS_LIST_NODE    OSWaitList;
+    UINT16              OSCnt;                      //!< Semaphore count
+    OS_LIST_NODE        OSWaitList;
 } OS_SEM_INFO;
 #endif
 
 /*!
  *! GLOBAL VARIABLES
  */
-#if (OS_SEMP_EN) && (OS_MAX_SEMAPHORES > 0u)
+#if (OS_SEMP_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
 OS_EXT  OS_LIST_NODE   *osSempFreeList;                     //!< Pointer to list of free semaphore control blocks
 OS_EXT  OS_SEMP         osSempFreeTbl[OS_MAX_SEMAPHORES];   //!< Table of semaphore control blocks
 #endif
 
-#if (OS_MUTEX_EN) && (OS_MAX_MUTEXES > 0u)
+#if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 OS_EXT  OS_LIST_NODE   *osMutexFreeList;                    //!< Pointer to list of free mutex control blocks
 OS_EXT  OS_MUTEX        osMutexFreeTbl[OS_MAX_MUTEXES];     //!< Table of mutex control blocks
 #endif
@@ -311,33 +308,32 @@ OS_EXT  OS_LIST_NODE   *osTCBFreeList;                                  //!< Lis
 OS_EXT  OS_TCB          osTCBFreeTbl[OS_MAX_TASKS + OS_N_SYS_TASKS];    //!< Table of free TCBs
      
 OS_EXT  OS_LIST_NODE    osWaitableObjList;
-
 OS_EXT  OS_LIST_NODE    osSleepList;                        //!< Doubly linked list of sleep task's TCB
 
 OS_EXT  OS_PRIO         osRdyGrp;                           //!< Ready bitmap
 OS_EXT  OS_PRIO         osRdyTbl[OS_BITMAP_TBL_SIZE];
 OS_EXT  OS_LIST_NODE    osRdyList[OS_MAX_PRIO_LEVELS];      //!< Table of pointers to TCB of active task
 
-OS_EXT  OS_TCB     *osTCBCur;                       //!< Pointer to currently running TCB
-OS_EXT  OS_TCB     *osTCBNextRdy;                   //!< Pointer to highest priority TCB Ready-to-Run
+OS_EXT  OS_TCB         *osTCBCur;                           //!< Pointer to currently running TCB
+OS_EXT  OS_TCB         *osTCBNextRdy;                       //!< Pointer to highest priority TCB Ready-to-Run
 
-OS_EXT  UINT8       osIntNesting;                   //!< Interrupt nesting level
-OS_EXT  UINT8       osLockNesting;                  //!< Multitasking lock nesting level
+OS_EXT  UINT8           osIntNesting;                       //!< Interrupt nesting level
+OS_EXT  UINT8           osLockNesting;                      //!< Multitasking lock nesting level
 
-OS_EXT  BOOL        osRunning;                      //!< Flag indicating that kernel is running
+OS_EXT  BOOL            osRunning;                          //!< Flag indicating that kernel is running
 
-OS_EXT  UINT32      osTaskCtr;
+OS_EXT  UINT32          osTaskCtr;
 
 #if OS_STAT_EN > 0u
-OS_EXT  UINT32      osCtxSwCtr;                     //!< Counter of number of context switches
-OS_EXT  UINT32      osIdleCtrMax;                   //!< Max. value that idle ctr can take in 1 sec.
-OS_EXT  UINT8       osCPUUsage;                     //!< Percentage of CPU used
-OS_EXT  BOOL        osStatRunning;                  //!< Flag indicating that the statistic task is running
-OS_EXT  OS_STK      osTaskStatStk[OS_TASK_STAT_STK_SIZE];   //!< Statistics task stack
+OS_EXT  UINT32          osCtxSwCtr;                         //!< Counter of number of context switches
+OS_EXT  UINT32          osIdleCtrMax;                       //!< Max. value that idle ctr can take in 1 sec.
+OS_EXT  UINT8           osCPUUsage;                         //!< Percentage of CPU used
+OS_EXT  BOOL            osStatRunning;                      //!< Flag indicating that the statistic task is running
+OS_EXT  OS_STK          osTaskStatStk[OS_TASK_STAT_STK_SIZE];   //!< Statistics task stack
 #endif
 
-OS_EXT  volatile UINT32 osIdleCtr;                  //!< Idle counter
-OS_EXT  OS_STK      osTaskIdleStk[OS_TASK_IDLE_STK_SIZE];   //!< Idle task stack
+OS_EXT  volatile UINT32 osIdleCtr;                              //!< Idle counter
+OS_EXT  OS_STK          osTaskIdleStk[OS_TASK_IDLE_STK_SIZE];   //!< Idle task stack
 
 
 
@@ -484,7 +480,7 @@ UINT16      osVersion              (void);
  *! Target Specific interface and hook functions. Those functions will be called
  *! by os and should be implemented by you.
  */
-void        OSStartHighRdy         (void);
+void        OSStartTheFirst        (void);
 void        OSIntCtxSw             (void);
 void        OSCtxSw                (void);
 
@@ -543,6 +539,7 @@ void        OS_ScheduleUnreadyTask (OS_TCB         *ptcb);
 void        OS_ScheduleChangePrio  (OS_TCB         *ptcb,
                                     UINT8           newprio);
 void        OS_SchedulePrio        (void);
+void        OS_ScheduleNext        (void);
 
 void        OS_Schedule            (void);
 void        OS_LockSched(void);
@@ -649,8 +646,8 @@ void        OS_MemCopy             (UINT8          *pdest,
 #ifndef OS_MAX_PRIO_LEVELS
 #   error "OS_CFG.H, Missing OS_MAX_PRIO_LEVELS: Max. levels of priority in your application"
 #else
-#   if  OS_MAX_PRIO_LEVELS <  2u
-#       error "OS_CFG.H, OS_MAX_PRIO_LEVELS must be >= 2"
+#   if  OS_MAX_PRIO_LEVELS <  1u
+#       error "OS_CFG.H, OS_MAX_PRIO_LEVELS must be >= 1"
 #   endif
 #   if  OS_MAX_PRIO_LEVELS >  256u
 #       error "OS_CFG.H, OS_MAX_PRIO_LEVELS must be <= 256"

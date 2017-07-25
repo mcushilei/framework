@@ -16,6 +16,7 @@
 *******************************************************************************/
 
 
+#ifndef __SERVICE_DEBUG_C__
 #ifndef __SERVICE_DEBUG_H__
 #define __SERVICE_DEBUG_H__
 
@@ -199,4 +200,5 @@ extern void debug_exit_trap         (void);
 #endif
 
 #endif      //!< #ifndef __SERVICE_DEBUG_H__
+#endif      //!< #ifndef __SERVICE_DEBUG_C__
 /* EOF */

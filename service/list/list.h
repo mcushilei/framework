@@ -15,6 +15,7 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
+#ifndef __LIST_C__
 #ifndef __LIST_H__
 #define __LIST_H__
 
@@ -36,5 +37,6 @@ END_DEF_STRUCTURE(dlist_node_t)
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 
+#endif
 #endif
 /* EOF */

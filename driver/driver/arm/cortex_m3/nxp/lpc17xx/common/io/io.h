@@ -15,6 +15,7 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
+#ifndef __DRIVER_LPC17XX_IO_C__
 #ifndef __DRIVER_LPC17XX_IO_H__
 #define __DRIVER_LPC17XX_IO_H__
 
@@ -97,5 +98,6 @@ extern const i_io_t IO;
 
 /*============================ PROTOTYPES ====================================*/
 
+#endif
 #endif
 /* EOF */

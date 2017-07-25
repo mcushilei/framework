@@ -17,7 +17,7 @@
 
 
 //! \note do not move this pre-processor statement to other places
-#define __DEBUG_C__
+#define __SERVICE_DEBUG_C__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
