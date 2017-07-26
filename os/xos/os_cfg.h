@@ -32,7 +32,7 @@
 #define OS_ARG_CHK_EN             1u   //!< Enable (1) or Disable (0) argument checking
 #define OS_SCHED_LOCK_EN          1u   //!< Include code for osLockSched() and osUnlockSched()
 
-#define OS_MAX_PRIO_LEVELS       32u   //!< Max. number of priority levels ...
+#define OS_MAX_PRIO_LEVELS       16u   //!< Max. number of priority levels ...
                                        //!< ... MUST be >= 1 and <= 256!
 
 #define OS_MAX_SEMAPHORES        16u   //!< Max. number of semaphore in your application

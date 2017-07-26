@@ -24,20 +24,20 @@
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#define OS_COUNT_LEADING_ZERO(__B)      (OSUnMapTbl[__B])
+#define OS_COUNT_LEADING_ZERO(__B)      (osLZTbl[__B])
 
 /*============================ TYPES =========================================*/
 /*============================ PROTOTYPES ====================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*!
- *! \Brief       PRIORITY RESOLUTION TABLE
+ *! \Brief       LEADING ZERO LOOKUP TABLE
  *!
  *! \Notes       Index into table is bit pattern to resolve highest priority
  *!              Indexed value corresponds to highest priority bit position (i.e. 0..7)
  *!              Leading 0 algorithm.
  */
-static const UINT8 OSUnMapTbl[256] = {
+static const UINT8 osLZTbl[256] = {
     0u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0x00 to 0x0F
     4u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0x10 to 0x1F
     5u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0x20 to 0x2F
@@ -252,8 +252,8 @@ void OS_ScheduleChangePrio(OS_TCB *ptcb, UINT8 newprio)
 /*!
  *! \Brief       FIND HIGHEST PRIORITY TASK READY TO RUN
  *!
- *! \Description This function is called by other OS services to determine the highest priority task
- *!              that is ready to run.
+ *! \Description This function try determining the task that has the highest priority to run.
+ *!              It will not determine the next task if currnt priority is the hightest.
  *!
  *! \Arguments   none
  *!
@@ -262,7 +262,6 @@ void OS_ScheduleChangePrio(OS_TCB *ptcb, UINT8 newprio)
  *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
  *!              2) Interrupts are assumed to be DISABLED when this function is called.
  */
-
 void OS_SchedulePrio(void)
 {
     UINT8           prio;
@@ -272,6 +271,7 @@ void OS_SchedulePrio(void)
     prio = os_schedule_get_highest_prio();
     if (prio != osTCBCur->OSTCBPrio) {
         node = osRdyList[prio].Next;
+        //! move this task to the end of the ready queue.
         os_list_del(node);
         os_list_add(node, osRdyList[prio].Prev);
         osTCBNextRdy = OS_CONTAINER_OF(node, OS_TCB, OSTCBList);
@@ -279,20 +279,18 @@ void OS_SchedulePrio(void)
 }
 
 /*!
- *! \Brief       SCHEDULER
+ *! \Brief       FIND NEXT TASK READY TO RUN
  *!
- *! \Description This function is called by other OS services to run the next task, beacuse
- *!              current task has been pend.  This function is invoked by TASK level code
- *!              and is NOT used to reschedule tasks from ISRs (see osIntExit() for ISR rescheduling).
+ *! \Description This function is called by other OS services to determine the next ready task to
+ *!              run. The next task's priority might be the same with current task's.
  *!
  *! \Arguments   none
  *!
  *! \Returns     none
  *!
  *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
- *!              2) Rescheduling is prevented when the scheduler is locked (see OS_SchedLock())
+ *!              2) Interrupts are assumed to be DISABLED when this function is called.
  */
-
 void OS_ScheduleNext(void)
 {
     UINT8           prio;
@@ -301,11 +299,25 @@ void OS_ScheduleNext(void)
 
     prio = os_schedule_get_highest_prio();
     node = osRdyList[prio].Next;
+    //! move this task to the end of the ready queue.
     os_list_del(node);
     os_list_add(node, osRdyList[prio].Prev);
     osTCBNextRdy = OS_CONTAINER_OF(node, OS_TCB, OSTCBList);
 }
 
+/*!
+ *! \Brief       FIND HIGHEST PRIORITY TASK READY AND RUN IT
+ *!
+ *! \Description This function try determining the task that has the highest priority to run.
+ *!              It will not determine the next task if currnt priority is the hightest.
+ *!
+ *! \Arguments   none
+ *!
+ *! \Returns     none
+ *!
+ *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
+ *!              2) Rescheduling is prevented when the scheduler is locked (see OS_SchedLock())
+ */
 void OS_ScheduleRunPrio(void)
 {
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
@@ -330,6 +342,20 @@ void OS_ScheduleRunPrio(void)
     OSExitCriticalSection(cpu_sr);
 }
 
+/*!
+ *! \Brief       FIND NEXT TASK READY AND RUN IT
+ *!
+ *! \Description This function is called by other OS services to determine the next ready task to
+ *!              run, beacuse current task has been pend. The next task's priority might be the
+ *!              same with current task's.
+ *!
+ *! \Arguments   none
+ *!
+ *! \Returns     none
+ *!
+ *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
+ *!              2) Rescheduling is prevented when the scheduler is locked (see OS_SchedLock())
+ */
 void OS_ScheduleRunNext(void)
 {
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register

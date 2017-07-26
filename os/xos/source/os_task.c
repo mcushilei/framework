@@ -42,62 +42,6 @@ static void os_task_wrapper    (void           *ptask,
 /*============================ IMPLEMENTATION ================================*/
 
 /*!
- *! \Brief       CHANGE PRIORITY OF A TASK
- *!
- *! \Description This function allows you to change the priority of a task dynamically.  Note that the new
- *!              priority MUST be available.
- *!
- *! \Arguments   ptcb     pointer to tcb
- *!
- *!              newp     is the new priority
- *!
- *! \Returns     OS_ERR_NONE            is the call was successful
- *!              OS_ERR_INVALID_HANDLE  ptcb is NULL.
- *!              OS_ERR_INVALID_PRIO    if the priority you specify is higher that the maximum allowed
- *!              OS_ERR_TASK_EXIST      if the new priority already has been specified to a task.
- *!              OS_ERR_TASK_NOT_EXIST  there is no task with the specified OLD priority (i.e. the OLD task does
- *!                                     not exist.
- */
-OS_ERR  osTaskChangePrio   (OS_HANDLE   taskHandle,
-                            UINT8       newprio)
-{
-    OS_TCB     *ptcb = (OS_TCB *)taskHandle;
-#if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
-#endif
-    
-    
-#if OS_ARG_CHK_EN > 0u
-    if (ptcb == NULL) {
-        return OS_ERR_INVALID_HANDLE;
-    }
-#if OS_MAX_PRIO_LEVELS <= 255
-    if (newprio >= OS_MAX_PRIO_LEVELS) {
-        return OS_ERR_INVALID_PRIO;
-    }
-#endif
-#endif
-
-    OSEnterCriticalSection(cpu_sr);
-    if (ptcb->OSTCBOwnMutex != NULL) {                  //!< See if the task has owned a mutex.
-        ptcb->OSTCBOwnMutex->OSMutexOwnerPrio = newprio;//!< Yes.
-        if (newprio < ptcb->OSTCBPrio) {                //!  Change the priority only if the new one
-                                                        //!  is higher than the task's current.
-            OS_ScheduleChangePrio(ptcb, newprio);
-        }
-    } else {
-        OS_ScheduleChangePrio(ptcb, newprio);
-    }
-    OSExitCriticalSection(cpu_sr);
-    
-    if (osRunning != FALSE) {                           //!< try scheduling only the os has been running.
-        OS_ScheduleRunPrio();
-    }
-    
-    return OS_ERR_NONE;
-}
-
-/*!
  *! \Brief       CREATE A TASK
  *!
  *! \Description This function is used to have OS manage the execution of a task.  Tasks can either
@@ -248,6 +192,61 @@ static void os_task_del(void)
     OSExitCriticalSection(cpu_sr);
     
     OS_ScheduleRunNext();
+}
+
+/*!
+ *! \Brief       CHANGE PRIORITY OF A TASK
+ *!
+ *! \Description This function allows you to change the priority of a task dynamically.  Note that the new
+ *!              priority MUST be available.
+ *!
+ *! \Arguments   ptcb     pointer to tcb
+ *!
+ *!              newp     is the new priority
+ *!
+ *! \Returns     OS_ERR_NONE            is the call was successful
+ *!              OS_ERR_INVALID_HANDLE  ptcb is NULL.
+ *!              OS_ERR_INVALID_PRIO    if the priority you specify is higher that the maximum allowed
+ *!              OS_ERR_TASK_EXIST      if the new priority already has been specified to a task.
+ *!              OS_ERR_TASK_NOT_EXIST  there is no task with the specified OLD priority (i.e. the OLD task does
+ *!                                     not exist.
+ */
+OS_ERR osTaskChangePrio(OS_HANDLE taskHandle, UINT8 newprio)
+{
+    OS_TCB     *ptcb = (OS_TCB *)taskHandle;
+#if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
+    OS_CPU_SR   cpu_sr = 0u;
+#endif
+    
+    
+#if OS_ARG_CHK_EN > 0u
+    if (ptcb == NULL) {
+        return OS_ERR_INVALID_HANDLE;
+    }
+#if OS_MAX_PRIO_LEVELS <= 255
+    if (newprio >= OS_MAX_PRIO_LEVELS) {
+        return OS_ERR_INVALID_PRIO;
+    }
+#endif
+#endif
+
+    OSEnterCriticalSection(cpu_sr);
+    if (ptcb->OSTCBOwnMutex != NULL) {                  //!< See if the task has owned a mutex.
+        ptcb->OSTCBOwnMutex->OSMutexOwnerPrio = newprio;//!< Yes.
+        if (newprio < ptcb->OSTCBPrio) {                //!  Change the priority only if the new one
+                                                        //!  is higher than the task's current.
+            OS_ScheduleChangePrio(ptcb, newprio);
+        }
+    } else {
+        OS_ScheduleChangePrio(ptcb, newprio);
+    }
+    OSExitCriticalSection(cpu_sr);
+    
+    if (osRunning != FALSE) {                           //!< try scheduling only the os has been running.
+        OS_ScheduleRunPrio();
+    }
+    
+    return OS_ERR_NONE;
 }
 
 /*!
