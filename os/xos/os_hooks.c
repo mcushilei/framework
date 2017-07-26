@@ -1,3 +1,20 @@
+/*******************************************************************************
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *                                                                            *
+ *  This program is free software; you can redistribute it and/or modify it   *
+ *  under the terms of the GNU Lesser General Public License as published     *
+ *  by the Free Software Foundation; either version 3 of the License, or      *
+ *  (at your option) any later version.                                       *
+ *                                                                            *
+ *  This program is distributed in the hope that it will be useful, but       *
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of                *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU          *
+ *  General Public License for more details.                                  *
+ *                                                                            *
+ *  You should have received a copy of the GNU Lesser General Public License  *
+ *  along with this program; if not, see http://www.gnu.org/licenses/.        *
+*******************************************************************************/
+
 
 #include ".\source\os.h"
 
@@ -10,7 +27,7 @@
  *!
  *! \Notes       1) Interrupts should be disabled during this call.
  */
-#if OS_CPU_HOOKS_EN > 0
+#if OS_HOOKS_EN > 0
 void OSInitHookBegin(void)
 {
 }
@@ -25,7 +42,7 @@ void OSInitHookBegin(void)
  *!
  *! \Notes       1) Interrupts should be disabled during this call.
  */
-#if OS_CPU_HOOKS_EN > 0
+#if OS_HOOKS_EN > 0
 void OSInitHookEnd(void)
 {
 }
@@ -40,7 +57,7 @@ void OSInitHookEnd(void)
  *!
  *! \Notes       1) Interrupts are disabled during this call.
  */
-#if OS_CPU_HOOKS_EN > 0
+#if OS_HOOKS_EN > 0
 void OSTaskCreateHook(OS_TCB *ptcb)
 {
     (void)ptcb;
@@ -57,7 +74,7 @@ void OSTaskCreateHook(OS_TCB *ptcb)
  *!
  *! \Notes       none
  */
-#if OS_CPU_HOOKS_EN > 0u
+#if OS_HOOKS_EN > 0u
 void OSTaskReturnHook(OS_TCB  *ptcb)
 {
     (void)ptcb;
@@ -74,7 +91,7 @@ void OSTaskReturnHook(OS_TCB  *ptcb)
  *!
  *! \Notes       1) Interrupts are enabled during this call.
  */
-#if OS_CPU_HOOKS_EN > 0
+#if OS_HOOKS_EN > 0
 void OSTaskIdleHook(void)
 {
 }
@@ -88,7 +105,7 @@ void OSTaskIdleHook(void)
  *!
  *! \Arguments   none
  */
-#if OS_CPU_HOOKS_EN > 0
+#if OS_HOOKS_EN > 0
 void OSTaskStatHook(void)
 {
 }
@@ -107,7 +124,7 @@ void OSTaskStatHook(void)
  *!                 will be 'switched in' (i.e. the highest priority task) and, 'osTCBCur' points to the
  *!                 task being switched out (i.e. the preempted task).
  */
-#if (OS_CPU_HOOKS_EN > 0) && (OS_TASK_SW_HOOK_EN > 0)
+#if (OS_HOOKS_EN > 0) && (OS_TASK_SW_HOOK_EN > 0)
 void OSTaskSwHook(void)
 {
 #if OS_TASK_PROFILE_EN > 0u
@@ -128,7 +145,7 @@ void OSTaskSwHook(void)
  *!
  *! \Notes       1) Interrupts may or may not be ENABLED during this call.
  */
-#if OS_CPU_HOOKS_EN > 0
+#if OS_HOOKS_EN > 0
 void OSTCBInitHook(OS_TCB *ptcb)
 {
     (void)ptcb;
@@ -144,7 +161,7 @@ void OSTCBInitHook(OS_TCB *ptcb)
  *!
  *! \Notes       1) Interrupts may or may not be ENABLED during this call.
  */
-#if (OS_CPU_HOOKS_EN > 0) && (OS_TIME_TICK_HOOK_EN > 0)
+#if (OS_HOOKS_EN > 0) && (OS_TIME_TICK_HOOK_EN > 0)
 void OSTimeTickHook(void)
 {
 }

@@ -1,3 +1,20 @@
+/*******************************************************************************
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *                                                                            *
+ *  This program is free software; you can redistribute it and/or modify it   *
+ *  under the terms of the GNU Lesser General Public License as published     *
+ *  by the Free Software Foundation; either version 3 of the License, or      *
+ *  (at your option) any later version.                                       *
+ *                                                                            *
+ *  This program is distributed in the hope that it will be useful, but       *
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of                *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU          *
+ *  General Public License for more details.                                  *
+ *                                                                            *
+ *  You should have received a copy of the GNU Lesser General Public License  *
+ *  along with this program; if not, see http://www.gnu.org/licenses/.        *
+*******************************************************************************/
+
 
 //! \note do not move this pre-processor statement to other places
 #define  __OS_FLAG_C__
@@ -21,15 +38,21 @@
  *! \Description This function is called to create an event flag group.
  *!
  *! \Arguments   pFlagHandle    Pointer to the handle of flag.
- *!              init           Initial value of flag.
- *!              manual         If this flag is auto reset.
+ *!
+ *!              init           Initial value of flag. If this value is TRUE, the initial state of the
+ *!                             flag is set.
+ *!
+ *!              manualReset    If this flag is auto reset. It can be:
+ *!                             manualReset == TRUE     The flag will not be reset until you reset it
+ *!                                                     by calling osFlagReset. 
+ *!                             manualReset == FALSE    The flag will be reset once a waiting task has
+ *!                                                     been release. 
  *!
  *! \Returns     OS_ERR_NONE            If the call was successful.
  *!              OS_ERR_USE_IN_ISR      If you attempted to create an Event Flag from an ISR.
  *!              OS_ERR_OBJ_DEPLETED    If there are no more event flag control block
  */
-
-OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manual)
+OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manualReset)
 {
     OS_FLAG    *pflag;
 #if OS_CRITICAL_METHOD == 3u
@@ -50,7 +73,7 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manual)
     if (init != FALSE) {
         flags |= 0x01u;
     }
-    if (manual == FALSE) {
+    if (manualReset == FALSE) {
         flags |= 0x80u;
     }
     
@@ -75,55 +98,53 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manual)
     
     //! reg waitable object.
     OSEnterCriticalSection(cpu_sr);
-    OS_RegWaitableObj((OS_WAITBALE_OBJ *)pflag);
+    OS_RegWaitableObj((OS_WAITABLE_OBJ *)pflag);
     OSExitCriticalSection(cpu_sr);
     
     *pFlagHandle = pflag;
+    
     return OS_ERR_NONE;
 }
 
 /*!
- *! \Brief       DELETE AN EVENT FLAG GROUP
+ *! \Brief       DELETE A FLAG
  *!
- *! \Description This function deletes an event flag group and readies all tasks pending on the
- *!              event flag group.
+ *! \Description This function deletes a flag and readies all tasks pending on it.
  *!
- *! \Arguments   pflag         is a pointer to the desired event flag group.
+ *! \Arguments   pFlagHandle    is a pointer to the handle of flag.
  *!
- *!              opt           determines delete options as follows:
- *!                            opt == OS_DEL_NO_PEND   Deletes the event flag group ONLY if no task
- *!                                                    pending
- *!                            opt == OS_DEL_ALWAYS    Deletes the event flag group even if tasks
- *!                                                    are waiting.  In this case, all the tasks
- *!                                                    pending will be readied.
+ *!              opt            determines delete options, one of follows:
+ *!                             opt == OS_DEL_NO_PEND   Deletes the flag ONLY if no task pending
+ *!                                                     for it.
+ *!                             opt == OS_DEL_ALWAYS    Deletes the flag even if tasks are pending 
+ *!                                                     for it.  In this case, all the pending tasks
+ *!                                                     will be readied.
  *!
- *! \Returns     OS_ERR_NONE            The event flag was deleted successfully.
- *!              OS_ERR_USE_IN_ISR         If you attempted to delete the event flag from an ISR.
+ *! \Returns     OS_ERR_NONE            The flag was deleted successfully.
+ *!              OS_ERR_USE_IN_ISR      If you attempted to delete the flag from an ISR.
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event flag object.
+ *!              OS_ERR_EVENT_TYPE      If you didn't pass a flag object.
  *!              OS_ERR_INVALID_OPT     An invalid option was specified.
- *!              OS_ERR_TASK_WAITING    One or more tasks were waiting on the event flag.
+ *!              OS_ERR_TASK_WAITING    One or more tasks were waiting on the flag.
  *!
  *!
  *! \Notes       1) This function must be used with care. Tasks that would normally expect
- *!                 the presence of the event flag group MUST check the return code of
- *!                 OSFlagAccept() and osFlagPend().
+ *!                 the presence of the flag MUST check the return code of osFlagPend().
  *!              2) This call can potentially disable interrupts for a long time. The interrupt
  *!                 disable time is directly proportional to the number of tasks waiting on
- *!                 the event flag group.
+ *!                 the flag.
  *!              3) All tasks that were waiting for the event flag will be readied and returned an
- *!                 OS_ERR_PEND_ABORT if osFlagDelete() was called with OS_DEL_ALWAYS
+ *!                 OS_ERR_PEND_ABORT if osFlagDelete() was called with OS_DEL_ALWAYS.
  */
-
 #if OS_FLAG_DEL_EN > 0u
 OS_ERR osFlagDelete(OS_HANDLE *pFlagHandle, UINT8 opt)
 {
     OS_FLAG    *pflag = (OS_FLAG *)*pFlagHandle;
-    BOOL        waiting;
+    BOOL        taskPend;
+    BOOL        taskSched = FALSE;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
-    UINT8       err;
 
 
     if (osIntNesting > 0u) {            //!< Can't DELETE from an ISR
@@ -133,79 +154,72 @@ OS_ERR osFlagDelete(OS_HANDLE *pFlagHandle, UINT8 opt)
     if (pflag == NULL) {                //!< Validate 'pflag'
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) { //!< Validate event type
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) { //!< Validate object type
         return OS_ERR_EVENT_TYPE;
     }
 #endif
 
     OSEnterCriticalSection(cpu_sr);
-    if (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) { //!< See if any tasks waiting on event flag.
-        waiting = TRUE;                                         //!< Yes
+    if (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) { //!< See if any tasks taskPend on this flag...
+        taskPend    = TRUE;                                     //!< ...Yes
+        taskSched   = TRUE;
     } else {
-        waiting = FALSE;                                        //!< No
+        taskPend    = FALSE;                                    //!< ...No
     }
     switch (opt) {
         case OS_DEL_NO_PEND:
-            if (waiting != FALSE) {
+            if (taskPend != FALSE) {
                 OSExitCriticalSection(cpu_sr);
-                err = OS_ERR_TASK_WAITING;
-                break;
+                return OS_ERR_TASK_WAITING;
             }
-            OS_DeregWaitableObj((OS_WAITBALE_OBJ *)pflag);
-            pflag->OSObjType      = OS_OBJ_TYPE_UNUSED;
-            pflag->OSFlagFlags    = 0u;
-            OS_ObjPoolFree(&osFlagFreeList, pflag);
-            OSExitCriticalSection(cpu_sr);
-            err = OS_ERR_NONE;
             break;
 
         case OS_DEL_ALWAYS:
-            OS_LockSched();
-            OSExitCriticalSection(cpu_sr);
             while (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) {
-                OS_EventTaskRdy(pflag, OS_STAT_PEND_ABORT);  //!< Ready ALL tasks waiting for this flag.
+                OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pflag, OS_STAT_PEND_ABORT);     //!< Ready ALL tasks task pend for this flag.
             }
-            OSEnterCriticalSection(cpu_sr);
-            OS_UnlockSched();
-            OS_DeregWaitableObj((OS_WAITBALE_OBJ *)pflag);
-            pflag->OSObjType      = OS_OBJ_TYPE_UNUSED;
-            pflag->OSFlagFlags    = 0u;
-            OS_ObjPoolFree(&osFlagFreeList, pflag);
-            OSExitCriticalSection(cpu_sr);
-            OS_Schedule();
-            err = OS_ERR_NONE;
             break;
 
         default:
              OSExitCriticalSection(cpu_sr);
-             err = OS_ERR_INVALID_OPT;
-             break;
+             return OS_ERR_INVALID_OPT;
     }
-    return err;
+    
+    OS_DeregWaitableObj((OS_WAITABLE_OBJ *)pflag);
+    pflag->OSObjType      = OS_OBJ_TYPE_UNUSED;
+    pflag->OSFlagFlags    = 0u;
+    OS_ObjPoolFree(&osFlagFreeList, pflag);
+    OSExitCriticalSection(cpu_sr);
+    
+    if (taskSched) {
+        OS_ScheduleRunPrio();
+    }
+    
+    return OS_ERR_NONE;
 }
 #endif
 
 /*!
- *! \Brief       WAIT ON AN EVENT FLAG
+ *! \Brief       WAIT ON A FLAG
  *!
  *! \Description This function is called to wait for a flag to be set.
  *!
- *! \Arguments   hFlag         is a handle to the desired event flag handle.
+ *! \Arguments   hFlag          is a handle to the desired flag.
  *!
- *!              timeout       is an optional timeout (in clock ticks) that your task will wait for
- *!                            the desired bit combination.  If you specify 0, however, your task
- *!                            will wait forever at the specified event flag group or, until
- *!                            a message arrives.
+ *!              timeout        is an optional timeout (in clock ticks) that your task will wait for
+ *!                             the desired bit combination.  If you specify OS_INFINITE, this function
+ *!                             will not return until the flag is set.
+ *!                             If you specify 0, this call will return immediately even if the flag
+ *!                             was not set.
  *!
  *!  \Returns    OS_ERR_NONE            The flag have been set within the specified 'timeout'.
- *!              OS_ERR_USE_IN_ISR        If you tried to PEND from an ISR.
+ *!              OS_ERR_USE_IN_ISR      If you tried to PEND from an ISR.
  *!              OS_ERR_PEND_LOCKED     If you called this function when the scheduler is locked.
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event flag object.
+ *!              OS_ERR_EVENT_TYPE      If you didn't pass a flag object.
  *!              OS_ERR_TIMEOUT         The flag have not been set in the specified 'timeout'.
  *!              OS_ERR_PEND_ABORT      The wait on the flag was aborted.
  */
-
 OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
 {
     OS_FLAG        *pflag = (OS_FLAG *)hFlag;
@@ -228,7 +242,7 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
     if (pflag == NULL) {                //!< Validate 'pflag'
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) { //!< Validate event type
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
         return OS_ERR_EVENT_TYPE;
     }
 #endif
@@ -237,8 +251,8 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
     consume = pflag->OSFlagFlags & 0x80u;
     ready   = pflag->OSFlagFlags & 0x01u;
     if (ready != 0u) {                          //!< See if flag set
-        if (consume != 0u) {                    //!< Yes. See if we need to consume the flags
-            pflag->OSFlagFlags &= ~0x01u;       //!< Yes. Clear flag
+        if (consume != 0u) {                    //!< Yes. See if we need to consume the flags.
+            pflag->OSFlagFlags &= ~0x01u;       //!< Yes. Reset the flag.
         }
         OSExitCriticalSection(cpu_sr);
         return OS_ERR_NONE;
@@ -249,9 +263,9 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
         return OS_ERR_TIMEOUT;
     }
 
-    OS_EventTaskWait(pflag, &node, timeout);    //!< Suspend task until event occur or timeout
+    OS_WaitableObjAddTask((OS_WAITABLE_OBJ *)pflag, &node, timeout);    //!< Suspend task until event occur or timeout
     OSExitCriticalSection(cpu_sr);
-    OS_Schedule();
+    OS_ScheduleRunNext();
 
     switch (node.OSWaitNodeRes) {
         case OS_STAT_PEND_OK:
@@ -267,15 +281,16 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
             err = OS_ERR_TIMEOUT;
             break;
     }
+    
     return err;
 }
 
 /*!
- *! \Brief       SET EVENT FLAG
+ *! \Brief       SET A FLAG
  *!
- *! \Description This function is called to set an event flag.
+ *! \Description This function is called to set a flag.
  *!
- *! \Arguments   pflag          is a pointer to the desired event flag group.
+ *! \Arguments   hFlag          is a handle to the desired flag.
  *!
  *! \Returns     OS_ERR_NONE            The call was successfull
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
@@ -286,7 +301,6 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
  *!              2) The amount of time interrupts are DISABLED depends on the number of tasks
  *!                 waiting on the event flag.
  */
-
 OS_ERR osFlagSet(OS_HANDLE hFlag)
 {
     OS_FLAG      *pflag = (OS_FLAG *)hFlag;
@@ -299,40 +313,38 @@ OS_ERR osFlagSet(OS_HANDLE hFlag)
     if (pflag == NULL) {                //!< Validate 'pflag'
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Make sure we are pointing to an event flag
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
         return OS_ERR_EVENT_TYPE;
     }
 #endif
 
     OSEnterCriticalSection(cpu_sr);
     pflag->OSFlagFlags |= 0x01u;                //!< Set the flags.
-    if (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) { //!< See if any task is waiting for this flag.
-        while (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) {  //!< Ready ALL tasks waiting for this flag.
-            OS_EventTaskRdy(pflag, OS_STAT_PEND_OK);
+    if (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) {         //!< See if any task is waiting for this flag.
+        while (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) {  //!< Yes, Ready ALL tasks waiting for this flag.
+            OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pflag, OS_STAT_PEND_OK);
         }
-        OSEnterCriticalSection(cpu_sr);
         if (pflag->OSFlagFlags & 0x80u) {       //!< Is this a auto-reset flag?
             pflag->OSFlagFlags &= ~0x01u;       //!< Yes, Reset the flag.
         }
     }
     OSExitCriticalSection(cpu_sr);
-    OS_Schedule();
+    OS_ScheduleRunPrio();
     
     return OS_ERR_NONE;
 }
 
 /*!
- *! \Brief       RESET EVENT FLAG BIT(S)
+ *! \Brief       RESET A FLAG
  *!
- *! \Description This function is called to reset an event flag.
+ *! \Description This function is called to reset a flag.
  *!
- *! \Arguments   pflag          is a pointer to the desired event flag.
+ *! \Arguments   hFlag          is a handle to the desired flag.
  *!
  *! \Returns     OS_ERR_NONE            The call was successfull
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event flag object.
+ *!              OS_ERR_EVENT_TYPE      If you didn't pass a flag object.
  */
-
 OS_ERR osFlagReset(OS_HANDLE hFlag)
 {
     OS_FLAG    *pflag = (OS_FLAG *)hFlag;
@@ -345,7 +357,7 @@ OS_ERR osFlagReset(OS_HANDLE hFlag)
     if (pflag == NULL) {                //!< Validate 'pflag'.
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) { //!< Validate event type.
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
         return OS_ERR_EVENT_TYPE;
     }
 #endif
@@ -353,21 +365,22 @@ OS_ERR osFlagReset(OS_HANDLE hFlag)
     OSEnterCriticalSection(cpu_sr);
     pflag->OSFlagFlags &= ~0x01u;       //!< Reset the flags
     OSExitCriticalSection(cpu_sr);
+    
     return OS_ERR_NONE;
 }
 
 /*!
- *! \Brief       QUERY EVENT FLAG
+ *! \Brief       QUERY A FLAG
  *!
- *! \Description This function is used to check the value of the event flag group.
+ *! \Description This function is used to get the information of the flag.
  *!
- *! \Arguments   pflag         is a pointer to the desired event flag group.
+ *! \Arguments   hFlag          is a handle to the desired flag.
+ *!              pInfo          a pointer to a OS_FLAG_INFO struct to store the information.
  *!
  *! \Returns     OS_ERR_NONE            The call was successfull
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
  *!              OS_ERR_EVENT_TYPE      If you didn't pass a event flag object.
  */
-
 #if OS_FLAG_QUERY_EN > 0u
 OS_ERR osFlagQuery(OS_HANDLE hFlag, OS_FLAG_INFO *pInfo)
 {
@@ -385,17 +398,17 @@ OS_ERR osFlagQuery(OS_HANDLE hFlag, OS_FLAG_INFO *pInfo)
     if (pInfo == NULL) {                //!< Validate 'pInfo'
         return OS_ERR_PDATA_NULL;
     }
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) { //!< Validate event type
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
         return OS_ERR_EVENT_TYPE;
     }
 #endif
 
     OSEnterCriticalSection(cpu_sr);
     flag = pflag->OSFlagFlags;
-    if (flag & 0x80 != 0) {                     //!< Is this a auto-rest flag?
-        pInfo->OSFlagAutoReset = TRUE;
+    if (flag & 0x80 != 0) {                     //!< Is this a manual-rest flag?
+        pInfo->OSFlagManualReset = FALSE;
     } else {
-        pInfo->OSFlagAutoReset = FALSE;
+        pInfo->OSFlagManualReset = TRUE;
     }
     if (flag & 0x01 != 0) {                     //!< Is this flag set?
         pInfo->OSFlagStatus = TRUE;
@@ -404,10 +417,9 @@ OS_ERR osFlagQuery(OS_HANDLE hFlag, OS_FLAG_INFO *pInfo)
     }
     pInfo->OSWaitList = pflag->OSFlagWaitList;  //!< Copy wait list
     OSExitCriticalSection(cpu_sr);
+    
     return OS_ERR_NONE;
 }
 #endif
 
-
-
-#endif      //!< (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
+#endif      //!< #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)

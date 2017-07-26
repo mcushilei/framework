@@ -21,7 +21,6 @@ typedef double      FP64;       //!< Double precision floating point
 typedef _Bool       BOOL;
 
 //! these are used for memory access or pointer operating.
-typedef uint8_t     BYTE;       //!< the smallest ADDRESSABLE unit of memory used by the target CPU.
 typedef uint32_t    WORD;       //!< the unit of data used by the target CPU.
 
 typedef uint32_t    OS_STK;     //!< stack unite used by target CPU.

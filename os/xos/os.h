@@ -24,11 +24,16 @@
 
 /*============================ MACROS ========================================*/
 
-#define OS_CRITICAL_DEFINE(__CRITICAL)      OS_CPU_SR   __CRITICAL;
-#define OS_CRITICAL_INIT(__CRITICAL)        do {} while (0)
-#define OS_CRITICAL_DEINIT(__CRITICAL)      do {} while (0)
-#define OS_CRITICAL_ENTER(__CRITICAL)       osEnterCriticalSection(__CRITICAL)
-#define OS_CRITICAL_EXIT(__CRITICAL)        osExitCriticalSection(__CRITICAL)
+#define OS_CRITICAL_SECTION_DEFINE(__CS)    OS_CPU_SR   __CS;
+#define OS_CRITICAL_SECTION_ENTER(__CS)     osEnterCriticalSection(__CS)
+#define OS_CRITICAL_SECTION_EXIT(__CS)      osExitCriticalSection(__CS)
+
+#define OS_CRITICAL_SECTION(...) do {   \
+    OS_CPU_SR   __cpu_sr;               \
+    osEnterCriticalSection(__cpu_sr);   \
+    __VA_ARGS__                         \
+    osExitCriticalSection(__cpu_sr);    \
+} while (0);
 
 
 #define OS_SEMAPHORE_TYPE                   OS_HANDLE

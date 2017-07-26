@@ -1,3 +1,20 @@
+/*******************************************************************************
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *                                                                            *
+ *  This program is free software; you can redistribute it and/or modify it   *
+ *  under the terms of the GNU Lesser General Public License as published     *
+ *  by the Free Software Foundation; either version 3 of the License, or      *
+ *  (at your option) any later version.                                       *
+ *                                                                            *
+ *  This program is distributed in the hope that it will be useful, but       *
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of                *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU          *
+ *  General Public License for more details.                                  *
+ *                                                                            *
+ *  You should have received a copy of the GNU Lesser General Public License  *
+ *  along with this program; if not, see http://www.gnu.org/licenses/.        *
+*******************************************************************************/
+
 
 //! \note do not move this pre-processor statement to other places
 #ifndef   __OS_H__
@@ -10,7 +27,7 @@ extern "C" {
 /*!
  *! OS VERSION NUMBER
  */
-#define  OS_VERSION                 100u       //!< Version (Vxx.yyy mult. by 1000)
+#define  OS_VERSION                 900u       //!< Version (Vxx.yyy mult. by 1000)
 
 /*!
  *! INCLUDE HEADER FILES
@@ -47,7 +64,7 @@ extern "C" {
 
 #define OS_EVENT_EN                 (OS_MUTEX_EN | OS_FLAG_EN |OS_SEM_EN)
     
-#define OS_CONTAINER_OF(__ptr, __type, __member) (              \
+#define OS_CONTAINER_OF(__ptr, __type, __member) (  \
         (__type*)( (char*)(__ptr) - offsetof(__type, __member) ))
 
 /*!
@@ -67,26 +84,28 @@ enum {
     OS_OBJ_TYPE_FLAG,
     OS_OBJ_TYPE_TCB,
 };
-#define OS_OBJ_TYPE_MSK             (0x0Fu << 0)
-#define OS_OBJ_TYPE_SET(__OT)       ((UINT16)( ((__OT) << 0) & OS_OBJ_TYPE_MSK ))
-#define OS_OBJ_TYPE_GET(__OT)       ((UINT16)( ((__OT) & OS_OBJ_TYPE_MSK) >> 0 ))
+#define OS_OBJ_TYPE_MSK             (0x07u << 0)
+#define OS_OBJ_TYPE_SET(__OT)       ((UINT8)( ((UINT8)(__OT) << 0) & OS_OBJ_TYPE_MSK ))
+#define OS_OBJ_TYPE_GET(__OT)       ((UINT8)( ((UINT8)(__OT) & OS_OBJ_TYPE_MSK) >> 0 ))
 
-#define OS_OBJ_PRIO_TYPE_LIST       (0u)
-#define OS_OBJ_PRIO_TYPE_PRIO_LIST  (1u)
-#define OS_OBJ_PRIO_TYPE_MSK        (0x03u << 8)
-#define OS_OBJ_PRIO_TYPE_SET(__OT)  ((UINT16)( ((__OT) << 8) & OS_OBJ_TYPE_MSK ))
-#define OS_OBJ_PRIO_TYPE_GET(__OT)  ((UINT16)( ((__OT) & OS_OBJ_TYPE_MSK) >> 8 ))
+enum {
+    OS_OBJ_PRIO_TYPE_LIST       = 0,
+    OS_OBJ_PRIO_TYPE_PRIO_LIST,
+};
+#define OS_OBJ_PRIO_TYPE_MSK        (0x03u << 3)
+#define OS_OBJ_PRIO_TYPE_SET(__OT)  ((UINT8)( ((UINT8)(__OT) << 3) & OS_OBJ_TYPE_MSK ))
+#define OS_OBJ_PRIO_TYPE_GET(__OT)  ((UINT8)( ((UINT8)(__OT) & OS_OBJ_TYPE_MSK) >> 3 ))
 
-#define OS_OBJ_WAITABLE             (1u << 15)
+#define OS_OBJ_WAITABLE             (1u << 7)
 
 /*!
- *! OS???Delete() OPTIONS
+ *! \Brief  OS???Delete() OPTIONS
  */
 #define OS_DEL_NO_PEND              (0u)
 #define OS_DEL_ALWAYS               (1u)
 
 /*!
- *! OS???Pend() OPTIONS
+ *! \Brief  OS???Pend() OPTIONS
  *!
  *! These #defines are used to establish the options for OS???PendAbort().
  */
@@ -94,7 +113,7 @@ enum {
 #define OS_PEND_OPT_BROADCAST       (1u)       //!< Broadcast action to ALL tasks waiting
 
 /*!
- *! TASK OPTIONS (see osTaskCreate())
+ *! \Brief  TASK OPTIONS (see osTaskCreate())
  */
 #define OS_TASK_OPT_NONE            (0x00u)    //!< NO option selected
 #define OS_TASK_OPT_STK_CHK         (0x01u)    //!< Enable stack checking for the task
@@ -102,36 +121,36 @@ enum {
 #define OS_TASK_OPT_SAVE_FP         (0x04u)    //!< Save the contents of any floating-point registers
 
 /*!
- *! ERROR CODES
+ *! \Brief  ERROR CODES
  */
 enum {
-    OS_ERR_NONE                     = 0u,
+    OS_ERR_NONE                     = 0x00u,
 
-    OS_ERR_EVENT_TYPE               = 1u,
-    OS_ERR_PDATA_NULL               = 2u,
-    OS_ERR_INVALID_HANDLE           = 3u,
-    OS_ERR_INVALID_OPT              = 4u,
-    OS_ERR_USE_IN_ISR               = 5u,
-    OS_ERR_OBJ_DEPLETED             = 6u,
+    OS_ERR_EVENT_TYPE               = 0x01u,
+    OS_ERR_PDATA_NULL               = 0x02u,
+    OS_ERR_INVALID_HANDLE           = 0x03u,
+    OS_ERR_INVALID_OPT              = 0x04u,
+    OS_ERR_USE_IN_ISR               = 0x05u,
+    OS_ERR_OBJ_DEPLETED             = 0x06u,
 
-    OS_ERR_TIMEOUT                  = 30u,
-    OS_ERR_PEND_LOCKED              = 31u,
-    OS_ERR_PEND_ABORT               = 32u,
-    OS_ERR_TASK_WAITING             = 33u,
+    OS_ERR_TIMEOUT                  = 0x30u,
+    OS_ERR_PEND_LOCKED              = 0x31u,
+    OS_ERR_PEND_ABORT               = 0x32u,
+    OS_ERR_TASK_WAITING             = 0x33u,
 
-    OS_ERR_INVALID_PRIO             = 60u,
-    OS_ERR_TASK_OPT                 = 61u,
-    OS_ERR_TASK_EXIST               = 62u,
-    OS_ERR_TASK_NOT_EXIST           = 63u,
+    OS_ERR_INVALID_PRIO             = 0x60u,
+    OS_ERR_TASK_OPT                 = 0x61u,
+    OS_ERR_TASK_EXIST               = 0x62u,
+    OS_ERR_TASK_NOT_EXIST           = 0x63u,
 
-
-    OS_ERR_SEM_OVF                  = 90u,
-    OS_ERR_NOT_MUTEX_OWNER          = 91u,
-    OS_ERR_HAS_OWN_MUTEX            = 92u,
+    OS_ERR_SEM_OVF                  = 0x90u,
+    OS_ERR_NOT_MUTEX_OWNER          = 0x91u,
+    OS_ERR_HAS_OWN_MUTEX            = 0x92u,
+    OS_ERR_RECURSIVE_MUTEX          = 0x93u,
 };
     
 /*!
- *! ELEMENTARY TYPE
+ *! \Brief  ELEMENTARY TYPE
  */
 typedef UINT8   OS_ERR;
 
@@ -147,15 +166,15 @@ typedef void   *OS_HANDLE;
 
 typedef struct list_node        OS_LIST_NODE;
 typedef struct os_mem_pool      OS_MEM_POOL;
-typedef struct os_waitable_obj  OS_WAITBALE_OBJ;
+typedef struct os_waitable_obj  OS_WAITABLE_OBJ;
 typedef struct os_tcb           OS_TCB;
 typedef struct os_flag          OS_FLAG;
 typedef struct os_mutex         OS_MUTEX;
-typedef struct os_semp          OS_SEM;
+typedef struct os_sem           OS_SEM;
 typedef struct os_wait_node     OS_WAIT_NODE;
 
 typedef struct {
-    UINT16              OSObjType;
+    UINT8               OSObjType;
 } OS_OBJ_HEAD;
 
 //! list type
@@ -171,7 +190,7 @@ struct os_mem_pool {
 
 struct os_wait_node {                               //!< Event Wait List Node.
     OS_TCB             *OSWaitNodeTCB;              //!< Pointer to TCB of waiting task.
-    OS_WAITBALE_OBJ    *OSWaitNodeECB;              //!< Pointer to ECB wait for.
+    OS_WAITABLE_OBJ    *OSWaitNodeECB;              //!< Pointer to ECB wait for.
     OS_LIST_NODE        OSWaitNodeList;             //!< waiting NODE list.
     UINT32              OSWaitNodeDly;              //!< Ticks to wait this object.
     UINT8               OSWaitNodeRes;              //!< Event wait resault.
@@ -183,25 +202,31 @@ struct os_waitable_obj {                            //!< Waitable object head.
     OS_LIST_NODE        OSWaitObjWaitNodeList;      //!< Pointer to waiting NODE of task waits on this object.
     OS_LIST_NODE        OSWaitObjList;
 };
-    
+
 /*!
- *! SEMAPHORE CONTROL BLOCK
+ *! \Brief  SEMAPHORE CONTROL BLOCK
  */
 #if (OS_SEM_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
-struct os_semp {
-    OS_OBJ_HEAD;
-    UINT16              OSSempCnt;                  //!< Semaphore count.
-    OS_LIST_NODE        OSSempWaitList;             //!< Pointer to first NODE of task waiting on semaphore
-    OS_LIST_NODE        OSSempObjList;
+struct os_sem {
+    union {
+        OS_OBJ_HEAD;
+        OS_OBJ_HEAD     OSSemObjHead;
+    };
+    UINT16              OSSemCnt;                  //!< Semaphore count.
+    OS_LIST_NODE        OSSemWaitList;             //!< Pointer to first NODE of task waiting on semaphore
+    OS_LIST_NODE        OSSemObjList;
 };
 #endif
 
 /*!
- *! MUTEX SEMAPHORE CONTROL BLOCK
+ *! \Brief  MUTEX SEMAPHORE CONTROL BLOCK
  */
 #if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 struct os_mutex {
-    OS_OBJ_HEAD;
+    union {
+        OS_OBJ_HEAD;
+        OS_OBJ_HEAD     OSMutexObjHead;
+    };
     UINT8               OSMutexCeilingPrio;         //!< Mutex's ceiling prio.
     UINT8               OSMutexOwnerPrio;           //!< Mutex owner's prio.
     OS_LIST_NODE        OSMutexWaitList;            //!< Pointer to first NODE of task waiting on mutex
@@ -211,11 +236,14 @@ struct os_mutex {
 #endif
 
 /*!
- *! EVENT FLAGS CONTROL BLOCK
+ *! \Brief  EVENT FLAGS CONTROL BLOCK
  */
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 struct os_flag {
-    OS_OBJ_HEAD;
+    union {
+        OS_OBJ_HEAD;
+        OS_OBJ_HEAD     OSFlagObjHead;
+    };
     UINT16              OSFlagFlags;                //!< Flag options
     OS_LIST_NODE        OSFlagWaitList;             //!< Pointer to first NODE of task waiting on flag
     OS_LIST_NODE        OSFlagObjList;
@@ -223,10 +251,13 @@ struct os_flag {
 #endif
 
 /*!
- *! TASK CONTROL BLOCK
+ *! \Brief  TASK CONTROL BLOCK
  */
 struct os_tcb {
-    OS_OBJ_HEAD         OSTCBObjHead;
+    union {
+        OS_OBJ_HEAD;
+        OS_OBJ_HEAD     OSTCBObjHead;
+    };
     
     UINT8               OSTCBOpt;                   //!< Task options as passed by osTaskCreate()
     UINT8               OSTCBPrio;                  //!< Task priority (0 == highest)
@@ -253,45 +284,45 @@ struct os_tcb {
 };
 
 /*!
- *! FLAG DATA
+ *! \Brief  FLAG INFO TYPE
  */
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 typedef struct {
-    BOOL                OSFlagAutoReset;
-    BOOL                OSFlagStatus;
     OS_LIST_NODE        OSWaitList;
+    BOOL                OSFlagManualReset;
+    BOOL                OSFlagStatus;
 } OS_FLAG_INFO;
 #endif
 
 /*!
- *! MUTUAL EXCLUSION SEMAPHORE DATA
+ *! \Brief  MUTEX INFO TYPE
  */
 #if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 typedef struct {
+    OS_LIST_NODE        OSWaitList;
     OS_TCB             *OSOwnerTCB;
     UINT8               OSOwnerPrio;
     UINT8               OSCeilingPrio;
-    OS_LIST_NODE        OSWaitList;
-    BOOL                OSValue;                    //!< Mutex value (OS_FALSE = used, TRUE = available)
+    UINT8               OSValue;                    //!< Mutex value (OS_FALSE = used, TRUE = available)
 } OS_MUTEX_INFO;
 #endif
 
 /*!
- *! SEMAPHORE DATA
+ *! \Brief  SEMAPHORE INFO TYPE
  */
 #if (OS_SEM_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
 typedef struct {
-    UINT16              OSCnt;                      //!< Semaphore count
     OS_LIST_NODE        OSWaitList;
+    UINT16              OSCnt;                      //!< Semaphore count
 } OS_SEM_INFO;
 #endif
 
 /*!
- *! GLOBAL VARIABLES
+ *! \Brief  GLOBAL VARIABLES
  */
 #if (OS_SEM_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
 OS_EXT  OS_LIST_NODE   *osSempFreeList;                     //!< Pointer to list of free semaphore control blocks
-OS_EXT  OS_SEM         osSempFreeTbl[OS_MAX_SEMAPHORES];   //!< Table of semaphore control blocks
+OS_EXT  OS_SEM          osSempFreeTbl[OS_MAX_SEMAPHORES];   //!< Table of semaphore control blocks
 #endif
 
 #if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
@@ -325,10 +356,10 @@ OS_EXT  BOOL            osRunning;                          //!< Flag indicating
 OS_EXT  UINT32          osTaskCtr;
 
 #if OS_STAT_EN > 0u
-OS_EXT  UINT32          osCtxSwCtr;                         //!< Counter of number of context switches
-OS_EXT  UINT32          osIdleCtrMax;                       //!< Max. value that idle ctr can take in 1 sec.
-OS_EXT  UINT8           osCPUUsage;                         //!< Percentage of CPU used
-OS_EXT  BOOL            osStatRunning;                      //!< Flag indicating that the statistic task is running
+OS_EXT  UINT32          osCtxSwCtr;                             //!< Counter of number of context switches
+OS_EXT  UINT32          osIdleCtrMax;                           //!< Max. value that idle ctr can take in 1 sec.
+OS_EXT  UINT8           osCPUUsage;                             //!< Percentage of CPU used
+OS_EXT  BOOL            osStatRunning;                          //!< Flag indicating that the statistic task is running
 OS_EXT  OS_STK          osTaskStatStk[OS_TASK_STAT_STK_SIZE];   //!< Statistics task stack
 #endif
 
@@ -338,17 +369,17 @@ OS_EXT  OS_STK          osTaskIdleStk[OS_TASK_IDLE_STK_SIZE];   //!< Idle task s
 
 
 /*!
- *!                     APPLICATION FUNCTION PROTOTYPES
+ *! APPLICATION FUNCTION PROTOTYPES(APIs)
  */
 
 /*!
- *! EVENT FLAGS MANAGEMENT
+ *! \Brief  EVENT FLAGS MANAGEMENT
  */
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 
 OS_ERR      osFlagCreate           (OS_HANDLE      *pFlagHandle,
                                     BOOL            init,
-                                    BOOL            manual);
+                                    BOOL            manualReset);
 
 #if OS_FLAG_DEL_EN > 0u
 OS_ERR      osFlagDelete           (OS_HANDLE      *pFlagHandle,
@@ -364,13 +395,13 @@ OS_ERR      osFlagReset            (OS_HANDLE       hFlag);
 
 #if OS_FLAG_QUERY_EN > 0u
 OS_ERR      osFlagQuery            (OS_HANDLE       hFlag,
-                                    OS_FLAG_INFO   *p_flag_data);
+                                    OS_FLAG_INFO   *pInfo);
 #endif
 
 #endif
 
 /*!
- *! MUTUAL EXCLUSION SEMAPHORE MANAGEMENT
+ *! \Brief  MUTUAL EXCLUSION SEMAPHORE MANAGEMENT
  */
 #if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 
@@ -395,28 +426,27 @@ OS_ERR      osMutexQuery           (OS_HANDLE       hMutex,
 #endif
 
 /*!
- *! SEMAPHORE MANAGEMENT
+ *! \Brief  SEMAPHORE MANAGEMENT
  */
 #if (OS_SEM_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
 
-OS_ERR      osSemCreate            (OS_HANDLE      *pSemaphoreHandle,
+OS_ERR      osSemCreate            (OS_HANDLE      *pSemHandle,
                                     UINT16          cnt);
 
 #if OS_SEM_DEL_EN > 0u
-OS_ERR      osSemDelete            (OS_HANDLE      *pSemaphoreHandle,
+OS_ERR      osSemDelete            (OS_HANDLE      *pSemHandle,
                                     UINT8           opt);
 #endif
 
 OS_ERR      osSemPend              (OS_HANDLE       hSemaphore,
                                     UINT32          timeout);
 
-#if OS_SEM_PEND_ABORT_EN > 0u
-OS_ERR      osSemPendAbort         (OS_HANDLE       hSemaphore,
-                                    UINT8           opt);
-#endif
-
 OS_ERR      osSemPost              (OS_HANDLE       hSemaphore,
                                     UINT16          cnt);
+
+#if OS_SEM_PEND_ABORT_EN > 0u
+OS_ERR      osSemPendAbort         (OS_HANDLE       hSemaphore);
+#endif
 
 #if OS_SEM_SET_EN > 0u
 OS_ERR      osSemSet               (OS_HANDLE       hSemaphore,
@@ -431,7 +461,7 @@ OS_ERR      osSemQuery             (OS_HANDLE       hSemaphore,
 #endif
 
 /*!
- *! TASK MANAGEMENT
+ *! \Brief  TASK MANAGEMENT
  */
 OS_ERR      osTaskCreate           (OS_HANDLE      *pHandle,
                                     OS_TASK        *task,
@@ -449,20 +479,22 @@ OS_ERR      osTaskChangePrio       (OS_HANDLE       handle,
 void        osTaskSleep            (UINT32          ticks);
 
 /*!
- *! TIME MANAGEMENT
+ *! \Brief  TIME MANAGEMENT
  */
 void        osTimeTick             (void);
 
 /*!
- *! MISCELLANEOUS
+ *! \Brief  MISCELLANEOUS
  */
 void        osInit                 (void);
 
 void        osIntEnter             (void);
 void        osIntExit              (void);
 
+#if OS_SCHED_LOCK_EN > 0u
 void        osLockSched            (void);
 void        osUnlockSched          (void);
+#endif
 
 void        osStart                (void);
 
@@ -476,9 +508,9 @@ UINT16      osVersion              (void);
 #define     osExitCriticalSection()      OSExitCriticalSection()
 
 /*!
- *!                        TARGET SPECIFIC FUNCTION PROTOTYPES
- *! Target Specific interface and hook functions. Those functions will be called
- *! by os and should be implemented by you.
+ *! TARGET SPECIFIC FUNCTION PROTOTYPES
+ *! 
+ *! Those functions will be called by os and should be implemented by you.
  */
 void        OSStartTheFirst        (void);
 void        OSIntCtxSw             (void);
@@ -514,8 +546,8 @@ void        OSDebugInit            (void);
 #endif
 
 /*!
- *!                       INTERNAL FUNCTION PROTOTYPES
- *!              (Your application MUST NOT call these functions)
+ *! INTERNAL FUNCTION PROTOTYPES
+ *! (Your application MUST NOT call these functions)
  */
 
 /*!
@@ -540,10 +572,10 @@ void        OS_ScheduleChangePrio  (OS_TCB         *ptcb,
                                     UINT8           newprio);
 void        OS_SchedulePrio        (void);
 void        OS_ScheduleNext        (void);
-
-void        OS_Schedule            (void);
-void        OS_LockSched(void);
-void        OS_UnlockSched(void);
+void        OS_ScheduleRunPrio     (void);
+void        OS_ScheduleRunNext     (void);
+void        OS_LockSched           (void);
+void        OS_UnlockSched         (void);
 
 #if OS_STAT_TASK_STK_CHK_EN > 0u
 void        OS_TaskStkChk          (OS_TCB         *ptcb);
@@ -551,8 +583,8 @@ void        OS_TaskStkChk          (OS_TCB         *ptcb);
 
 void        OS_WaitNodeRemove     (OS_TCB         *ptcb);
 
-void        OS_RegWaitableObj      (OS_WAITBALE_OBJ *pobj);
-void        OS_DeregWaitableObj    (OS_WAITBALE_OBJ *pobj);
+void        OS_RegWaitableObj      (OS_WAITABLE_OBJ *pobj);
+void        OS_DeregWaitableObj    (OS_WAITABLE_OBJ *pobj);
 
 void        OS_TCBInit             (OS_TCB         *ptcb,
                                     UINT8           prio,
@@ -561,18 +593,18 @@ void        OS_TCBInit             (OS_TCB         *ptcb,
                                     UINT32          stk_size,
                                     UINT8           opt);
 
-OS_TCB     *OS_EventTaskRdy        (void           *pecb,
-                                    UINT8           pend_stat);
+OS_TCB     *OS_WaitableObjRdyTask  (OS_WAITABLE_OBJ    *pobj,
+                                    UINT8               pend_stat);
 
-void        OS_EventTaskWait       (void           *pecb,
-                                    OS_WAIT_NODE   *pnode,
-                                    UINT32          timeout);
+void        OS_WaitableObjAddTask  (OS_WAITABLE_OBJ    *pobj,
+                                    OS_WAIT_NODE       *pnode,
+                                    UINT32              timeout);
 
-void        OS_MemClr              (UINT8          *pdest,
+void        OS_MemClr              (char           *pdest,
                                     UINT32          size);
 
-void        OS_MemCopy             (UINT8          *pdest,
-                                    UINT8          *psrc,
+void        OS_MemCopy             (char           *pdest,
+                                    char           *psrc,
                                     UINT32          size);
 
 /*!
@@ -586,7 +618,7 @@ void        OS_MemCopy             (UINT8          *pdest,
  */
 
 /*!
- *!                                             EVENT FLAGS
+ *! EVENT FLAGS
  */
 #ifndef OS_FLAG_EN
 #   error "OS_CFG.H, Missing OS_FLAG_EN: Enable (1) or Disable (0) code generation for Event Flags"
@@ -607,7 +639,7 @@ void        OS_MemCopy             (UINT8          *pdest,
 #endif
 
 /*!
- *!                                     MUTUAL EXCLUSION SEMAPHORES
+ *! MUTUAL EXCLUSION SEMAPHORES
  */
 #ifndef OS_MUTEX_EN
 #   error "OS_CFG.H, Missing OS_MUTEX_EN: Enable (1) or Disable (0) code generation for MUTEX"
@@ -621,7 +653,7 @@ void        OS_MemCopy             (UINT8          *pdest,
 #endif
 
 /*!
- *!                                             SEMAPHORES
+ *! SEMAPHORES
  */
 #ifndef OS_SEM_EN
 #   error "OS_CFG.H, Missing OS_SEM_EN: Enable (1) or Disable (0) code generation for SEMAPHORES"
@@ -641,7 +673,7 @@ void        OS_MemCopy             (UINT8          *pdest,
 #endif
 
 /*!
- *!                                           TASK MANAGEMENT
+ *! TASK MANAGEMENT
  */
 #ifndef OS_MAX_PRIO_LEVELS
 #   error "OS_CFG.H, Missing OS_MAX_PRIO_LEVELS: Max. levels of priority in your application"
@@ -675,7 +707,7 @@ void        OS_MemCopy             (UINT8          *pdest,
 #endif
 
 /*!
- *!                                           TIME MANAGEMENT
+ *! TIME MANAGEMENT
  */
 #ifndef OS_TICKS_PER_SEC
 #   error "OS_CFG.H, Missing OS_TICKS_PER_SEC: Sets the number of ticks in one second"
@@ -686,14 +718,14 @@ void        OS_MemCopy             (UINT8          *pdest,
 #endif
 
 /*!
- *!                                            MISCELLANEOUS
+ *! MISCELLANEOUS
  */
 #ifndef OS_ARG_CHK_EN
 #   error "OS_CFG.H, Missing OS_ARG_CHK_EN: Enable (1) or Disable (0) argument checking"
 #endif
 
-#ifndef OS_CPU_HOOKS_EN
-#   error "OS_CFG.H, Missing OS_CPU_HOOKS_EN: OS hooks are found in the processor port files when 1"
+#ifndef OS_HOOKS_EN
+#   error "OS_CFG.H, Missing OS_HOOKS_EN: Hooks are Enable (1) or Disable (0)"
 #endif
 
 #ifndef OS_DEBUG_EN
@@ -712,6 +744,10 @@ void        OS_MemCopy             (UINT8          *pdest,
 #   endif
 #endif
 
+#ifndef OS_SCHED_LOCK_EN
+#   error "OS_CFG.H, Missing OS_SCHED_LOCK_EN: Include code for osLockSched() and osUnlockSched()"
+#endif
+
 #ifndef OS_TASK_SW_HOOK_EN
 #   error "OS_CFG.H, Missing OS_TASK_SW_HOOK_EN: Allows you to include the code for OSTaskSwHook() or not"
 #endif
@@ -721,7 +757,7 @@ void        OS_MemCopy             (UINT8          *pdest,
 #endif
 
 /*!
- *!                                         SAFETY CRITICAL USE
+ *! SAFETY CRITICAL USE
  */
 #ifdef SAFETY_CRITICAL_RELEASE
 

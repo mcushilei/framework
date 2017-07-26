@@ -1,3 +1,20 @@
+/*******************************************************************************
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *                                                                            *
+ *  This program is free software; you can redistribute it and/or modify it   *
+ *  under the terms of the GNU Lesser General Public License as published     *
+ *  by the Free Software Foundation; either version 3 of the License, or      *
+ *  (at your option) any later version.                                       *
+ *                                                                            *
+ *  This program is distributed in the hope that it will be useful, but       *
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of                *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU          *
+ *  General Public License for more details.                                  *
+ *                                                                            *
+ *  You should have received a copy of the GNU Lesser General Public License  *
+ *  along with this program; if not, see http://www.gnu.org/licenses/.        *
+*******************************************************************************/
+
 
 //! \note do not move this pre-processor statement to other places
 #define  __OS_SEM_C__
@@ -20,20 +37,19 @@
  *!
  *! \Description This function creates a semaphore.
  *!
- *! \Arguments   ppevent       is a pointer to a pointer of the event control block
+ *! \Arguments   pSemHandle     is a pointer to a handle of the semaphore.
  *!
- *!              cnt           is the initial value for the semaphore.  If the value is 0, no
- *!                            resource is available (or no event has occurred).  You initialize
- *!                            the semaphore to a non-zero value to specify how many resources are
- *!                            available.
+ *!              cnt            is the initial value for the semaphore.  If the value is 0, no
+ *!                             resource is available (or no event has occurred).  You initialize
+ *!                             the semaphore to a non-zero value to specify how many resources are
+ *!                             available.
  *!
  *! \Returns     OS_ERR_NONE            If the call was successful.
  *!              OS_ERR_USE_IN_ISR      If you attempted to create a MUTEX from an ISR
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is a NULL pointer.
  *!              OS_ERR_OBJ_DEPLETED    No more event control blocks available.
  */
-
-OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
+OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 cnt)
 {
     OS_SEM     *psemp;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
@@ -45,7 +61,7 @@ OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
         return OS_ERR_USE_IN_ISR;       //!< ... can't CREATE from an ISR
     }
 #if OS_ARG_CHK_EN > 0u
-    if (pSemaphoreHandle == NULL) {     //!< Validate handle
+    if (pSemHandle == NULL) {     //!< Validate handle
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
@@ -62,18 +78,19 @@ OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
     //! Set object type.
     //! Init semaphore value.
     //! Init wait list head.
-    psemp->OSObjType   = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_SEM)
+    psemp->OSObjType    = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_SEM)
                         | OS_OBJ_WAITABLE
                         | OS_OBJ_PRIO_TYPE_SET(OS_OBJ_PRIO_TYPE_PRIO_LIST);
-    psemp->OSSempCnt  = cnt;
-    os_list_init_head(&psemp->OSSempWaitList);
+    psemp->OSSemCnt     = cnt;
+    os_list_init_head(&psemp->OSSemWaitList);
     
     //! reg waitable object.
     OSEnterCriticalSection(cpu_sr);
-    OS_RegWaitableObj((OS_WAITBALE_OBJ *)psemp);
+    OS_RegWaitableObj((OS_WAITABLE_OBJ *)psemp);
     OSExitCriticalSection(cpu_sr);
 
-    *pSemaphoreHandle = psemp;
+    *pSemHandle = psemp;
+    
     return OS_ERR_NONE;
 }
 
@@ -82,17 +99,16 @@ OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
  *!
  *! \Description This function deletes a semaphore and readies all tasks pending on the semaphore.
  *!
- *! \Arguments   hSemaphore    is a handle to the event control block associated with the desired
- *!                            semaphore.
+ *! \Arguments   pSemHandle     is a pointer to a handle of the semaphore.
  *!
- *!              opt           determines delete options as follows:
- *!                            opt == OS_DEL_NO_PEND    Delete semaphore ONLY if no task pending
- *!                            opt == OS_DEL_ALWAYS     Deletes the semaphore even if tasks are
+ *!              opt            determines delete options as follows:
+ *!                             opt == OS_DEL_NO_PEND   Delete semaphore ONLY if no task pending
+ *!                             opt == OS_DEL_ALWAYS    Deletes the semaphore even if tasks are
  *!                                                     waiting. In this case, all the tasks pending
  *!                                                     will be readied.
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and the semaphore was deleted
- *!              OS_ERR_USE_IN_ISR         If you attempted to delete the semaphore from an ISR
+ *!              OS_ERR_USE_IN_ISR      If you attempted to delete the semaphore from an ISR
  *!              OS_ERR_INVALID_OPT     An invalid option was specified
  *!              OS_ERR_TASK_WAITING    One or more tasks were waiting on the semaphore
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
@@ -110,16 +126,15 @@ OS_ERR osSemCreate(OS_HANDLE *pSemaphoreHandle, UINT16 cnt)
  *!              5) All tasks that were waiting for the semaphore will be readied and returned an
  *!                 OS_ERR_PEND_ABORT if osSemDelete() was called with OS_DEL_ALWAYS
  */
-
 #if OS_SEM_DEL_EN > 0u
-OS_ERR osSemDelete(OS_HANDLE *pSemaphoreHandle, UINT8 opt)
+OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
 {
-    OS_SEM     *psemp = (OS_SEM *)*pSemaphoreHandle;
-    BOOL        tasks_waiting;
+    OS_SEM     *psemp = (OS_SEM *)*pSemHandle;
+    BOOL        taskPend;
+    BOOL        taskSched = FALSE;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
-    UINT8       err;
 
 
     if (osIntNesting > 0u) {            //!< See if called from ISR ...
@@ -129,56 +144,48 @@ OS_ERR osSemDelete(OS_HANDLE *pSemaphoreHandle, UINT8 opt)
     if (psemp == NULL) {                //!< Validate 'psemp'
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {   //!< Validate event block type
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate event block type
         return OS_ERR_EVENT_TYPE;
     }
 #endif
 
     OSEnterCriticalSection(cpu_sr);
-    if (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList) { //!< See if any tasks waiting on semaphore
-        tasks_waiting = TRUE;                                   //!< Yes
+    if (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) {   //!< See if any tasks waiting on semaphore
+        taskPend    = TRUE;                                     //!< Yes
+        taskSched   = TRUE;
     } else {
-        tasks_waiting = FALSE;                                  //!< No
+        taskPend    = FALSE;                                    //!< No
     }
     switch (opt) {
         case OS_DEL_NO_PEND:                                    //!< Delete semaphore only if no task waiting
-            if (tasks_waiting != FALSE) {
+            if (taskPend != FALSE) {
                 OSExitCriticalSection(cpu_sr);
-                err = OS_ERR_TASK_WAITING;
-                break;
+                return OS_ERR_TASK_WAITING;
             }
-            OS_DeregWaitableObj((OS_WAITBALE_OBJ *)psemp);
-            psemp->OSObjType = OS_OBJ_TYPE_UNUSED;
-            psemp->OSSempCnt = 0u;
-            OS_ObjPoolFree(&osSempFreeList, psemp);
-            OSExitCriticalSection(cpu_sr);
-            err = OS_ERR_NONE;
             break;
 
         case OS_DEL_ALWAYS:
-            OS_LockSched();
-            OSExitCriticalSection(cpu_sr);
-            while (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList) { //!< Ready ALL tasks waiting for semaphore
-                OS_EventTaskRdy(psemp, OS_STAT_PEND_ABORT);
+            while (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) { //!< Ready ALL tasks waiting for semaphore
+                OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psemp, OS_STAT_PEND_ABORT);
             }
-            OSEnterCriticalSection(cpu_sr);
-            OS_UnlockSched();
-            OS_DeregWaitableObj((OS_WAITBALE_OBJ *)psemp);
-            psemp->OSObjType = OS_OBJ_TYPE_UNUSED;
-            psemp->OSSempCnt = 0u;
-            OS_ObjPoolFree(&osSempFreeList, psemp);
-            OSExitCriticalSection(cpu_sr);
-            OS_Schedule();
-            err = OS_ERR_NONE;
             break;
 
         default:
             OSExitCriticalSection(cpu_sr);
-            err = OS_ERR_INVALID_OPT;
-            break;
+            return OS_ERR_INVALID_OPT;
     }
     
-    return err;
+    OS_DeregWaitableObj((OS_WAITABLE_OBJ *)psemp);
+    psemp->OSObjType = OS_OBJ_TYPE_UNUSED;
+    psemp->OSSemCnt = 0u;
+    OS_ObjPoolFree(&osSempFreeList, psemp);
+    OSExitCriticalSection(cpu_sr);
+    
+    if (taskSched) {
+        OS_ScheduleRunPrio();
+    }
+    
+    return OS_ERR_NONE;
 }
 #endif
 
@@ -187,14 +194,13 @@ OS_ERR osSemDelete(OS_HANDLE *pSemaphoreHandle, UINT8 opt)
  *!
  *! \Description This function waits for a semaphore.
  *!
- *! \Arguments   hSemaphore    is a handle to the event control block associated with the desired
- *!                            semaphore.
+ *! \Arguments   hSemaphore     is a handle to the semaphore.
  *!
- *!              timeout       is an optional timeout period (in clock ticks).  If non-zero, your
- *!                            task will wait for the resource up to the amount of time specified
- *!                            by this argument. If you specify 0, however, your task will wait
- *!                            forever at the specified semaphore or, until the resource becomes
- *!                            available (or the event occurs).
+ *!              timeout        is an optional timeout period (in clock ticks).  If non-zero, your
+ *!                             task will wait for the resource up to the amount of time specified
+ *!                             by this argument. If you specify 0, however, your task will wait
+ *!                             forever at the specified semaphore or, until the resource becomes
+ *!                             available (or the event occurs).
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and your task owns the resource
  *!                                     or, the event you are waiting for occurred.
@@ -203,11 +209,10 @@ OS_ERR osSemDelete(OS_HANDLE *pSemaphoreHandle, UINT8 opt)
  *!              OS_ERR_PEND_ABORT      The wait on the semaphore was aborted.
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
  *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
- *!              OS_ERR_USE_IN_ISR        If you called this function from an ISR and the result
+ *!              OS_ERR_USE_IN_ISR      If you called this function from an ISR and the result
  *!              OS_ERR_PEND_LOCKED     If you called this function when the scheduler is locked
  *!                                     would lead to a suspension.
  */
-
 OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
 {
     OS_SEM         *psemp = (OS_SEM *)hSemaphore;
@@ -234,8 +239,8 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
 #endif
 
     OSEnterCriticalSection(cpu_sr);
-    if (psemp->OSSempCnt > 0u) {                  //!< If sem. is positive, resource available ...
-        psemp->OSSempCnt--;                       //!< ... decrement semaphore only if positive.
+    if (psemp->OSSemCnt > 0u) {                  //!< If sem. is positive, resource available ...
+        psemp->OSSemCnt--;                       //!< ... decrement semaphore only if positive.
         OSExitCriticalSection(cpu_sr);
         return OS_ERR_NONE;
     }
@@ -245,9 +250,9 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
         return OS_ERR_TIMEOUT;
     }
 
-    OS_EventTaskWait(psemp, &node, timeout);       //!< Suspend current task until event or timeout occurs
+    OS_WaitableObjAddTask((OS_WAITABLE_OBJ *)psemp, &node, timeout);    //!< Suspend current task until event or timeout occurs
     OSExitCriticalSection(cpu_sr);
-    OS_Schedule();
+    OS_ScheduleRunNext();
 
     switch (node.OSWaitNodeRes) {
         case OS_STAT_PEND_OK:
@@ -263,78 +268,9 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
              err = OS_ERR_TIMEOUT;
              break;
     }
-    return err;
-}
-
-/*!
- *! \Brief       ABORT WAITING ON A SEMAPHORE
- *!
- *! \Description This function aborts & readies any tasks currently waiting on a semaphore.
- *!              This function should be used to fault-abort the wait on the semaphore, rather
- *!              than to normally signal the semaphore via osSemPost().
- *!
- *! \Arguments   hSemaphore    is a handle to the event control block associated with the desired
- *!                            semaphore.
- *!
- *!              opt           determines the type of ABORT performed:
- *!                            OS_PEND_OPT_NONE         ABORT wait for the highest priority task
- *!                                                     (HPT) that is waiting on the semaphore
- *!                            OS_PEND_OPT_BROADCAST    ABORT wait for ALL tasks that are  waiting
- *!                                                     on the semaphore
- *!
- *! \Returns     OS_ERR_NONE            No tasks were waiting on the semaphore.
- *!              OS_ERR_PEND_ABORT      At least one task waiting on the semaphore was readied
- *!                                     and informed of the aborted wait; check return value
- *!                                     for the number of tasks whose wait on the semaphore
- *!                                     was aborted.
- *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
- */
-
-#if OS_SEM_PEND_ABORT_EN > 0u
-OS_ERR osSemPendAbort(OS_HANDLE hSemaphore, UINT8 opt)
-{
-    OS_SEM     *psemp = (OS_SEM *)hSemaphore;
-    UINT8       err;
-#if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
-#endif
-
-
-#if OS_ARG_CHK_EN > 0u
-    if (psemp == NULL) {                //!< Validate 'psemp'
-        return OS_ERR_INVALID_HANDLE;
-    }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
-        return OS_ERR_EVENT_TYPE;
-    }
-#endif
-
-    OSEnterCriticalSection(cpu_sr);
-    if (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList) {                 //!< See if any task waiting on semaphore?
-        switch (opt) {
-            case OS_PEND_OPT_BROADCAST:                                         //!< Do we need to abort ALL waiting tasks?
-                while (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList) { //!< Yes, ready ALL tasks waiting on semaphore
-                    OS_EventTaskRdy(psemp, OS_STAT_PEND_ABORT);
-                }
-                break;
-
-            case OS_PEND_OPT_NONE:
-            default:                                                            //!< No, ready HPT waiting on semaphore
-                OS_EventTaskRdy(psemp, OS_STAT_PEND_ABORT);
-                break;
-        }
-        OSExitCriticalSection(cpu_sr);
-        OS_Schedule();
-        err = OS_ERR_PEND_ABORT;
-    } else {
-        OSExitCriticalSection(cpu_sr);
-        err = OS_ERR_NONE;
-    }
     
     return err;
 }
-#endif
 
 /*!
  *! \Brief       POST TO A SEMAPHORE
@@ -343,10 +279,9 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore, UINT8 opt)
  *!              there are several tasks pend for this semaphore, tasks will be ready by their
  *!              priority till all resource exhausted.
  *!
- *! \Arguments   hSemaphore    is a handle to the event control block associated with the desired
- *!                            semaphore.
+ *! \Arguments   hSemaphore     is a handle to the semaphore.
  *!
- *!              cnt           is the value for the semaphore count to add.
+ *!              cnt            is the value for the semaphore count to add.
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and the semaphore was signaled.
  *!              OS_ERR_SEM_OVF         If the semaphore count exceeded its limit. In other words,
@@ -354,7 +289,6 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore, UINT8 opt)
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
  *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
  */
-
 OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
 {
     OS_SEM     *psemp = (OS_SEM *)hSemaphore;
@@ -378,54 +312,107 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
     }
 
     OSEnterCriticalSection(cpu_sr);
-    if (cnt <= (65535u - psemp->OSSempCnt)) {       //!< Make sure semaphore will not overflow
-        psemp->OSSempCnt += cnt;                    //!< Increment semaphore count to register event
-        if (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList) {     //!< See if any tasks waiting for semaphore
-            while (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList && psemp->OSSempCnt != 0u) {
-                psemp->OSSempCnt--;                                     //!< decrement semaphore count...
-                OS_EventTaskRdy(psemp, OS_STAT_PEND_OK);                //!< ...and ready HPT waiting on event
+    if (cnt <= (65535u - psemp->OSSemCnt)) {    //!< Make sure semaphore will not overflow
+        psemp->OSSemCnt += cnt;                 //!< Increment semaphore count to register event
+        if (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) {       //!< See if any tasks waiting for semaphore
+            while (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList && psemp->OSSemCnt != 0u) {
+                psemp->OSSemCnt--;                                      //!< decrement semaphore count...
+                OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psemp, OS_STAT_PEND_OK);                //!< ...and ready HPT waiting on event
             }
             OSExitCriticalSection(cpu_sr);
-            OS_Schedule();                          //!< Find HPT ready to run.
+            OS_ScheduleRunPrio();
         } else {
             OSExitCriticalSection(cpu_sr);
         }
         err = OS_ERR_NONE;
-    } else {                                        //!< Not change semaphore count.
+    } else {                                    //!< Not change semaphore count.
         OSExitCriticalSection(cpu_sr);
         err = OS_ERR_SEM_OVF;
     }
+    
     return err;
 }
+
+/*!
+ *! \Brief       ABORT WAITING ON A SEMAPHORE
+ *!
+ *! \Description This function aborts & readies any tasks currently waiting on a semaphore.
+ *!              This function should be used to fault-abort the wait on the semaphore, rather
+ *!              than to normally signal the semaphore via osSemPost().
+ *!
+ *! \Arguments   hSemaphore     is a handle to the semaphore.
+ *!
+ *! \Returns     OS_ERR_NONE            No tasks were waiting on the semaphore.
+ *!              OS_ERR_PEND_ABORT      At least one task waiting on the semaphore was readied
+ *!                                     and informed of the aborted wait; check return value
+ *!                                     for the number of tasks whose wait on the semaphore
+ *!                                     was aborted.
+ *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
+ *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
+ */
+#if OS_SEM_PEND_ABORT_EN > 0u
+OS_ERR osSemPendAbort(OS_HANDLE hSemaphore)
+{
+    OS_SEM     *psemp = (OS_SEM *)hSemaphore;
+    UINT8       err;
+#if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
+    OS_CPU_SR   cpu_sr = 0u;
+#endif
+
+
+#if OS_ARG_CHK_EN > 0u
+    if (psemp == NULL) {                //!< Validate 'psemp'
+        return OS_ERR_INVALID_HANDLE;
+    }
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
+        return OS_ERR_EVENT_TYPE;
+    }
+#endif
+
+    OSEnterCriticalSection(cpu_sr);
+    if (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) {           //!< See if any task waiting on semaphore?
+        while (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) {    //!< Yes, ready ALL tasks waiting on semaphore
+            OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psemp, OS_STAT_PEND_ABORT);
+        }
+        OSExitCriticalSection(cpu_sr);
+        OS_ScheduleRunPrio();
+        err = OS_ERR_PEND_ABORT;
+    } else {
+        OSExitCriticalSection(cpu_sr);
+        err = OS_ERR_NONE;
+    }
+    
+    return err;
+}
+#endif
 
 /*!
  *! \Brief       SET SEMAPHORE
  *!
  *! \Description This function sets the semaphore count to the value specified as an argument.
  *!              Typically, this value would be 0.
- *!
  *!              You would typically use this function when a semaphore is used as a signaling
  *!              mechanism and, you want to reset the count value.
+ *!              You'd like to use osSemPendAbort() first.
  *!
- *! \Arguments   hSemaphore   is a pointer to the event control block
  *!
- *!              cnt          is the new value for the semaphore count.  You would pass 0 to reset
- *!                           the semaphore count.
+ *! \Arguments   hSemaphore     is a handle to the semaphore.
+ *!
+ *!              cnt            is the new value for the semaphore count.
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and the semaphore value was set.
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
  *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
  *!              OS_ERR_TASK_WAITING    If tasks are waiting on the semaphore.
  */
-
 #if OS_SEM_SET_EN > 0u
 OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
 {
     OS_SEM     *psemp = (OS_SEM *)hSemaphore;
+    UINT8       err;
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
-    UINT8       err;
 
 
 #if OS_ARG_CHK_EN > 0u
@@ -437,18 +424,15 @@ OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
     }
 #endif
 
-    OSEnterCriticalSection(cpu_sr);
     err = OS_ERR_NONE;
-    if (psemp->OSSempCnt > 0u) {            //!< See if semaphore already has a count
-        psemp->OSSempCnt = cnt;             //!< Yes, set it to the new value specified.
-    } else {                                //!< No
-        if (psemp->OSSempWaitList.Next != &psemp->OSSempWaitList) { //!< See if task(s) waiting?
-            err = OS_ERR_TASK_WAITING;
-        } else {
-            psemp->OSSempCnt = cnt;                                 //!< No, OK to set the value
-        }
+    OSEnterCriticalSection(cpu_sr);
+    if (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) {   //!< See if task(s) waiting?
+        err = OS_ERR_TASK_WAITING;
+    } else {
+        psemp->OSSemCnt = cnt;                                  //!< No, OK to set the value
     }
     OSExitCriticalSection(cpu_sr);
+    
     return err;
 }
 #endif
@@ -458,18 +442,16 @@ OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
  *!
  *! \Description This function obtains information about a semaphore
  *!
- *! \Arguments   hSemaphore    is a pointer to the event control block associated with the desired
- *!                            semaphore
+ *! \Arguments   hSemaphore     is a handle to the semaphore.
  *!
- *!              pInfo    is a pointer to a structure that will contain information about the
- *!                            semaphore.
+ *!              pInfo          is a pointer to a structure that will contain information about the
+ *!                             semaphore.
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and the message was sent
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
  *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
  *!              OS_ERR_PDATA_NULL      If 'pInfo' is a NULL pointer
  */
-
 #if OS_SEM_QUERY_EN > 0u
 OS_ERR osSemQuery(OS_HANDLE hSemaphore, OS_SEM_INFO *pInfo)
 {
@@ -492,11 +474,12 @@ OS_ERR osSemQuery(OS_HANDLE hSemaphore, OS_SEM_INFO *pInfo)
 #endif
 
     OSEnterCriticalSection(cpu_sr);
-    pInfo->OSCnt        = psemp->OSSempCnt;         //!< Get semaphore count
-    pInfo->OSWaitList   = psemp->OSSempWaitList;    //!< Copy wait list
+    pInfo->OSCnt        = psemp->OSSemCnt;         //!< Get semaphore count
+    pInfo->OSWaitList   = psemp->OSSemWaitList;    //!< Copy wait list
     OSExitCriticalSection(cpu_sr);
+    
     return OS_ERR_NONE;
 }
-#endif      //!< OS_SEM_QUERY_EN
+#endif      //!< #if OS_SEM_QUERY_EN > 0u
 
-#endif      //!< OS_SEM_EN
+#endif      //!< #if (OS_SEM_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)

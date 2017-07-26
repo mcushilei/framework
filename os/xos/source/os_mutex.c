@@ -1,3 +1,20 @@
+/*******************************************************************************
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *                                                                            *
+ *  This program is free software; you can redistribute it and/or modify it   *
+ *  under the terms of the GNU Lesser General Public License as published     *
+ *  by the Free Software Foundation; either version 3 of the License, or      *
+ *  (at your option) any later version.                                       *
+ *                                                                            *
+ *  This program is distributed in the hope that it will be useful, but       *
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of                *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU          *
+ *  General Public License for more details.                                  *
+ *                                                                            *
+ *  You should have received a copy of the GNU Lesser General Public License  *
+ *  along with this program; if not, see http://www.gnu.org/licenses/.        *
+*******************************************************************************/
+
 
 //! \note do not move this pre-processor statement to other places
 #define  __OS_MUTEX_C__
@@ -16,9 +33,9 @@
 /*============================ IMPLEMENTATION ================================*/
 
 /*!
- *! \Brief       CREATE A MUTUAL EXCLUSION SEMAPHORE
+ *! \Brief       CREATE A MUTEX
  *!
- *! \Description This function creates a mutual exclusion semaphore.
+ *! \Description This function creates a mutex.
  *!
  *! \Arguments   pMutexHandle  is a pointer to the handle to the event control block associated
  *!                            with the desired mutex.
@@ -32,7 +49,6 @@
  *!              OS_ERR_OBJ_DEPLETED    No more event control blocks available.
  *!              OS_ERR_TASK_EXIST      The ceiling priority has been used by task.
  */
-
 OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
 {
     OS_MUTEX   *pmutex;
@@ -77,17 +93,18 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
     
     //! reg waitable object.
     OSEnterCriticalSection(cpu_sr);
-    OS_RegWaitableObj((OS_WAITBALE_OBJ *)pmutex);
+    OS_RegWaitableObj((OS_WAITABLE_OBJ *)pmutex);
     OSExitCriticalSection(cpu_sr);
 
     *pMutexHandle = pmutex;
+    
     return OS_ERR_NONE;
 }
 
 /*!
  *! \Brief       DELETE A MUTEX
  *!
- *! \Description This function deletes a mutual exclusion semaphore and readies all tasks pending 
+ *! \Description This function deletes a mutex and readies all tasks pending 
  *!              on the it.
  *!
  *! \Arguments   hMutex         is a handle to the event control block associated with the
@@ -95,12 +112,12 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
  *!
  *!              opt            determines delete options as follows:
  *!                             opt == OS_DEL_NO_PEND   Delete mutex ONLY if no task pending
- *!                             opt == OS_DEL_ALWAYS    Deletes the mutex even if tasks are waiting.
+ *!                             opt == OS_DEL_ALWAYS    Deletes the mutex if tasks are waiting.
  *!                                                     In this case, all the tasks pending will
  *!                                                     be readied.
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and the mutex was deleted
- *!              OS_ERR_USE_IN_ISR         If you attempted to delete the MUTEX from an ISR
+ *!              OS_ERR_USE_IN_ISR      If you attempted to delete the MUTEX from an ISR
  *!              OS_ERR_INVALID_OPT     An invalid option was specified
  *!              OS_ERR_TASK_WAITING    One or more tasks were waiting on the mutex
  *!              OS_ERR_INVALID_HANDLE  If 'hMutex' is an invalid handle.
@@ -108,30 +125,26 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
  *!
  *! \Notes       1) This function must be used with care.  Tasks that would normally expect the
  *!                 presence of the mutex MUST check the return code of osMutexPend().
- *!
  *!              2) This call can potentially disable interrupts for a long time.  The interrupt
  *!                 disable time is directly proportional to the number of tasks waiting on the mutex.
- *!
  *!              3) Because ALL tasks pending on the mutex will be readied, you MUST be careful
  *!                 because the resource(s) will no longer be guarded by the mutex.
- *!
  *!              4) IMPORTANT: In the 'OS_DEL_ALWAYS' case, we assume that the owner of the Mutex
  *!                            (if there is one) is ready-to-run and is thus NOT pending on another
  *!                            kernel object or has delayed itself.  In other words, if a task owns
  *!                            the mutex being deleted, that task will be made ready-to-run at its
  *!                            original priority.
  */
-
 #if OS_MUTEX_DEL_EN > 0u
 OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
 {
     OS_MUTEX   *pmutex = (OS_MUTEX *)*pMutexHandle;
     OS_TCB     *powner;
-    BOOL        tasks_waiting;
+    BOOL        taskPend;
+    BOOL        taskSched = FALSE;
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
-    UINT8       err;
 
 
     if (osIntNesting > 0u) {                    //!< Can't DELETE from an ISR.
@@ -147,61 +160,59 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
 #endif
 
     OSEnterCriticalSection(cpu_sr);
-    powner = pmutex->OSMutexOwnerTCB;
-    if (powner != NULL) {                                           //!< See if this mutex has been owned by any task.
-        powner->OSTCBOwnMutex = NULL;                               //!< Yes.
-        if (pmutex->OSMutexCeilingPrio == powner->OSTCBPrio) {      //!< If this task's prio has been changed,
-            OS_ScheduleChangePrio(powner, pmutex->OSMutexOwnerPrio);    //!< then restore task's prio.
-        }
-    }
-
-    if (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) { //!< See if any tasks waiting on mutex
-        tasks_waiting = TRUE;                                       //!< Yes
+    if (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {     //!< See if any tasks waiting on mutex
+        taskPend    = TRUE;                                             //!< Yes
+        taskSched   = TRUE;
     } else {
-        tasks_waiting = FALSE;                                      //!< No
+        taskPend    = FALSE;                                            //!< No
     }
     switch (opt) {
-        case OS_DEL_NO_PEND:                                        //!< Delete mutex if NO task waiting.
-            if (tasks_waiting != FALSE) {
+        case OS_DEL_NO_PEND:                                            //!< Delete mutex if NO task waiting.
+            if (taskPend != FALSE) {
                 OSExitCriticalSection(cpu_sr);
-                err = OS_ERR_TASK_WAITING;
-                break;
+                return OS_ERR_TASK_WAITING;
             }
-            OS_DeregWaitableObj((OS_WAITBALE_OBJ *)pmutex);
-            pmutex->OSObjType = OS_OBJ_TYPE_UNUSED;
-            OS_ObjPoolFree(&osMutexFreeList, pmutex);
-            OSExitCriticalSection(cpu_sr);
-            err = OS_ERR_NONE;
             break;
 
         case OS_DEL_ALWAYS:
             while (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {
-                OS_EventTaskRdy(pmutex, OS_STAT_PEND_ABORT); //!< Ready ALL tasks waiting for mutex
+                OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pmutex, OS_STAT_PEND_ABORT);            //!< Ready ALL tasks are pending for this mutex.
             }
-            OS_DeregWaitableObj((OS_WAITBALE_OBJ *)pmutex);
-            pmutex->OSObjType = OS_OBJ_TYPE_UNUSED;
-            OS_ObjPoolFree(&osMutexFreeList, pmutex);
-            OSExitCriticalSection(cpu_sr);
-            OS_Schedule();
-            err = OS_ERR_NONE;
             break;
 
         default:
              OSExitCriticalSection(cpu_sr);
-             err = OS_ERR_INVALID_OPT;
-             break;
+             return OS_ERR_INVALID_OPT;
     }
-    return err;
+    
+    powner = pmutex->OSMutexOwnerTCB;
+    if (powner != NULL) {                                               //!< See if this mutex has been owned by any task.
+        powner->OSTCBOwnMutex = NULL;                                   //!< Yes.
+        if (pmutex->OSMutexOwnerPrio != powner->OSTCBPrio) {            //!< If this task's prio has been changed,
+            OS_ScheduleChangePrio(powner, pmutex->OSMutexOwnerPrio);    //!< Yes, restore task's prio.
+            taskSched = TRUE;
+        }
+    }
+    
+    OS_DeregWaitableObj((OS_WAITABLE_OBJ *)pmutex);
+    pmutex->OSObjType = OS_OBJ_TYPE_UNUSED;
+    OS_ObjPoolFree(&osMutexFreeList, pmutex);
+    OSExitCriticalSection(cpu_sr);
+    
+    if (taskSched) {
+        OS_ScheduleRunPrio();
+    }
+    
+    return OS_ERR_NONE;
 }
 #endif
 
 /*!
- *! \Brief       PEND ON MUTUAL EXCLUSION SEMAPHORE
+ *! \Brief       PEND ON MUTEX
  *!
- *! \Description This function waits for a mutual exclusion semaphore.
+ *! \Description This function waits for a mutex.
  *!
- *! \Arguments   hMutex        is a handle to the event control block associated with the desired
- *!                            mutex.
+ *! \Arguments   hMutex        is a handle to the mutex.
  *!
  *!              timeout       is an optional timeout period (in clock ticks).  If non-zero, your
  *!                            task will wait for the resource up to the amount of time specified
@@ -213,16 +224,17 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
  *! \Returns     OS_ERR_NONE            The call was successful and your task owns the mutex
  *!              OS_ERR_TIMEOUT         The mutex was not available within the specified 'timeout'.
  *!              OS_ERR_PEND_ABORT      The wait on the mutex was aborted.
- *!              OS_ERR_USE_IN_ISR        If you called this function from an ISR and the result
+ *!              OS_ERR_USE_IN_ISR      If you called this function from an ISR and the result
  *!                                     would lead to a suspension.
  *!              OS_ERR_PEND_LOCKED     If you called this function when the scheduler is locked
  *!              OS_ERR_INVALID_HANDLE  If 'hMutex' is an invalid handle.
  *!              OS_ERR_EVENT_TYPE      If you didn't pass a event mutex object.
  *!              OS_ERR_HAS_OWN_MUTEX   Current task has owned this mutex.
+ *!              OS_ERR_RECURSIVE_MUTEX Current task use the same mutex recursively.
  *!
- *! \Notes       1) The task that owns the mutex MUST NOT try to owns the same mutex.
+ *! \Notes       1) The task that owns the mutex MUST NOT try to owns the same mutex. It's say it
+ *!                 could not be recursive.
  */
-
 OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
 {
     OS_MUTEX       *pmutex = (OS_MUTEX *)hMutex;
@@ -235,7 +247,7 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
 
 
     if (osIntNesting > 0u) {                //!< See if called from ISR ...
-        return OS_ERR_USE_IN_ISR;             //!< ... can't PEND from an ISR
+        return OS_ERR_USE_IN_ISR;           //!< ... can't PEND from an ISR
     }
     if (osLockNesting > 0u) {               //!< See if called with scheduler locked ...
         return OS_ERR_PEND_LOCKED;          //!< ... can't PEND when locked
@@ -258,6 +270,11 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
         return OS_ERR_NONE;
     }
     
+    if (pmutex->OSMutexOwnerTCB == osTCBCur) {
+        OSExitCriticalSection(cpu_sr);
+        return OS_ERR_RECURSIVE_MUTEX;
+    }
+    
     if (timeout == 0u) {
         OSExitCriticalSection(cpu_sr);
         return OS_ERR_TIMEOUT;
@@ -268,13 +285,13 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
     } else {
         prio = osTCBCur->OSTCBPrio;
     }
-    if (pmutex->OSMutexOwnerTCB->OSTCBPrio > prio) {                //!< Is owner has a lower priority?
-        OS_ScheduleChangePrio(pmutex->OSMutexOwnerTCB, prio);       //!< Yes. Rise owner's priority.
+    if (pmutex->OSMutexOwnerTCB->OSTCBPrio > prio) {            //!< Is owner has a lower priority?
+        OS_ScheduleChangePrio(pmutex->OSMutexOwnerTCB, prio);   //!< Yes. Rise owner's priority.
     }
-    
-    OS_EventTaskWait(pmutex, &node, timeout);           //!< Suspend current task.
+
+    OS_WaitableObjAddTask((OS_WAITABLE_OBJ *)pmutex, &node, timeout);           //!< Suspend current task.
     OSExitCriticalSection(cpu_sr);
-    OS_Schedule();
+    OS_ScheduleRunNext();
 
     switch (node.OSWaitNodeRes) {
         case OS_STAT_PEND_OK:
@@ -290,16 +307,16 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
              err = OS_ERR_TIMEOUT;
              break;
     }
+    
     return err;
 }
 
 /*!
- *! \Brief       POST TO A MUTUAL EXCLUSION SEMAPHORE
+ *! \Brief       POST TO A MUTEX
  *!
- *! \Description This function signals a mutual exclusion semaphore
+ *! \Description This function signals a mutex
  *!
- *! \Arguments   pmutex              is a pointer to the event control block associated with the
- *!                                  desired mutex.
+ *! \Arguments   hMutex         is a handle to the mutex.
  *!
  *! \Returns     OS_ERR_NONE                The call was successful and the mutex was signaled.
  *!              OS_ERR_USE_IN_ISR            Attempted to post from an ISR (not valid for MUTEXes)
@@ -309,18 +326,18 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
  *!
  *! \Notes       1) The mutex can ONLY be released by it's owner.
  */
-
 OS_ERR osMutexPost(OS_HANDLE hMutex)
 {
     OS_MUTEX   *pmutex = (OS_MUTEX *)hMutex;
+    OS_TCB     *ptcb;
+    BOOL        taskSched = FALSE;
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
-    OS_TCB     *ptcb;
 
 
     if (osIntNesting > 0u) {                //!< See if called from ISR ...
-        return OS_ERR_USE_IN_ISR;             //!< ... can't POST mutex from an ISR
+        return OS_ERR_USE_IN_ISR;           //!< ... can't POST mutex from an ISR
     }
 #if OS_ARG_CHK_EN > 0u
     if (pmutex == NULL) {                   //!< Validate 'pmutex'
@@ -338,32 +355,35 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
     }
     
     osTCBCur->OSTCBOwnMutex  = NULL;
-    if (pmutex->OSMutexOwnerPrio != osTCBCur->OSTCBPrio) {    //!< If this task's prio has been changed...
-        OS_ScheduleChangePrio(osTCBCur, pmutex->OSMutexOwnerPrio);  //!< ... restore task's prio.
+    if (pmutex->OSMutexOwnerPrio != osTCBCur->OSTCBPrio) {          //!< If this task's prio has been changed...
+        OS_ScheduleChangePrio(osTCBCur, pmutex->OSMutexOwnerPrio);  //!< ... Yes, restore task's prio.
+        taskSched = TRUE;
     }
     
-    if (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) { //!< Any task waiting for the mutex?
-                                                                    //!< Yes, Make HPT waiting for mutex ready
-        ptcb = OS_EventTaskRdy(pmutex, OS_STAT_PEND_OK);
+    if (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {         //!< Any task waiting for the mutex?
+        ptcb = OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pmutex, OS_STAT_PEND_OK); //!< Yes, Make HPT waiting for mutex ready
         pmutex->OSMutexOwnerTCB  = ptcb;
         pmutex->OSMutexOwnerPrio = ptcb->OSTCBPrio;
-        OSExitCriticalSection(cpu_sr);
-        OS_Schedule();
-    } else {
+        taskSched = TRUE;
+    } else {                                                                //!< No.
         pmutex->OSMutexOwnerTCB  = NULL;
         pmutex->OSMutexOwnerPrio = OS_TASK_IDLE_PRIO;
-        OSExitCriticalSection(cpu_sr);
     }
+    OSExitCriticalSection(cpu_sr);
+    
+    if (taskSched) {
+        OS_ScheduleRunPrio();
+    }
+    
     return OS_ERR_NONE;
 }
 
 /*!
- *! \Brief       QUERY A MUTUAL EXCLUSION SEMAPHORE
+ *! \Brief       QUERY A MUTEX
  *!
  *! \Description This function obtains information about a mutex
  *!
- *! \Arguments   pmutex         is a pointer to the event control block associated with the desired
- *!                             mutex
+ *! \Arguments   hMutex         is a handle to the mutex.
  *!
  *!              pInfo          is a pointer to a structure that will contain information about
  *!                             the mutex
@@ -373,7 +393,6 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
  *!              OS_ERR_EVENT_TYPE      If you didn't pass a event mutex object.
  *!              OS_ERR_PDATA_NULL      If 'pInfo' is a NULL pointer
  */
-
 #if OS_MUTEX_QUERY_EN > 0u
 OS_ERR osMutexQuery(OS_HANDLE hMutex, OS_MUTEX_INFO *pInfo)
 {
@@ -408,8 +427,9 @@ OS_ERR osMutexQuery(OS_HANDLE hMutex, OS_MUTEX_INFO *pInfo)
     pInfo->OSCeilingPrio     = pmutex->OSMutexCeilingPrio;
     pInfo->OSWaitList        = pmutex->OSMutexWaitList;     //!< Copy wait list
     OSExitCriticalSection(cpu_sr);
+    
     return OS_ERR_NONE;
 }
-#endif      //!< OS_MUTEX_QUERY_EN
+#endif      //!< #if OS_MUTEX_QUERY_EN > 0u
 
-#endif      //!< OS_MUTEX_EN
+#endif      //!< #if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES >0u)

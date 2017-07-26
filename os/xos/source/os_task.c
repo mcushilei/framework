@@ -1,3 +1,20 @@
+/*******************************************************************************
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *                                                                            *
+ *  This program is free software; you can redistribute it and/or modify it   *
+ *  under the terms of the GNU Lesser General Public License as published     *
+ *  by the Free Software Foundation; either version 3 of the License, or      *
+ *  (at your option) any later version.                                       *
+ *                                                                            *
+ *  This program is distributed in the hope that it will be useful, but       *
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of                *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU          *
+ *  General Public License for more details.                                  *
+ *                                                                            *
+ *  You should have received a copy of the GNU Lesser General Public License  *
+ *  along with this program; if not, see http://www.gnu.org/licenses/.        *
+*******************************************************************************/
+
 
 //! \note do not move this pre-processor statement to other places
 #define  __OS_TASK_C__
@@ -41,10 +58,10 @@ static void os_task_wrapper    (void           *ptask,
  *!              OS_ERR_TASK_NOT_EXIST  there is no task with the specified OLD priority (i.e. the OLD task does
  *!                                     not exist.
  */
-OS_ERR  osTaskChangePrio   (OS_HANDLE   handle,
+OS_ERR  osTaskChangePrio   (OS_HANDLE   taskHandle,
                             UINT8       newprio)
 {
-    OS_TCB     *ptcb = (OS_TCB *)handle;
+    OS_TCB     *ptcb = (OS_TCB *)taskHandle;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
@@ -73,8 +90,8 @@ OS_ERR  osTaskChangePrio   (OS_HANDLE   handle,
     }
     OSExitCriticalSection(cpu_sr);
     
-    if (osRunning != FALSE) {
-        OS_Schedule();                                  //!< Find new highest priority task
+    if (osRunning != FALSE) {                           //!< try scheduling only the os has been running.
+        OS_ScheduleRunPrio();
     }
     
     return OS_ERR_NONE;
@@ -157,10 +174,11 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
     ptcb = OS_ObjPoolNew(&osTCBFreeList);   //!< Get a free TCB from the free TCB list
     if (ptcb == NULL) {                     //!< See if pool of free TCB pool was empty
         OSExitCriticalSection(cpu_sr);
-        return OS_ERR_OBJ_DEPLETED;       //!< No more task control blocks
+        return OS_ERR_OBJ_DEPLETED;         //!< No more task control blocks
     }
     OSExitCriticalSection(cpu_sr);
-
+    
+    //! initial TCB.
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
     os_task_stk_clr(pstk, stkSize, opt);    //!< Clear the task's stack
 #endif
@@ -175,7 +193,7 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
 #endif
     OS_TCBInit(ptcb, prio, psp, pstk, stkSize, opt);
     
-#if OS_CPU_HOOKS_EN > 0u
+#if OS_HOOKS_EN > 0u
     OSTaskCreateHook(ptcb);
 #endif
 
@@ -187,9 +205,11 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
     if (pHandle != NULL) {
         *pHandle = ptcb;
     }
-    if (osRunning != FALSE) {
-        OS_Schedule();
+    
+    if (osRunning != FALSE) {               //!< try scheduling only the os has been running.
+        OS_ScheduleRunPrio();
     }
+    
     return OS_ERR_NONE;
 }
 
@@ -209,7 +229,7 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
 static void os_task_del(void)
 {
     OS_TCB     *ptcb;
-#if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
+#if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
 
@@ -217,9 +237,9 @@ static void os_task_del(void)
     OSEnterCriticalSection(cpu_sr);
     ptcb = osTCBCur;
     osTCBCur = NULL;
-    if (ptcb->OSTCBWaitNode != NULL) {  //!< Is this task pend for any event?
+    if (ptcb->OSTCBWaitNode != NULL) {      //!< Is this task pend for any event?
         OS_WaitNodeRemove(ptcb);
-    } else {                            //!< It's ready.
+    } else {                                //!< It's ready.
         OS_ScheduleUnreadyTask(ptcb);
     }
 
@@ -227,7 +247,7 @@ static void os_task_del(void)
     osTaskCtr--;                            //!< One less task being managed
     OSExitCriticalSection(cpu_sr);
     
-    OS_Schedule();
+    OS_ScheduleRunNext();
 }
 
 /*!
@@ -250,7 +270,7 @@ static void os_task_wrapper(void *ptask, void *parg)
 {
     (void)((OS_TASK *)ptask)(parg);
     
-#if OS_CPU_HOOKS_EN > 0
+#if OS_HOOKS_EN > 0
     OSTaskReturnHook(osTCBCur);     //!< Call hook to let user decide on what to do
 #endif
 

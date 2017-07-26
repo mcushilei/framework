@@ -1,3 +1,20 @@
+/*******************************************************************************
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *                                                                            *
+ *  This program is free software; you can redistribute it and/or modify it   *
+ *  under the terms of the GNU Lesser General Public License as published     *
+ *  by the Free Software Foundation; either version 3 of the License, or      *
+ *  (at your option) any later version.                                       *
+ *                                                                            *
+ *  This program is distributed in the hope that it will be useful, but       *
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of                *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU          *
+ *  General Public License for more details.                                  *
+ *                                                                            *
+ *  You should have received a copy of the GNU Lesser General Public License  *
+ *  along with this program; if not, see http://www.gnu.org/licenses/.        *
+*******************************************************************************/
+
 
 //! \note do not move this pre-processor statement to other places
 #define __OS_SCHEDULER_C__
@@ -197,7 +214,7 @@ static UINT8 os_schedule_get_highest_prio(void)
  */
 void OS_ScheduleChangePrio(OS_TCB *ptcb, UINT8 newprio)
 {
-    OS_WAITBALE_OBJ    *pobj;
+    OS_WAITABLE_OBJ    *pobj;
     OS_WAIT_NODE       *pnode;
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
@@ -264,9 +281,9 @@ void OS_SchedulePrio(void)
 /*!
  *! \Brief       SCHEDULER
  *!
- *! \Description This function is called by other OS services to determine whether a new, high
- *!              priority task has been made ready to run.  This function is invoked by TASK level code
- *!              and is not used to reschedule tasks from ISRs (see osIntExit() for ISR rescheduling).
+ *! \Description This function is called by other OS services to run the next task, beacuse
+ *!              current task has been pend.  This function is invoked by TASK level code
+ *!              and is NOT used to reschedule tasks from ISRs (see osIntExit() for ISR rescheduling).
  *!
  *! \Arguments   none
  *!
@@ -289,19 +306,41 @@ void OS_ScheduleNext(void)
     osTCBNextRdy = OS_CONTAINER_OF(node, OS_TCB, OSTCBList);
 }
 
-void OS_Schedule(void)
+void OS_ScheduleRunPrio(void)
 {
-    UINT8           prio;
-    OS_LIST_NODE   *node;
-#if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
+#if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif
 
-    if (osIntNesting != 0u) {                           //!< Schedule only if all ISRs done and ...
+    if (osIntNesting != 0u) {                   //!< Can not be used in ISR and ...
         return;
     }
     
-    if (osLockNesting != 0u) {                      //!< ... scheduler is not locked
+    if (osLockNesting != 0u) {                  //!< ... scheduler is not locked
+        return;
+    }
+
+    OSEnterCriticalSection(cpu_sr);
+    OS_SchedulePrio();
+    if (osTCBNextRdy != osTCBCur) {
+        OSExitCriticalSection(cpu_sr);
+        OSCtxSw();                              //!< Perform a context switch
+        return;
+    }
+    OSExitCriticalSection(cpu_sr);
+}
+
+void OS_ScheduleRunNext(void)
+{
+#if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
+    OS_CPU_SR       cpu_sr = 0u;
+#endif
+
+    if (osIntNesting != 0u) {                   //!< Can not be used in ISR and ...
+        return;
+    }
+    
+    if (osLockNesting != 0u) {                  //!< ... scheduler is not locked
         return;
     }
 
