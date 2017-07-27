@@ -37,6 +37,16 @@
 #define PM_AHB_CLK_RESUME(__INDEX, __STATUS) ahb_clock_resume_status((__INDEX), (__STATUS))
 
 /*============================ TYPES =========================================*/
+//! \name the lowpower mode
+//! @{
+typedef enum {
+    SLEEP           = 1,
+    DEEP_SLEEP      = 2,
+    POWER_DOWN      = 3,
+    DEEP_POWER_DOWN = 4,
+} em_lowpower_mode_t;
+//! @}
+
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 extern bool     power_enable(uint32_t Part);
@@ -67,5 +77,6 @@ extern bool     scon_usart_clock_disable(void);
 extern uint32_t scon_usart_clock_get(void);
 
 extern bool     clock_out_config(uint8_t tSrc, uint32_t wDiv);
+extern bool     enter_lowpower_mode(uint32_t mode);
 
 #endif

@@ -24,6 +24,8 @@
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
+#define OS_COUNT_LEADING_ZERO(__B)      (osLZTbl[__B])
+
 /*============================ TYPES =========================================*/
 /*============================ PROTOTYPES ====================================*/
 static  void    os_init_free_obj_list(void);
@@ -39,6 +41,32 @@ static  void    os_init_idle_task(void);
 static  void    os_task_idle(void *parg);
 
 /*============================ LOCAL VARIABLES ===============================*/
+/*!
+ *! \Brief       LEADING ZERO LOOKUP TABLE
+ *!
+ *! \Notes       Index into table is bit pattern to resolve highest priority
+ *!              Indexed value corresponds to highest priority bit position (i.e. 0..7)
+ *!              Leading 0 algorithm.
+ */
+static const UINT8 osLZTbl[256] = {
+    0u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0x00 to 0x0F
+    4u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0x10 to 0x1F
+    5u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0x20 to 0x2F
+    4u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0x30 to 0x3F
+    6u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0x40 to 0x4F
+    4u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0x50 to 0x5F
+    5u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0x60 to 0x6F
+    4u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0x70 to 0x7F
+    7u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0x80 to 0x8F
+    4u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0x90 to 0x9F
+    5u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0xA0 to 0xAF
+    4u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0xB0 to 0xBF
+    6u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0xC0 to 0xCF
+    4u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0xD0 to 0xDF
+    5u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, //!< 0xE0 to 0xEF
+    4u, 0u, 1u, 0u, 2u, 0u, 1u, 0u, 3u, 0u, 1u, 0u, 2u, 0u, 1u, 0u  //!< 0xF0 to 0xFF
+};
+
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
 
@@ -485,8 +513,8 @@ void osTaskSleep(UINT32 ticks)
     os_list_init_head(&node.OSWaitNodeList);
     
     OSEnterCriticalSection(cpu_sr);
-    OS_ScheduleUnreadyTask(osTCBCur);                       //!< Unready this task.
     osTCBCur->OSTCBWaitNode = &node;                        //!< Store node in task's TCB
+    OS_ScheduleUnreadyTask(osTCBCur);                       //!< remove this task from scheduler's ready list.
     os_list_add(&node.OSWaitNodeList, osSleepList.Prev);    //!< add task to the end of sleeping task list.
     OSExitCriticalSection(cpu_sr);
     OS_ScheduleRunNext();                                   //!< Find next task to run!
@@ -886,8 +914,8 @@ void OS_WaitableObjAddTask( OS_WAITABLE_OBJ    *pobj,
     pnode->OSWaitNodeRes = OS_STAT_PEND_OK;
     os_list_init_head(&pnode->OSWaitNodeList);
     
-    OS_ScheduleUnreadyTask(osTCBCur);                   //!< Unready this task.
     osTCBCur->OSTCBWaitNode = pnode;                    //!< Store node in task's TCB
+    OS_ScheduleUnreadyTask(osTCBCur);                   //!< Unready this task.
     if (OS_OBJ_PRIO_TYPE_GET(pobj->OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {
         //! find the node whose priority is lower than current's.
         for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; list = list->Next) {
@@ -934,6 +962,126 @@ OS_TCB *OS_WaitableObjRdyTask(OS_WAITABLE_OBJ *pobj, UINT8 pendRes)
     OS_WaitNodeRemove(ptcb);                //!< Remove this task from event's wait list
     OS_ScheduleReadyTask(ptcb);             //!< Put task in the ready list
     return ptcb;
+}
+
+/*!
+ *! \Brief       CHANGE PRIORITY OF A TASK
+ *!
+ *! \Description This function changes the priority of a task.
+ *!
+ *! \Arguments   ptcb     pointer to tcb
+ *!
+ *!              newp     is the new priority
+ *!
+ *! \Returns     none
+ *!
+ *! \Notes       1) This function assumes that interrupts are disabled.
+ *!              2) This function is INTERNAL to OS and your application should not call it.
+ */
+void OS_ChangeTaskPrio(OS_TCB *ptcb, UINT8 newprio)
+{
+    OS_WAITABLE_OBJ    *pobj;
+    OS_WAIT_NODE       *pnode;
+#if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
+    OS_CPU_SR   cpu_sr = 0u;
+#endif
+
+
+    OSEnterCriticalSection(cpu_sr);
+    pnode = ptcb->OSTCBWaitNode;
+    if (pnode != NULL) {                        //!< if task is pending.(so, it is not in ready list.)
+        pobj = pnode->OSWaitNodeECB;
+        if (pobj != NULL) {                     //!< Is this task pending for any object?...(it may be in sleep.)
+            if (OS_OBJ_PRIO_TYPE_GET(pobj->OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {  //!< ...Yes. Has this object a prio-wait list?
+                OS_LIST_NODE *list;
+                OS_WAIT_NODE *nextNode;
+                
+                //!< Yes, remove wait node from old priority.
+                os_list_del(&pnode->OSWaitNodeList);
+                //!< then find and put on the new position.
+                for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; list = list->Next) {
+                    nextNode = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
+                    if (newprio < nextNode->OSWaitNodeTCB->OSTCBPrio) {
+                        break;
+                    }
+                }
+                os_list_add(&pnode->OSWaitNodeList, list->Prev);
+            }
+        }
+        ptcb->OSTCBPrio = newprio;              //!< Set new task priority
+    } else {
+        OS_ScheduleUnreadyTask(ptcb);           //!< Remove TCB from old priority
+        ptcb->OSTCBPrio = newprio;              //!< Set new task priority        
+        OS_ScheduleReadyTask(ptcb);             //!< Place TCB @ new priority
+    }
+    OSExitCriticalSection(cpu_sr);
+}
+
+void OS_BitmapSet(OS_PRIO_BITMAP *pmap, UINT8 prio)
+{
+    UINT8  y;
+    OS_PRIO bitx, bity;
+    
+#if OS_MAX_PRIO_LEVELS <= 64u                        //!< See if we support up to 64 tasks
+    y = (prio >> 3) & 0x07u;
+    bitx = 1u << (prio & 0x07u);
+#else
+    y = (prio >> 4) & 0x0Fu;
+    bitx = 1u << (prio & 0x0Fu);
+#endif
+    bity = 1u << y;
+    
+    pmap->Y    |= bity;                  //!< Make this priority has task ready-to-run.
+    pmap->X[y] |= bitx;
+}
+
+void OS_BitmapClr(OS_PRIO_BITMAP *pmap, UINT8 prio)
+{
+    UINT8 y;
+    OS_PRIO bitx, bity;
+    
+#if OS_MAX_PRIO_LEVELS <= 64u                        //!< See if we support up to 64 tasks
+    y = (prio >> 3) & 0x07u;
+    bitx = 1u << (prio & 0x07u);
+#else
+    y = (prio >> 4) & 0x0Fu;
+    bitx = 1u << (prio & 0x0Fu);
+#endif
+    bity = 1u << y;
+
+    pmap->X[y] &= (OS_PRIO)~bitx;
+    if (pmap->X[y] == 0u) {
+        pmap->Y &= (OS_PRIO)~bity;
+    }
+}
+
+UINT8 OS_BitmapGetHigestPrio(OS_PRIO_BITMAP *pmap)
+{
+    UINT8   y;
+    UINT8   prio;
+    OS_PRIO valX;
+
+
+    //! find the highest priority of ready task.
+#if OS_MAX_PRIO_LEVELS <= 64u               //!< See if we support up to 64 tasks
+    y       = OS_COUNT_LEADING_ZERO(pmap->Y);
+    valX  = pmap->X[y];
+    prio    = (y * 8u) + OS_COUNT_LEADING_ZERO(valX);
+#else                                       //!< We support up to 256 tasks
+    if ((osRdyGrp & 0xFFu) != 0u) {
+        y =      OS_COUNT_LEADING_ZERO(pmap->Y & 0xFFu);
+    } else {
+        y = 8u + OS_COUNT_LEADING_ZERO((pmap->Y >> 8u) & 0xFFu);
+    }
+    valX = pmap->X[y];
+    if ((valX & 0xFFu) != 0u) {
+        prio = (y * 16u) +      OS_COUNT_LEADING_ZERO(valX & 0xFFu);
+    } else {
+        prio = (y * 16u) + 8u + OS_COUNT_LEADING_ZERO((valX >> 8u) & 0xFFu);
+    }
+#endif
+    
+    return prio;
 }
 
 /*!

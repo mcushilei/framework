@@ -131,7 +131,6 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
 {
     OS_SEM     *psemp = (OS_SEM *)*pSemHandle;
     BOOL        taskPend;
-    BOOL        taskSched = FALSE;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
@@ -152,7 +151,6 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
     OSEnterCriticalSection(cpu_sr);
     if (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) {   //!< See if any tasks waiting on semaphore
         taskPend    = TRUE;                                     //!< Yes
-        taskSched   = TRUE;
     } else {
         taskPend    = FALSE;                                    //!< No
     }
@@ -181,7 +179,7 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
     OS_ObjPoolFree(&osSempFreeList, psemp);
     OSExitCriticalSection(cpu_sr);
     
-    if (taskSched) {
+    if (taskPend) {
         OS_ScheduleRunPrio();
     }
     

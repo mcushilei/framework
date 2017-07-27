@@ -33,7 +33,6 @@
 //! \name the lowpower mode
 //! @{
 typedef enum {
-    WAIT            = 0,
     SLEEP           = 1,
     DEEP_SLEEP      = 2,
     POWER_DOWN      = 3,
@@ -392,4 +391,26 @@ uint32_t scon_usart_clock_get(void)
     return main_clock_get();
 }
 
+bool enter_lowpower_mode(uint32_t mode)
+{
+    switch (mode) {
+        case SLEEP:
+            PMU_REG.PCON = 0u << PMU_PCON_PM_BIAS;
+            SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+            __WFI();
+            break;
+        case DEEP_SLEEP:
+            PMU_REG.PCON = 1u << PMU_PCON_PM_BIAS;
+            SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+            __WFI();
+            break;
+        case POWER_DOWN:
+            PMU_REG.PCON = 2u << PMU_PCON_PM_BIAS;
+            SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+            __WFI();
+            break;
+    }
+
+    return true;
+}
 

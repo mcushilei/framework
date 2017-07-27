@@ -176,7 +176,7 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
 
         case OS_DEL_ALWAYS:
             while (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {
-                OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pmutex, OS_STAT_PEND_ABORT);            //!< Ready ALL tasks are pending for this mutex.
+                OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pmutex, OS_STAT_PEND_ABORT);   //!< Ready ALL tasks are pending for this mutex.
             }
             break;
 
@@ -189,7 +189,7 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
     if (powner != NULL) {                                               //!< See if this mutex has been owned by any task.
         powner->OSTCBOwnMutex = NULL;                                   //!< Yes.
         if (pmutex->OSMutexOwnerPrio != powner->OSTCBPrio) {            //!< If this task's prio has been changed,
-            OS_ScheduleChangePrio(powner, pmutex->OSMutexOwnerPrio);    //!< Yes, restore task's prio.
+            OS_ChangeTaskPrio(powner, pmutex->OSMutexOwnerPrio);        //!< Yes, restore task's prio.
             taskSched = TRUE;
         }
     }
@@ -286,7 +286,7 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
         prio = osTCBCur->OSTCBPrio;
     }
     if (pmutex->OSMutexOwnerTCB->OSTCBPrio > prio) {            //!< Is owner has a lower priority?
-        OS_ScheduleChangePrio(pmutex->OSMutexOwnerTCB, prio);   //!< Yes. Rise owner's priority.
+        OS_ChangeTaskPrio(pmutex->OSMutexOwnerTCB, prio);   //!< Yes. Rise owner's priority.
     }
 
     OS_WaitableObjAddTask((OS_WAITABLE_OBJ *)pmutex, &node, timeout);           //!< Suspend current task.
@@ -354,9 +354,9 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
         return OS_ERR_NOT_MUTEX_OWNER;
     }
     
-    osTCBCur->OSTCBOwnMutex  = NULL;
+    osTCBCur->OSTCBOwnMutex = NULL;
     if (pmutex->OSMutexOwnerPrio != osTCBCur->OSTCBPrio) {          //!< If this task's prio has been changed...
-        OS_ScheduleChangePrio(osTCBCur, pmutex->OSMutexOwnerPrio);  //!< ... Yes, restore task's prio.
+        OS_ChangeTaskPrio(osTCBCur, pmutex->OSMutexOwnerPrio);  //!< ... Yes, restore task's prio.
         taskSched = TRUE;
     }
     

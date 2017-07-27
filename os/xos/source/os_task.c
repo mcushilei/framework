@@ -232,13 +232,13 @@ OS_ERR osTaskChangePrio(OS_HANDLE taskHandle, UINT8 newprio)
 
     OSEnterCriticalSection(cpu_sr);
     if (ptcb->OSTCBOwnMutex != NULL) {                  //!< See if the task has owned a mutex.
-        ptcb->OSTCBOwnMutex->OSMutexOwnerPrio = newprio;//!< Yes.
-        if (newprio < ptcb->OSTCBPrio) {                //!  Change the priority only if the new one
-                                                        //!  is higher than the task's current.
-            OS_ScheduleChangePrio(ptcb, newprio);
-        }
+        ptcb->OSTCBOwnMutex->OSMutexOwnerPrio = newprio;//!< Yes. Update the priority store in the mutex.
+        if (newprio < ptcb->OSTCBPrio) {                //!< Then Change the priority only if the new one ...
+                                                        //! ... is higher than the task's current.
+            OS_ChangeTaskPrio(ptcb, newprio);           //! ... else the task will use the new priority
+        }                                               //! ... after it release the mutex.
     } else {
-        OS_ScheduleChangePrio(ptcb, newprio);
+        OS_ChangeTaskPrio(ptcb, newprio);
     }
     OSExitCriticalSection(cpu_sr);
     

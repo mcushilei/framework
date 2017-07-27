@@ -34,6 +34,16 @@
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
+//! \name the lowpower mode
+//! @{
+typedef enum {
+    SLEEP          = 0,
+    DEEP_SLEEP,
+    POWER_DOWN,
+    DEEP_POWER_DOWN,
+} em_lowpower_mode_t;
+//! @}
+
 //! \brief 
 //! @{
 typedef enum {
@@ -111,6 +121,7 @@ DEF_INTERFACE(i_pm_t)
     i_clk_t                     Clock;
 END_DEF_INTERFACE(i_pm_t)
 //! @}
+
 /*============================ GLOBAL VARIABLES ==============================*/
 extern ROOT const i_pm_t PM;
 
@@ -130,7 +141,8 @@ extern uint32_t peripheral_clock_get_status     (uint32_t tIndex);
 extern bool     peripheral_clock_resume_status  (uint32_t tIndex, uint32_t wStatus);
 extern bool     peripheral_clock_config         (uint32_t tPer, uint32_t tDiv);
 extern uint32_t peripheral_clock_get            (uint32_t tPer);
-extern bool     clock_out_config(em_out_clk_src_t tSrc, uint32_t wDiv);
+extern bool     clock_out_config                (em_out_clk_src_t tSrc, uint32_t wDiv);
+extern bool     enter_lowpower_mode             (uint8_t mode);
 
 #endif
 #endif

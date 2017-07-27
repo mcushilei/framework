@@ -166,6 +166,7 @@ typedef void   *OS_HANDLE;
 
 typedef struct list_node        OS_LIST_NODE;
 typedef struct os_mem_pool      OS_MEM_POOL;
+typedef struct os_prio_bitmap   OS_PRIO_BITMAP;
 typedef struct os_waitable_obj  OS_WAITABLE_OBJ;
 typedef struct os_tcb           OS_TCB;
 typedef struct os_flag          OS_FLAG;
@@ -201,6 +202,11 @@ struct os_waitable_obj {                            //!< Waitable object head.
     UINT16              OSWaitObjCnt;               //!< counter.
     OS_LIST_NODE        OSWaitObjWaitNodeList;      //!< Pointer to waiting NODE of task waits on this object.
     OS_LIST_NODE        OSWaitObjList;
+};
+
+struct os_prio_bitmap {
+    OS_PRIO             Y;                          //!< Ready bitmap
+    OS_PRIO             X[OS_BITMAP_TBL_SIZE];
 };
 
 /*!
@@ -303,7 +309,7 @@ typedef struct {
     OS_TCB             *OSOwnerTCB;
     UINT8               OSOwnerPrio;
     UINT8               OSCeilingPrio;
-    UINT8               OSValue;                    //!< Mutex value (OS_FALSE = used, TRUE = available)
+    UINT8               OSValue;                    //!< Mutex value (FALSE = used, TRUE = available)
 } OS_MUTEX_INFO;
 #endif
 
@@ -341,8 +347,7 @@ OS_EXT  OS_TCB          osTCBFreeTbl[OS_MAX_TASKS + OS_N_SYS_TASKS];    //!< Tab
 OS_EXT  OS_LIST_NODE    osWaitableObjList;
 OS_EXT  OS_LIST_NODE    osSleepList;                        //!< Doubly linked list of sleep task's TCB
 
-OS_EXT  OS_PRIO         osRdyGrp;                           //!< Ready bitmap
-OS_EXT  OS_PRIO         osRdyTbl[OS_BITMAP_TBL_SIZE];
+OS_EXT  OS_PRIO_BITMAP  osRdyBitmap;                        //!< Ready bitmap
 OS_EXT  OS_LIST_NODE    osRdyList[OS_MAX_PRIO_LEVELS];      //!< Table of pointers to TCB of active task
 
 OS_EXT  OS_TCB         *osTCBCur;                           //!< Pointer to currently running TCB
@@ -568,8 +573,6 @@ void       *OS_ObjPoolNew          (OS_LIST_NODE  **ppObj);
 void        OS_ScheduleInit        (void);
 void        OS_ScheduleReadyTask   (OS_TCB         *ptcb);
 void        OS_ScheduleUnreadyTask (OS_TCB         *ptcb);
-void        OS_ScheduleChangePrio  (OS_TCB         *ptcb,
-                                    UINT8           newprio);
 void        OS_SchedulePrio        (void);
 void        OS_ScheduleNext        (void);
 void        OS_ScheduleRunPrio     (void);
@@ -595,11 +598,18 @@ void        OS_TCBInit             (OS_TCB         *ptcb,
 
 OS_TCB     *OS_WaitableObjRdyTask  (OS_WAITABLE_OBJ    *pobj,
                                     UINT8               pend_stat);
-
 void        OS_WaitableObjAddTask  (OS_WAITABLE_OBJ    *pobj,
                                     OS_WAIT_NODE       *pnode,
                                     UINT32              timeout);
 
+void        OS_ChangeTaskPrio      (OS_TCB         *ptcb,
+                                    UINT8           newprio);
+
+void        OS_BitmapSet           (OS_PRIO_BITMAP *pmap,
+                                    UINT8           prio);
+void        OS_BitmapClr           (OS_PRIO_BITMAP *pmap,
+                                    UINT8           prio);
+UINT8       OS_BitmapGetHigestPrio (OS_PRIO_BITMAP *pmap);
 void        OS_MemClr              (char           *pdest,
                                     UINT32          size);
 

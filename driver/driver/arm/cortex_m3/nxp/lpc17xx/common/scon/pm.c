@@ -42,6 +42,16 @@
 #define PM_PLL_NSEL(__VALUE)    (((__VALUE) << SC_PLL0CFG_NSEL0) & SC_PLL0CFG_NSEL_MSK)
         
 /*============================ TYPES =========================================*/
+//! \name the lowpower mode
+//! @{
+typedef enum {
+    SLEEP          = 0,
+    DEEP_SLEEP,
+    POWER_DOWN,
+    DEEP_POWER_DOWN,
+} em_lowpower_mode_t;
+//! @}
+
 //! \brief 
 //! @{
 typedef enum {
@@ -450,7 +460,111 @@ uint32_t peripheral_clock_get(uint32_t tPer)
     return  wCClk >> wDiv;
 }
 
+bool enter_lowpower_mode(uint8_t mode)
+{
+    uint32_t rv;
+    volatile uint32_t i = 2000;
+    
+    switch (mode) {
+        case SLEEP:
+            SC_REG.PCON &= ~((1u << 0)      //!< PM0 will be clear
+                         | (1u << 1)        //!< PM1 will be clear
+                         | (0u << 2)        //!< BODRPM will be remain
+                         | (0u << 3)        //!< BOGD will be remain
+                         | (0u << 4)        //!< BORD will be remain
+                         | (7u << 5)        //!< Reserved bits will be clear
+                         | (0u << 8)        //!< SMFLAG will be remain.
+                         | (0u << 9)        //!< DSFLAG will be remain.
+                         | (0u << 10)       //!< PDFLAG will be remain.
+                         | (0u << 11)       //!< DPDFLAG will be remain.
+                         | (0xFFFFFFFF << 12));  //!< Reserved bits will be clear
+            SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+            __WFI();
+            break;
+            
+        case DEEP_SLEEP:
+            SC_REG.PCON &= ~((1u << 0)      //!< PM0 will be clear
+                         | (1u << 1)        //!< PM1 will be clear
+                         | (0u << 2)        //!< BODRPM will be remain
+                         | (0u << 3)        //!< BOGD will be remain
+                         | (0u << 4)        //!< BORD will be remain
+                         | (7u << 5)        //!< Reserved bits will be clear
+                         | (0u << 8)        //!< SMFLAG will be remain.
+                         | (0u << 9)        //!< DSFLAG will be remain.
+                         | (0u << 10)       //!< PDFLAG will be remain.
+                         | (0u << 11)       //!< DPDFLAG will be remain.
+                         | (0xFFFFFFFF << 12));  //!< Reserved bits will be clear
+            SCB->SCR = SCB_SCR_SLEEPDEEP_Msk;
+            __WFI();
+            while (i--);
+            break;
+            
+        case POWER_DOWN:                //! enter power-down mode
+            rv = SC_REG.PCON;
+            rv &= ~((1u << 0)      //!< PM0 will be clear
+                 | (1u << 1)        //!< PM1 will be clear
+                 | (0u << 2)        //!< BODRPM will be remain
+                 | (0u << 3)        //!< BOGD will be remain
+                 | (0u << 4)        //!< BORD will be remain
+                 | (7u << 5)        //!< Reserved bits will be clear
+                 | (0u << 8)        //!< SMFLAG will be remain
+                 | (0u << 9)        //!< DSFLAG will be remain
+                 | (0u << 10)       //!< PDFLAG will be remain
+                 | (0u << 11)       //!< DPDFLAG will be remain
+                 | (0xFFFFFFFF << 12));  //!< Reserved bits will be clear
+            rv |= (1u << 0)        //!< PM0 will be set
+                 | (0u << 1)        //!< PM1 will be clear
+                 | (0u << 2)        //!< BODRPM will be remain
+                 | (0u << 3)        //!< BOGD will be remain
+                 | (0u << 4)        //!< BORD will be remain
+                 | (0u << 5)        //!< Reserved bits will be clear
+                 | (0u << 8)        //!< SMFLAG will be remain
+                 | (0u << 9)        //!< DSFLAG will be remain
+                 | (0u << 10)       //!< PDFLAG will be remain
+                 | (0u << 11)       //!< DPDFLAG will be remain
+                 | (0u << 12);  //!< Reserved bits will be clear
+            SC_REG.PCON = rv;
+            SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+            __WFI();
+            while (i--);
+            break;
+            
+        case DEEP_POWER_DOWN:
+            rv = SC_REG.PCON;
+            rv &= ~((1u << 0)      //!< PM0 will be clear
+                 | (1u << 1)        //!< PM1 will be clear
+                 | (0u << 2)        //!< BODRPM will be remain
+                 | (0u << 3)        //!< BOGD will be remain
+                 | (0u << 4)        //!< BORD will be remain
+                 | (7u << 5)        //!< Reserved bits will be clear
+                 | (0u << 8)        //!< SMFLAG will be remain
+                 | (0u << 9)        //!< DSFLAG will be remain
+                 | (0u << 10)       //!< PDFLAG will be remain
+                 | (0u << 11)       //!< DPDFLAG will be remain
+                 | (0xFFFFFFFF << 12));  //!< Reserved bits will be clear
+            rv |= (1u << 0)        //!< PM0 will be set
+                 | (1u << 1)        //!< PM1 will be set
+                 | (0u << 2)        //!< BODRPM will be remain
+                 | (0u << 3)        //!< BOGD will be remain
+                 | (0u << 4)        //!< BORD will be remain
+                 | (0u << 5)        //!< Reserved bits will be remain
+                 | (0u << 8)        //!< SMFLAG will be remain
+                 | (0u << 9)        //!< DSFLAG will be remain
+                 | (0u << 10)       //!< PDFLAG will be remain
+                 | (0u << 11)       //!< DPDFLAG will be remain
+                 | (0u << 12);      //!< Reserved bits will be remain
+            SC_REG.PCON = rv;
+            SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+            __WFI();
+            while (i--);
+            break;
 
+        default:
+            return false;
+    }
+
+    return true;
+}
 
 
 

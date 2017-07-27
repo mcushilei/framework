@@ -321,8 +321,8 @@ __NO_SAVE
     MSR     PSP, R0                                 ; Let PSP as new thread's SP.
         	                                                                            
     ORR     LR, LR, #0x04                           ; Change EXC_RETURN to uses PSP after return. Note: current use MSP.
-    MOV     R0, #0x1                                ; Config CONTROL reg to uses unprivileged mode after return. Note: now we are in PendSV's ISR.
-    MSR     CONTROL, R0
+    ;MOV     R0, #0x1                                ; Config CONTROL reg to uses unprivileged mode after return. Note: now we are in PendSV's ISR.
+    ;MSR     CONTROL, R0
 
     MOV     R0, #0       	    	                ; enable interruption.
     MSR 	BASEPRI, R0
