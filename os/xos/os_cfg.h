@@ -32,13 +32,13 @@
 #define OS_ARG_CHK_EN             1u   //!< Enable (1) or Disable (0) argument checking
 #define OS_SCHED_LOCK_EN          1u   //!< Include code for osLockSched() and osUnlockSched()
 
-#define OS_MAX_PRIO_LEVELS       16u   //!< Max. number of priority levels ...
+#define OS_MAX_PRIO_LEVELS       64u   //!< Max. number of priority levels ...
                                        //!< ... MUST be >= 1 and <= 256!
 
 #define OS_MAX_SEMAPHORES        16u   //!< Max. number of semaphore in your application
 #define OS_MAX_MUTEXES           16u   //!< Max. number of mutex     in your application
 #define OS_MAX_FLAGS             16u   //!< Max. number of flag      in your application
-#define OS_MAX_TASKS             16u   //!< Max. number of tasks in YOUR application
+#define OS_MAX_TASKS             14u   //!< Max. number of tasks in YOUR application
 
 #define OS_TICKS_PER_SEC        100u   //!< Set the number of ticks in one second
 #define OS_TIME_TICK_HOOK_EN      1u   //!< Include code for OSTimeTickHook()

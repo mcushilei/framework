@@ -57,9 +57,9 @@ extern "C" {
 #define OS_TASK_STAT_PRIO           (OS_MAX_PRIO_LEVELS - 1u)           //!< Statistic task priority
 
 #if OS_MAX_PRIO_LEVELS <= 64u
-#   define OS_BITMAP_TBL_SIZE       ((OS_MAX_PRIO_LEVELS + 7u) / 8u)    //!< Size of ready table
+#   define OS_BITMAP_TBL_SIZE       ((OS_MAX_PRIO_LEVELS + 7u) / 8u)    //!< Size of bitmap table
 #else
-#   define OS_BITMAP_TBL_SIZE       ((OS_MAX_PRIO_LEVELS + 15u) / 16u)  //!< Size of ready table
+#   define OS_BITMAP_TBL_SIZE       ((OS_MAX_PRIO_LEVELS + 15u) / 16u)  //!< Size of bitmap table
 #endif
 
 #define OS_EVENT_EN                 (OS_MUTEX_EN | OS_FLAG_EN |OS_SEM_EN)
@@ -78,7 +78,7 @@ extern "C" {
  *! OBJECT TYPES
  */
 enum {
-    OS_OBJ_TYPE_UNUSED = 0,
+    OS_OBJ_TYPE_UNUSED  = 0,
     OS_OBJ_TYPE_SEM,
     OS_OBJ_TYPE_MUTEX,
     OS_OBJ_TYPE_FLAG,
@@ -88,6 +88,8 @@ enum {
 #define OS_OBJ_TYPE_SET(__OT)       ((UINT8)( ((UINT8)(__OT) << 0) & OS_OBJ_TYPE_MSK ))
 #define OS_OBJ_TYPE_GET(__OT)       ((UINT8)( ((UINT8)(__OT) & OS_OBJ_TYPE_MSK) >> 0 ))
 
+#define OS_OBJ_TYPE_WAITABLE_MSK    (1u << 7)
+
 enum {
     OS_OBJ_PRIO_TYPE_LIST       = 0,
     OS_OBJ_PRIO_TYPE_PRIO_LIST,
@@ -95,8 +97,6 @@ enum {
 #define OS_OBJ_PRIO_TYPE_MSK        (0x03u << 3)
 #define OS_OBJ_PRIO_TYPE_SET(__OT)  ((UINT8)( ((UINT8)(__OT) << 3) & OS_OBJ_TYPE_MSK ))
 #define OS_OBJ_PRIO_TYPE_GET(__OT)  ((UINT8)( ((UINT8)(__OT) & OS_OBJ_TYPE_MSK) >> 3 ))
-
-#define OS_OBJ_WAITABLE             (1u << 7)
 
 /*!
  *! \Brief  OS???Delete() OPTIONS
@@ -126,7 +126,7 @@ enum {
 enum {
     OS_ERR_NONE                     = 0x00u,
 
-    OS_ERR_EVENT_TYPE               = 0x01u,
+    OS_ERR_OBJ_TYPE                 = 0x01u,
     OS_ERR_PDATA_NULL               = 0x02u,
     OS_ERR_INVALID_HANDLE           = 0x03u,
     OS_ERR_INVALID_OPT              = 0x04u,
@@ -146,7 +146,7 @@ enum {
     OS_ERR_SEM_OVF                  = 0x90u,
     OS_ERR_NOT_MUTEX_OWNER          = 0x91u,
     OS_ERR_HAS_OWN_MUTEX            = 0x92u,
-    OS_ERR_RECURSIVE_MUTEX          = 0x93u,
+    OS_ERR_OVERLAP_MUTEX            = 0x93u,
 };
     
 /*!
@@ -357,8 +357,6 @@ OS_EXT  UINT8           osIntNesting;                       //!< Interrupt nesti
 OS_EXT  UINT8           osLockNesting;                      //!< Multitasking lock nesting level
 
 OS_EXT  BOOL            osRunning;                          //!< Flag indicating that kernel is running
-
-OS_EXT  UINT32          osTaskCtr;
 
 #if OS_STAT_EN > 0u
 OS_EXT  UINT32          osCtxSwCtr;                             //!< Counter of number of context switches

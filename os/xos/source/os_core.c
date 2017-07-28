@@ -120,8 +120,6 @@ static void os_init_misc(void)
     osIntNesting             = 0u;                        //!< Clear the interrupt nesting counter
     osLockNesting            = 0u;                        //!< Clear the scheduling lock counter
 
-    osTaskCtr                = 0u;                        //!< Clear the number of tasks
-
     osRunning                = FALSE;                  //!< Indicate that multitasking not started
 
     osIdleCtr                = 0u;                        //!< Clear the idle counter
@@ -374,7 +372,7 @@ void osUnlockSched(void)
  */
 void osStart(void)
 {
-    if (osRunning == FALSE) {           //!< os must not be running!
+    if (osRunning == FALSE) {           //!< os must NOT be running!
         OS_ScheduleNext();
         osTCBCur = osTCBNextRdy;
         OSStartTheFirst();               //!< Execute target specific code to start task
@@ -436,7 +434,6 @@ void osTimeTick(void)
         pobj = OS_CONTAINER_OF(listObj, OS_WAITABLE_OBJ, OSWaitObjList);
         
         OSEnterCriticalSection(cpu_sr);
-        //! if this objcet is not locked.
         for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; ) {   //!< Go through all task in TCB list.
             pnode  = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
             list = list->Next;
@@ -1068,7 +1065,7 @@ UINT8 OS_BitmapGetHigestPrio(OS_PRIO_BITMAP *pmap)
     valX  = pmap->X[y];
     prio    = (y * 8u) + OS_COUNT_LEADING_ZERO(valX);
 #else                                       //!< We support up to 256 tasks
-    if ((osRdyGrp & 0xFFu) != 0u) {
+    if ((pmap->Y & 0xFFu) != 0u) {
         y =      OS_COUNT_LEADING_ZERO(pmap->Y & 0xFFu);
     } else {
         y = 8u + OS_COUNT_LEADING_ZERO((pmap->Y >> 8u) & 0xFFu);

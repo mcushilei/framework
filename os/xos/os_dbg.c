@@ -83,7 +83,7 @@ const UINT16 OSHooksEn          = OS_HOOKS_EN;
 /*!
  *! TOTAL DATA SPACE (in RAM) USED BY OS
  */
-const UINT16 OSDataSize =
+const UINT32 OSDataSize =
 #if (OS_SEM_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
                           + sizeof(osSempFreeTbl)
                           + sizeof(osSempFreeList)
@@ -109,7 +109,6 @@ const UINT16 OSDataSize =
                           + sizeof(osIntNesting)
                           + sizeof(osLockNesting)
                           + sizeof(osRunning)
-                          + sizeof(osTaskCtr)
 #if OS_STAT_EN > 0u
                           + sizeof(osCtxSwCtr)
                           + sizeof(osIdleCtrMax)

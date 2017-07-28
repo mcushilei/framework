@@ -57,14 +57,14 @@ OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 cnt)
 #endif
 
 
-    if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_USE_IN_ISR;       //!< ... can't CREATE from an ISR
-    }
 #if OS_ARG_CHK_EN > 0u
-    if (pSemHandle == NULL) {     //!< Validate handle
+    if (pSemHandle == NULL) {           //!< Validate pSemHandle
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
+    if (osIntNesting > 0u) {            //!< See if called from ISR ...
+        return OS_ERR_USE_IN_ISR;       //!< ... can't CREATE from an ISR
+    }
 
     //! malloc a ECB from pool.
     OSEnterCriticalSection(cpu_sr);
@@ -79,7 +79,7 @@ OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 cnt)
     //! Init semaphore value.
     //! Init wait list head.
     psemp->OSObjType    = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_SEM)
-                        | OS_OBJ_WAITABLE
+                        | OS_OBJ_TYPE_WAITABLE_MSK
                         | OS_OBJ_PRIO_TYPE_SET(OS_OBJ_PRIO_TYPE_PRIO_LIST);
     psemp->OSSemCnt     = cnt;
     os_list_init_head(&psemp->OSSemWaitList);
@@ -112,7 +112,7 @@ OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 cnt)
  *!              OS_ERR_INVALID_OPT     An invalid option was specified
  *!              OS_ERR_TASK_WAITING    One or more tasks were waiting on the semaphore
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
+ *!              OS_ERR_OBJ_TYPE        If you didn't pass a semaphore object.
  *!
  *! \Notes       1) This function must be used with care.  Tasks that would normally expect the
  *!                 presence of the semaphore MUST check the return code of osSemPend().
@@ -129,24 +129,28 @@ OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 cnt)
 #if OS_SEM_DEL_EN > 0u
 OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
 {
-    OS_SEM     *psemp = (OS_SEM *)*pSemHandle;
+    OS_SEM     *psemp;
     BOOL        taskPend;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
 
 
+#if OS_ARG_CHK_EN > 0u
+    if (pSemHandle == NULL) {           //!< Validate pSemHandle
+        return OS_ERR_INVALID_HANDLE;
+    }
+#endif
     if (osIntNesting > 0u) {            //!< See if called from ISR ...
         return OS_ERR_USE_IN_ISR;       //!< ... can't DELETE from an ISR
     }
-#if OS_ARG_CHK_EN > 0u
-    if (psemp == NULL) {                //!< Validate 'psemp'
+    if (*pSemHandle == NULL) {          //!< Validate handle
         return OS_ERR_INVALID_HANDLE;
     }
+    psemp = (OS_SEM *)*pSemHandle;
     if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate event block type
-        return OS_ERR_EVENT_TYPE;
+        return OS_ERR_OBJ_TYPE;
     }
-#endif
 
     OSEnterCriticalSection(cpu_sr);
     if (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) {   //!< See if any tasks waiting on semaphore
@@ -163,19 +167,19 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
             break;
 
         case OS_DEL_ALWAYS:
-            while (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) { //!< Ready ALL tasks waiting for semaphore
-                OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psemp, OS_STAT_PEND_ABORT);
-            }
             break;
 
         default:
             OSExitCriticalSection(cpu_sr);
             return OS_ERR_INVALID_OPT;
     }
-    
     OS_DeregWaitableObj((OS_WAITABLE_OBJ *)psemp);
-    psemp->OSObjType = OS_OBJ_TYPE_UNUSED;
-    psemp->OSSemCnt = 0u;
+    
+    while (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) { //!< Ready ALL tasks waiting for semaphore
+        OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psemp, OS_STAT_PEND_ABORT);
+    }
+    psemp->OSObjType    = OS_OBJ_TYPE_UNUSED;
+    psemp->OSSemCnt     = 0u;
     OS_ObjPoolFree(&osSempFreeList, psemp);
     OSExitCriticalSection(cpu_sr);
     
@@ -206,7 +210,7 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
  *!                                     'timeout'.
  *!              OS_ERR_PEND_ABORT      The wait on the semaphore was aborted.
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
+ *!              OS_ERR_OBJ_TYPE      If you didn't pass a event semaphore object.
  *!              OS_ERR_USE_IN_ISR      If you called this function from an ISR and the result
  *!              OS_ERR_PEND_LOCKED     If you called this function when the scheduler is locked
  *!                                     would lead to a suspension.
@@ -221,20 +225,20 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
     UINT8           err;
 
 
+#if OS_ARG_CHK_EN > 0u
+    if (hSemaphore == NULL) {           //!< Validate hSemaphore
+        return OS_ERR_INVALID_HANDLE;
+    }
+#endif
     if (osIntNesting > 0u) {            //!< See if called from ISR ...
         return OS_ERR_USE_IN_ISR;       //!< ... can't PEND from an ISR
     }
     if (osLockNesting > 0u) {           //!< See if called with scheduler locked ...
         return OS_ERR_PEND_LOCKED;      //!< ... can't PEND when locked
     }
-#if OS_ARG_CHK_EN > 0u
-    if (psemp == NULL) {                //!< Validate 'psemp'
-        return OS_ERR_INVALID_HANDLE;
-    }
     if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event type
-        return OS_ERR_EVENT_TYPE;
+        return OS_ERR_OBJ_TYPE;
     }
-#endif
 
     OSEnterCriticalSection(cpu_sr);
     if (psemp->OSSemCnt > 0u) {                  //!< If sem. is positive, resource available ...
@@ -285,7 +289,7 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
  *!              OS_ERR_SEM_OVF         If the semaphore count exceeded its limit. In other words,
  *!                                     you have signaled the semaphore more often than its capable.
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
+ *!              OS_ERR_OBJ_TYPE      If you didn't pass a event semaphore object.
  */
 OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
 {
@@ -297,13 +301,13 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (psemp == NULL) {                //!< Validate 'psemp'
+    if (hSemaphore == NULL) {           //!< Validate hSemaphore
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate event block type
-        return OS_ERR_EVENT_TYPE;
-    }
 #endif
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate event block type
+        return OS_ERR_OBJ_TYPE;
+    }
     
     if (cnt == 0u) {
         return OS_ERR_NONE;
@@ -346,7 +350,7 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
  *!                                     for the number of tasks whose wait on the semaphore
  *!                                     was aborted.
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
+ *!              OS_ERR_OBJ_TYPE      If you didn't pass a event semaphore object.
  */
 #if OS_SEM_PEND_ABORT_EN > 0u
 OS_ERR osSemPendAbort(OS_HANDLE hSemaphore)
@@ -359,13 +363,13 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (psemp == NULL) {                //!< Validate 'psemp'
+    if (hSemaphore == NULL) {           //!< Validate hSemaphore
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
-        return OS_ERR_EVENT_TYPE;
-    }
 #endif
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
+        return OS_ERR_OBJ_TYPE;
+    }
 
     OSEnterCriticalSection(cpu_sr);
     if (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) {           //!< See if any task waiting on semaphore?
@@ -400,7 +404,7 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore)
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and the semaphore value was set.
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
+ *!              OS_ERR_OBJ_TYPE      If you didn't pass a event semaphore object.
  *!              OS_ERR_TASK_WAITING    If tasks are waiting on the semaphore.
  */
 #if OS_SEM_SET_EN > 0u
@@ -414,13 +418,13 @@ OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (psemp == NULL) {                    //!< Validate 'psemp'
+    if (hSemaphore == NULL) {               //!< Validate hSemaphore
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
-        return OS_ERR_EVENT_TYPE;
-    }
 #endif
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
+        return OS_ERR_OBJ_TYPE;
+    }
 
     err = OS_ERR_NONE;
     OSEnterCriticalSection(cpu_sr);
@@ -447,7 +451,7 @@ OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and the message was sent
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event semaphore object.
+ *!              OS_ERR_OBJ_TYPE      If you didn't pass a event semaphore object.
  *!              OS_ERR_PDATA_NULL      If 'pInfo' is a NULL pointer
  */
 #if OS_SEM_QUERY_EN > 0u
@@ -460,16 +464,16 @@ OS_ERR osSemQuery(OS_HANDLE hSemaphore, OS_SEM_INFO *pInfo)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (psemp == NULL) {                //!< Validate 'psemp'
+    if (hSemaphore == NULL) {           //!< Validate hSemaphore
         return OS_ERR_INVALID_HANDLE;
-    }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
-        return OS_ERR_EVENT_TYPE;
     }
     if (pInfo == NULL) {                //!< Validate 'pInfo'
         return OS_ERR_PDATA_NULL;
     }
 #endif
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
+        return OS_ERR_OBJ_TYPE;
+    }
 
     OSEnterCriticalSection(cpu_sr);
     pInfo->OSCnt        = psemp->OSSemCnt;         //!< Get semaphore count

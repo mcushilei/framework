@@ -143,7 +143,6 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
 
     OSEnterCriticalSection(cpu_sr);
     OS_ScheduleReadyTask(ptcb);
-    osTaskCtr++;                            //!< Increment the #tasks counter
     OSExitCriticalSection(cpu_sr);
     
     if (pHandle != NULL) {
@@ -188,7 +187,6 @@ static void os_task_del(void)
     }
 
     OS_ObjPoolFree(&osTCBFreeList, ptcb);   //!< Return TCB to free TCB list
-    osTaskCtr--;                            //!< One less task being managed
     OSExitCriticalSection(cpu_sr);
     
     OS_ScheduleRunNext();
@@ -220,7 +218,7 @@ OS_ERR osTaskChangePrio(OS_HANDLE taskHandle, UINT8 newprio)
     
     
 #if OS_ARG_CHK_EN > 0u
-    if (ptcb == NULL) {
+    if (taskHandle == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
 #if OS_MAX_PRIO_LEVELS <= 255

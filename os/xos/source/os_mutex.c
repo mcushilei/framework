@@ -57,9 +57,6 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
 #endif
 
 
-    if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_USE_IN_ISR;       //!< ... can't CREATE mutex from an ISR
-    }
 #if OS_ARG_CHK_EN > 0u
     if (pMutexHandle == NULL) {         //!< Validate handle
         return OS_ERR_INVALID_HANDLE;
@@ -70,6 +67,9 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
     }
 #endif
 #endif
+    if (osIntNesting > 0u) {            //!< See if called from ISR ...
+        return OS_ERR_USE_IN_ISR;       //!< ... can't CREATE mutex from an ISR
+    }
 
     //! malloc an ECB from pool.
     OSEnterCriticalSection(cpu_sr);
@@ -84,7 +84,7 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
     //! init mutex property.
     //! init mutex wait list head.
     pmutex->OSObjType           = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_MUTEX)
-                                | OS_OBJ_WAITABLE
+                                | OS_OBJ_TYPE_WAITABLE_MSK
                                 | OS_OBJ_PRIO_TYPE_SET(OS_OBJ_PRIO_TYPE_PRIO_LIST);
     pmutex->OSMutexCeilingPrio  = ceilingPrio;
     pmutex->OSMutexOwnerPrio    = OS_TASK_IDLE_PRIO;
@@ -121,7 +121,7 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
  *!              OS_ERR_INVALID_OPT     An invalid option was specified
  *!              OS_ERR_TASK_WAITING    One or more tasks were waiting on the mutex
  *!              OS_ERR_INVALID_HANDLE  If 'hMutex' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event mutex object.
+ *!              OS_ERR_OBJ_TYPE      If you didn't pass a event mutex object.
  *!
  *! \Notes       1) This function must be used with care.  Tasks that would normally expect the
  *!                 presence of the mutex MUST check the return code of osMutexPend().
@@ -138,7 +138,7 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
 #if OS_MUTEX_DEL_EN > 0u
 OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
 {
-    OS_MUTEX   *pmutex = (OS_MUTEX *)*pMutexHandle;
+    OS_MUTEX   *pmutex;
     OS_TCB     *powner;
     BOOL        taskPend;
     BOOL        taskSched = FALSE;
@@ -147,17 +147,21 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
 #endif
 
 
+#if OS_ARG_CHK_EN > 0u
+    if (pMutexHandle == NULL) {                 //!< Validate pMutexHandle
+        return OS_ERR_INVALID_HANDLE;
+    }
+#endif
     if (osIntNesting > 0u) {                    //!< Can't DELETE from an ISR.
         return OS_ERR_USE_IN_ISR;
     }
-#if OS_ARG_CHK_EN > 0u
-    if (pmutex == NULL) {                       //!< Validate 'pmutex'
+    if (*pMutexHandle == NULL) {                //!< Validate handle
         return OS_ERR_INVALID_HANDLE;
     }
+    pmutex = (OS_MUTEX *)*pMutexHandle;
     if (OS_OBJ_TYPE_GET(pmutex->OSObjType) != OS_OBJ_TYPE_MUTEX) {   //!< Validate event block type
-        return OS_ERR_EVENT_TYPE;
+        return OS_ERR_OBJ_TYPE;
     }
-#endif
 
     OSEnterCriticalSection(cpu_sr);
     if (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {     //!< See if any tasks waiting on mutex
@@ -175,15 +179,13 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
             break;
 
         case OS_DEL_ALWAYS:
-            while (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {
-                OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pmutex, OS_STAT_PEND_ABORT);   //!< Ready ALL tasks are pending for this mutex.
-            }
             break;
 
         default:
              OSExitCriticalSection(cpu_sr);
              return OS_ERR_INVALID_OPT;
     }
+    OS_DeregWaitableObj((OS_WAITABLE_OBJ *)pmutex);
     
     powner = pmutex->OSMutexOwnerTCB;
     if (powner != NULL) {                                               //!< See if this mutex has been owned by any task.
@@ -194,8 +196,13 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
         }
     }
     
-    OS_DeregWaitableObj((OS_WAITABLE_OBJ *)pmutex);
-    pmutex->OSObjType = OS_OBJ_TYPE_UNUSED;
+    while (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {  //!< Ready ALL tasks are pending for this mutex.
+        OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pmutex, OS_STAT_PEND_ABORT);
+    }
+    pmutex->OSObjType           = OS_OBJ_TYPE_UNUSED;
+    pmutex->OSMutexCeilingPrio  = 0u;
+    pmutex->OSMutexOwnerTCB     = NULL;
+    pmutex->OSMutexOwnerPrio    = 0u;
     OS_ObjPoolFree(&osMutexFreeList, pmutex);
     OSExitCriticalSection(cpu_sr);
     
@@ -222,15 +229,15 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
  *!                            and return OS_ERR_TIMEOUT if the specified mutex is not avalible.
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and your task owns the mutex
+ *!              OS_ERR_INVALID_HANDLE  If 'hMutex' is an invalid handle.
+ *!              OS_ERR_OBJ_TYPE      If object was not a mutex.
+ *!              OS_ERR_USE_IN_ISR      If this function was called from an ISR and the result
+ *!              OS_ERR_PEND_LOCKED     If this function was called when the scheduler is locked
  *!              OS_ERR_TIMEOUT         The mutex was not available within the specified 'timeout'.
  *!              OS_ERR_PEND_ABORT      The wait on the mutex was aborted.
- *!              OS_ERR_USE_IN_ISR      If you called this function from an ISR and the result
  *!                                     would lead to a suspension.
- *!              OS_ERR_PEND_LOCKED     If you called this function when the scheduler is locked
- *!              OS_ERR_INVALID_HANDLE  If 'hMutex' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event mutex object.
- *!              OS_ERR_HAS_OWN_MUTEX   Current task has owned this mutex.
- *!              OS_ERR_RECURSIVE_MUTEX Current task use the same mutex recursively.
+ *!              OS_ERR_OVERLAP_MUTEX   Current task overlap the same mutex. User should release the
+ *!                                     mutex before try getting it again.
  *!
  *! \Notes       1) The task that owns the mutex MUST NOT try to owns the same mutex. It's say it
  *!                 could not be recursive.
@@ -246,20 +253,20 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
     UINT8           prio;
 
 
+#if OS_ARG_CHK_EN > 0u
+    if (hMutex == NULL) {                   //!< Validate hMutex
+        return OS_ERR_INVALID_HANDLE;
+    }
+#endif
     if (osIntNesting > 0u) {                //!< See if called from ISR ...
         return OS_ERR_USE_IN_ISR;           //!< ... can't PEND from an ISR
     }
     if (osLockNesting > 0u) {               //!< See if called with scheduler locked ...
         return OS_ERR_PEND_LOCKED;          //!< ... can't PEND when locked
     }
-#if OS_ARG_CHK_EN > 0u
-    if (pmutex == NULL) {                   //!< Validate 'pmutex'
-        return OS_ERR_INVALID_HANDLE;
-    }
     if (OS_OBJ_TYPE_GET(pmutex->OSObjType) != OS_OBJ_TYPE_MUTEX) {  //!< Validate event block type
-        return OS_ERR_EVENT_TYPE;
+        return OS_ERR_OBJ_TYPE;
     }
-#endif
 
     OSEnterCriticalSection(cpu_sr);
     if (pmutex->OSMutexOwnerTCB == NULL) {              //!< Is Mutex available?
@@ -272,7 +279,7 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
     
     if (pmutex->OSMutexOwnerTCB == osTCBCur) {
         OSExitCriticalSection(cpu_sr);
-        return OS_ERR_RECURSIVE_MUTEX;
+        return OS_ERR_OVERLAP_MUTEX;
     }
     
     if (timeout == 0u) {
@@ -321,7 +328,7 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
  *! \Returns     OS_ERR_NONE                The call was successful and the mutex was signaled.
  *!              OS_ERR_USE_IN_ISR            Attempted to post from an ISR (not valid for MUTEXes)
  *!              OS_ERR_INVALID_HANDLE      If 'hMutex' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE          If you didn't pass a event mutex object.
+ *!              OS_ERR_OBJ_TYPE          If you didn't pass a event mutex object.
  *!              OS_ERR_NOT_MUTEX_OWNER     The task that did the post is NOT the owner of the MUTEX.
  *!
  *! \Notes       1) The mutex can ONLY be released by it's owner.
@@ -336,17 +343,17 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
 #endif
 
 
+#if OS_ARG_CHK_EN > 0u
+    if (hMutex == NULL) {                   //!< Validate hMutex
+        return OS_ERR_INVALID_HANDLE;
+    }
+#endif
     if (osIntNesting > 0u) {                //!< See if called from ISR ...
         return OS_ERR_USE_IN_ISR;           //!< ... can't POST mutex from an ISR
     }
-#if OS_ARG_CHK_EN > 0u
-    if (pmutex == NULL) {                   //!< Validate 'pmutex'
-        return OS_ERR_INVALID_HANDLE;
-    }
     if (OS_OBJ_TYPE_GET(pmutex->OSObjType) != OS_OBJ_TYPE_MUTEX) {   //!< Validate event block type
-        return OS_ERR_EVENT_TYPE;
+        return OS_ERR_OBJ_TYPE;
     }
-#endif
 
     OSEnterCriticalSection(cpu_sr);
     if (osTCBCur != pmutex->OSMutexOwnerTCB) {      //!< See if this task owns the mutex.
@@ -390,7 +397,7 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and the message was sent
  *!              OS_ERR_INVALID_HANDLE  If 'hMutex' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event mutex object.
+ *!              OS_ERR_OBJ_TYPE      If you didn't pass a event mutex object.
  *!              OS_ERR_PDATA_NULL      If 'pInfo' is a NULL pointer
  */
 #if OS_MUTEX_QUERY_EN > 0u
@@ -403,15 +410,15 @@ OS_ERR osMutexQuery(OS_HANDLE hMutex, OS_MUTEX_INFO *pInfo)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (pmutex == NULL) {               //!< Validate 'pmutex'
+    if (hMutex == NULL) {               //!< Validate hMutex
         return OS_ERR_INVALID_HANDLE;
     }
-    if (pInfo == NULL) {                //!< Validate 'pInfo'
+    if (pInfo == NULL) {                //!< Validate pInfo
         return OS_ERR_PDATA_NULL;
     }
 #endif
     if (OS_OBJ_TYPE_GET(pmutex->OSObjType) != OS_OBJ_TYPE_MUTEX) {  //!< Validate event block type
-        return OS_ERR_EVENT_TYPE;
+        return OS_ERR_OBJ_TYPE;
     }
 
     OSEnterCriticalSection(cpu_sr);

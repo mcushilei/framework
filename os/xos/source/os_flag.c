@@ -61,14 +61,14 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manualReset)
     UINT16      flags = 0;
 
 
-    if (osIntNesting > 0u) {            //!< Should not CREATE from an ISR
-        return OS_ERR_USE_IN_ISR;
-    }
 #if OS_ARG_CHK_EN > 0u
     if (pFlagHandle == NULL) {          //!< Validate handle
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
+    if (osIntNesting > 0u) {            //!< Should not CREATE from an ISR
+        return OS_ERR_USE_IN_ISR;
+    }
 
     if (init != FALSE) {
         flags |= 0x01u;
@@ -85,12 +85,12 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manualReset)
         return OS_ERR_OBJ_DEPLETED;
     }
     OSExitCriticalSection(cpu_sr);
-    
+
     //! set object type.
     //! init flag's property.
     //! init flag's wait list.
     pflag->OSObjType      = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_FLAG)
-                          | OS_OBJ_WAITABLE
+                          | OS_OBJ_TYPE_WAITABLE_MSK
                           | OS_OBJ_PRIO_TYPE_SET(OS_OBJ_PRIO_TYPE_LIST);
     pflag->OSFlagFlags    = flags;
     os_list_init_head(&pflag->OSFlagWaitList);
@@ -123,7 +123,7 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manualReset)
  *! \Returns     OS_ERR_NONE            The flag was deleted successfully.
  *!              OS_ERR_USE_IN_ISR      If you attempted to delete the flag from an ISR.
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a flag object.
+ *!              OS_ERR_OBJ_TYPE      If you didn't pass a flag object.
  *!              OS_ERR_INVALID_OPT     An invalid option was specified.
  *!              OS_ERR_TASK_WAITING    One or more tasks were waiting on the flag.
  *!
@@ -139,7 +139,7 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manualReset)
 #if OS_FLAG_DEL_EN > 0u
 OS_ERR osFlagDelete(OS_HANDLE *pFlagHandle, UINT8 opt)
 {
-    OS_FLAG    *pflag = (OS_FLAG *)*pFlagHandle;
+    OS_FLAG    *pflag;
     BOOL        taskPend;
     BOOL        taskSched = FALSE;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
@@ -151,20 +151,24 @@ OS_ERR osFlagDelete(OS_HANDLE *pFlagHandle, UINT8 opt)
         return OS_ERR_USE_IN_ISR;
     }
 #if OS_ARG_CHK_EN > 0u
-    if (pflag == NULL) {                //!< Validate 'pflag'
+    if (pFlagHandle == NULL) {          //!< Validate pFlagHandle
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) { //!< Validate object type
-        return OS_ERR_EVENT_TYPE;
-    }
 #endif
+    if (*pFlagHandle == NULL) {         //!< Validate handle
+        return OS_ERR_INVALID_HANDLE;
+    }
+    pflag = (OS_FLAG *)*pFlagHandle;
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type
+        return OS_ERR_OBJ_TYPE;
+    }
 
     OSEnterCriticalSection(cpu_sr);
-    if (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) { //!< See if any tasks taskPend on this flag...
-        taskPend    = TRUE;                                     //!< ...Yes
+    if (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) {     //!< See if any tasks taskPend on this flag...
+        taskPend    = TRUE;                                         //!< ...Yes
         taskSched   = TRUE;
     } else {
-        taskPend    = FALSE;                                    //!< ...No
+        taskPend    = FALSE;                                        //!< ...No
     }
     switch (opt) {
         case OS_DEL_NO_PEND:
@@ -175,17 +179,17 @@ OS_ERR osFlagDelete(OS_HANDLE *pFlagHandle, UINT8 opt)
             break;
 
         case OS_DEL_ALWAYS:
-            while (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) {
-                OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pflag, OS_STAT_PEND_ABORT);     //!< Ready ALL tasks task pend for this flag.
-            }
             break;
 
         default:
              OSExitCriticalSection(cpu_sr);
              return OS_ERR_INVALID_OPT;
     }
-    
     OS_DeregWaitableObj((OS_WAITABLE_OBJ *)pflag);
+    
+    while (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) {  //!< Ready ALL tasks task pend for this flag.
+        OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pflag, OS_STAT_PEND_ABORT);
+    }
     pflag->OSObjType      = OS_OBJ_TYPE_UNUSED;
     pflag->OSFlagFlags    = 0u;
     OS_ObjPoolFree(&osFlagFreeList, pflag);
@@ -216,7 +220,7 @@ OS_ERR osFlagDelete(OS_HANDLE *pFlagHandle, UINT8 opt)
  *!              OS_ERR_USE_IN_ISR      If you tried to PEND from an ISR.
  *!              OS_ERR_PEND_LOCKED     If you called this function when the scheduler is locked.
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a flag object.
+ *!              OS_ERR_OBJ_TYPE      If you didn't pass a flag object.
  *!              OS_ERR_TIMEOUT         The flag have not been set in the specified 'timeout'.
  *!              OS_ERR_PEND_ABORT      The wait on the flag was aborted.
  */
@@ -232,20 +236,20 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
     UINT8           err;
 
 
+#if OS_ARG_CHK_EN > 0u
+    if (hFlag == NULL) {                //!< Validate 'pflag'
+        return OS_ERR_INVALID_HANDLE;
+    }
+#endif
     if (osIntNesting > 0u) {            //!< Can't PEND from an ISR
         return OS_ERR_USE_IN_ISR;
     }
     if (osLockNesting > 0u) {           //!< Can't PEND when locked
         return OS_ERR_PEND_LOCKED;
     }
-#if OS_ARG_CHK_EN > 0u
-    if (pflag == NULL) {                //!< Validate 'pflag'
-        return OS_ERR_INVALID_HANDLE;
-    }
     if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
-        return OS_ERR_EVENT_TYPE;
+        return OS_ERR_OBJ_TYPE;
     }
-#endif
 
     OSEnterCriticalSection(cpu_sr);
     consume = pflag->OSFlagFlags & 0x80u;
@@ -294,7 +298,7 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
  *!
  *! \Returns     OS_ERR_NONE            The call was successfull
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event flag object.
+ *!              OS_ERR_OBJ_TYPE      If you didn't pass a event flag object.
  *!
  *! \Notes       1) The execution time of this function depends on the number of tasks waiting on
  *!                 the event flag.
@@ -310,13 +314,13 @@ OS_ERR osFlagSet(OS_HANDLE hFlag)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (pflag == NULL) {                //!< Validate 'pflag'
+    if (hFlag == NULL) {                //!< Validate hFlag
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
-        return OS_ERR_EVENT_TYPE;
-    }
 #endif
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
+        return OS_ERR_OBJ_TYPE;
+    }
 
     OSEnterCriticalSection(cpu_sr);
     pflag->OSFlagFlags |= 0x01u;                //!< Set the flags.
@@ -343,7 +347,7 @@ OS_ERR osFlagSet(OS_HANDLE hFlag)
  *!
  *! \Returns     OS_ERR_NONE            The call was successfull
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a flag object.
+ *!              OS_ERR_OBJ_TYPE      If you didn't pass a flag object.
  */
 OS_ERR osFlagReset(OS_HANDLE hFlag)
 {
@@ -354,13 +358,13 @@ OS_ERR osFlagReset(OS_HANDLE hFlag)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (pflag == NULL) {                //!< Validate 'pflag'.
+    if (hFlag == NULL) {                //!< Validate hFlag
         return OS_ERR_INVALID_HANDLE;
     }
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
-        return OS_ERR_EVENT_TYPE;
-    }
 #endif
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
+        return OS_ERR_OBJ_TYPE;
+    }
 
     OSEnterCriticalSection(cpu_sr);
     pflag->OSFlagFlags &= ~0x01u;       //!< Reset the flags
@@ -379,7 +383,7 @@ OS_ERR osFlagReset(OS_HANDLE hFlag)
  *!
  *! \Returns     OS_ERR_NONE            The call was successfull
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
- *!              OS_ERR_EVENT_TYPE      If you didn't pass a event flag object.
+ *!              OS_ERR_OBJ_TYPE      If you didn't pass a event flag object.
  */
 #if OS_FLAG_QUERY_EN > 0u
 OS_ERR osFlagQuery(OS_HANDLE hFlag, OS_FLAG_INFO *pInfo)
@@ -392,16 +396,16 @@ OS_ERR osFlagQuery(OS_HANDLE hFlag, OS_FLAG_INFO *pInfo)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (pflag == NULL) {                //!< Validate 'pflag'
+    if (hFlag == NULL) {                //!< Validate hFlag
         return OS_ERR_INVALID_HANDLE;
     }
-    if (pInfo == NULL) {                //!< Validate 'pInfo'
+    if (pInfo == NULL) {                //!< Validate pInfo
         return OS_ERR_PDATA_NULL;
     }
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
-        return OS_ERR_EVENT_TYPE;
-    }
 #endif
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
+        return OS_ERR_OBJ_TYPE;
+    }
 
     OSEnterCriticalSection(cpu_sr);
     flag = pflag->OSFlagFlags;

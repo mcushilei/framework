@@ -89,12 +89,38 @@ void OS_UnlockSched(void)
     }
 }
 
+/*!
+ *! \Brief       READY TASK TO RUN
+ *!
+ *! \Description This function add task in scheduler's ready list and make it can be
+ *!              scheduled.
+ *!
+ *! \Arguments   none
+ *!
+ *! \Returns     none
+ *!
+ *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
+ *!              2) Interrupts are assumed to be DISABLED when this function is called.
+ */
 void OS_ScheduleReadyTask(OS_TCB *ptcb)
 {
     os_list_add(&ptcb->OSTCBList, osRdyList[ptcb->OSTCBPrio].Prev); //!< add task to the end of ready task list.
     OS_BitmapSet(&osRdyBitmap, ptcb->OSTCBPrio);
 }
 
+/*!
+ *! \Brief       READY TASK TO RUN
+ *!
+ *! \Description This function remove task from scheduler's ready list, so the task can not be
+ *!              scheduled.
+ *!
+ *! \Arguments   none
+ *!
+ *! \Returns     none
+ *!
+ *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
+ *!              2) Interrupts are assumed to be DISABLED when this function is called.
+ */
 void OS_ScheduleUnreadyTask(OS_TCB *ptcb)
 {
     UINT8 prio;
@@ -180,7 +206,7 @@ void OS_ScheduleNext(void)
 void OS_ScheduleRunPrio(void)
 {
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
-    OS_CPU_SR       cpu_sr = 0u;
+    OS_CPU_SR   cpu_sr = 0u;
 #endif
 
     if (osIntNesting != 0u) {                   //!< Can not be used in ISR and ...
@@ -218,7 +244,7 @@ void OS_ScheduleRunPrio(void)
 void OS_ScheduleRunNext(void)
 {
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
-    OS_CPU_SR       cpu_sr = 0u;
+    OS_CPU_SR   cpu_sr = 0u;
 #endif
 
     if (osIntNesting != 0u) {                   //!< Can not be used in ISR and ...
