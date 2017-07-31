@@ -82,8 +82,6 @@ static void os_task_wrapper    (void           *ptask,
  *!                                                 during a context switch.
  *!
  *! \Returns     OS_ERR_NONE            if the function was successful.
- *!              OS_ERR_TASK_EXIST      if the task priority already exist
- *!                                     (each task MUST have a unique priority).
  *!              OS_ERR_INVALID_PRIO    if the priority you specify is higher that the maximum
  *!              OS_ERR_USE_IN_ISR      if you tried to create a task from an ISR.
  */
@@ -103,30 +101,31 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
 #endif
 
 
-    if (osIntNesting > 0u) {            //!< Make sure we don't create the task from within an ISR
-        return OS_ERR_USE_IN_ISR;
+    if (osIntNesting > 0u) {            //!< See if called from ISR ...
+        return OS_ERR_USE_IN_ISR;       //!< ... Should not create object from an ISR.
     }
 #if OS_ARG_CHK_EN > 0u
-#if OS_MAX_PRIO_LEVELS <= 255
-    if (prio >= OS_MAX_PRIO_LEVELS) {   //!< Make sure priority is within allowable range
+#if OS_TASK_LOWEST_PRIO < 255u
+    if (prio > OS_TASK_LOWEST_PRIO) {   //!< Make sure priority is within allowable range
         return OS_ERR_INVALID_PRIO;
     }
 #endif
 #endif
     
+    //! Get a TCB object.
     OSEnterCriticalSection(cpu_sr);
-    ptcb = OS_ObjPoolNew(&osTCBFreeList);   //!< Get a free TCB from the free TCB list
-    if (ptcb == NULL) {                     //!< See if pool of free TCB pool was empty
+    ptcb = OS_ObjPoolNew(&osTCBFreeList);
+    if (ptcb == NULL) {
         OSExitCriticalSection(cpu_sr);
-        return OS_ERR_OBJ_DEPLETED;         //!< No more task control blocks
+        return OS_ERR_OBJ_DEPLETED;
     }
     OSExitCriticalSection(cpu_sr);
     
     //! initial TCB.
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
-    os_task_stk_clr(pstk, stkSize, opt);    //!< Clear the task's stack
+    os_task_stk_clr(pstk, stkSize, opt);                //!< Clear the task's stack
 #endif
-#if OS_STK_GROWTH_DOWN == 1u                //!< Initialize the task's stack
+#if OS_STK_GROWTH_DOWN == 1u                            //!< Initialize the task's stack
     if (stkSize != 0u) {
         psp = OSTaskStkInit(pstk + stkSize - 1u, (void *)&os_task_wrapper, (void *)task, parg);
     } else {
@@ -135,12 +134,13 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
 #else
     psp = OSTaskStkInit(pstk, (void *)&os_task_wrapper, (void *)task, parg);
 #endif
-    OS_TCBInit(ptcb, prio, psp, pstk, stkSize, opt);
+    OS_TCBInit(ptcb, prio, psp, pstk, stkSize, opt);    //!< Initialize the TCB object.
     
 #if OS_HOOKS_EN > 0u
     OSTaskCreateHook(ptcb);
 #endif
 
+    //! give this task's TCB to scheduler.
     OSEnterCriticalSection(cpu_sr);
     OS_ScheduleReadyTask(ptcb);
     OSExitCriticalSection(cpu_sr);
@@ -149,7 +149,7 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
         *pHandle = ptcb;
     }
     
-    if (osRunning != FALSE) {               //!< try scheduling only the os has been running.
+    if (osRunning != FALSE) {           //!< try scheduling only the os has been running.
         OS_ScheduleRunPrio();
     }
     
@@ -168,29 +168,72 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
  *!
  *! \Returns     none
  */
+#if OS_TASK_DEL_EN > 0u
+static void os_unlock_mutex(OS_MUTEX *pmutex)
+{
+    OS_TCB     *ptcb;
+    
+    
+    pmutex->OSMutexCnt = 0u;
+
+#if OS_MUTEX_OVERLAP_EN > 0u
+    os_list_del(&pmutex->OSMutexOvlpList);
+#else
+    osTCBCur->OSTCBOwnMutex = NULL;
+#endif
+    
+    if (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {                 //!< Any task waiting for the mutex?
+        ptcb = OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pmutex, OS_STAT_PEND_OK);   //!< Yes, Make HPT waiting for mutex ready
+        pmutex->OSMutexOwnerTCB  = ptcb;
+        pmutex->OSMutexOwnerPrio = ptcb->OSTCBPrio;
+    } else {                                                                        //!< No.
+        pmutex->OSMutexOwnerTCB  = NULL;
+        pmutex->OSMutexOwnerPrio = 0u;
+    }
+}
 
 static void os_task_del(void)
 {
-    OS_TCB     *ptcb;
+    OS_TCB         *ptcb;
+    OS_LIST_NODE   *list;
+    OS_MUTEX       *pmutex;
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    OS_CPU_SR       cpu_sr = 0u;
 #endif
 
 
     OSEnterCriticalSection(cpu_sr);
     ptcb = osTCBCur;
-    osTCBCur = NULL;
-    if (ptcb->OSTCBWaitNode != NULL) {      //!< Is this task pend for any event?
-        OS_WaitNodeRemove(ptcb);
-    } else {                                //!< It's ready.
-        OS_ScheduleUnreadyTask(ptcb);
+    
+    //! set free from any object suspend for.
+    if (ptcb->OSTCBWaitNode != NULL) {      //!< Is this task suspend for any object?
+        OS_WaitNodeRemove(ptcb);            //!< Yes, set it free from that object.
+    } else {                                //!< NO. It's owned by scheduler ...
+        OS_ScheduleUnreadyTask(ptcb);       //!< ... set it free from scheduler.
     }
 
-    OS_ObjPoolFree(&osTCBFreeList, ptcb);   //!< Return TCB to free TCB list
+    //! task should has released all mutex. A fatal error may have happened.
+#if OS_MUTEX_OVERLAP_EN > 0u
+    for (list = ptcb->OSTCBOwnMutexList.Next; list != &ptcb->OSTCBOwnMutexList;) {
+        list = list->Next;
+        pmutex = OS_CONTAINER_OF(list, OS_MUTEX, OSMutexOvlpList);
+        os_unlock_mutex(pmutex);
+    }
+#else
+    pmutex = ptcb->OSTCBOwnMutex;
+    if (pmutex != NULL) {
+        pmutex->OSMutexCnt = 0u;
+        os_unlock_mutex(pmutex);
+    }
+#endif
+    
+    OS_ObjPoolFree(&osTCBFreeList, ptcb);   //!< Return TCB object to free TCB pool.
+    osTCBCur = NULL;
     OSExitCriticalSection(cpu_sr);
     
     OS_ScheduleRunNext();
 }
+#endif
 
 /*!
  *! \Brief       CHANGE PRIORITY OF A TASK
@@ -205,13 +248,13 @@ static void os_task_del(void)
  *! \Returns     OS_ERR_NONE            is the call was successful
  *!              OS_ERR_INVALID_HANDLE  ptcb is NULL.
  *!              OS_ERR_INVALID_PRIO    if the priority you specify is higher that the maximum allowed
- *!              OS_ERR_TASK_EXIST      if the new priority already has been specified to a task.
  *!              OS_ERR_TASK_NOT_EXIST  there is no task with the specified OLD priority (i.e. the OLD task does
  *!                                     not exist.
  */
 OS_ERR osTaskChangePrio(OS_HANDLE taskHandle, UINT8 newprio)
 {
     OS_TCB     *ptcb = (OS_TCB *)taskHandle;
+    OS_MUTEX   *pmutex;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
@@ -221,20 +264,30 @@ OS_ERR osTaskChangePrio(OS_HANDLE taskHandle, UINT8 newprio)
     if (taskHandle == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
-#if OS_MAX_PRIO_LEVELS <= 255
-    if (newprio >= OS_MAX_PRIO_LEVELS) {
+#if OS_TASK_LOWEST_PRIO < 255
+    if (newprio > OS_TASK_LOWEST_PRIO) {
         return OS_ERR_INVALID_PRIO;
     }
 #endif
 #endif
 
     OSEnterCriticalSection(cpu_sr);
-    if (ptcb->OSTCBOwnMutex != NULL) {                  //!< See if the task has owned a mutex.
-        ptcb->OSTCBOwnMutex->OSMutexOwnerPrio = newprio;//!< Yes. Update the priority store in the mutex.
-        if (newprio < ptcb->OSTCBPrio) {                //!< Then Change the priority only if the new one ...
-                                                        //! ... is higher than the task's current.
+#if OS_MUTEX_OVERLAP_EN > 0u
+    if (ptcb->OSTCBOwnMutexList.Next != &ptcb->OSTCBOwnMutexList) {
+        pmutex = OS_CONTAINER_OF(ptcb->OSTCBOwnMutexList.Next, OS_MUTEX, OSMutexOvlpList);
+        pmutex->OSMutexOwnerPrio = newprio;
+        if (newprio < ptcb->OSTCBPrio) {                //!< Change the priority only if the new one ...
+                                                        //! ... is higher than the task's current,
             OS_ChangeTaskPrio(ptcb, newprio);           //! ... else the task will use the new priority
         }                                               //! ... after it release the mutex.
+#else
+    if (ptcb->OSTCBOwnMutex != NULL) {                  //!< See if the task has owned a mutex.
+        ptcb->OSTCBOwnMutex->OSMutexOwnerPrio = newprio;//!< Yes. Update the priority store in the mutex ...
+        if (newprio < ptcb->OSTCBPrio) {                //!< Change the priority only if the new one ...
+                                                        //! ... is higher than the task's current,
+            OS_ChangeTaskPrio(ptcb, newprio);           //! ... else the task will use the new priority
+        }                                               //! ... after it release the mutex.
+#endif
     } else {
         OS_ChangeTaskPrio(ptcb, newprio);
     }
@@ -271,7 +324,12 @@ static void os_task_wrapper(void *ptask, void *parg)
     OSTaskReturnHook(osTCBCur);     //!< Call hook to let user decide on what to do
 #endif
 
+#if OS_TASK_DEL_EN > 0u
     os_task_del();                  //!< Delete task if it returns!
+#else
+    //! this may be a fatal error!
+    osTaskSleep(OS_INFINITE);
+#endif
 }
 
 /*!
@@ -279,7 +337,7 @@ static void os_task_wrapper(void *ptask, void *parg)
  *!
  *! \Description This function is used to clear the stack of a task (i.e. write all zeros)
  *!
- *! \Arguments   pbos     is a pointer to the task's bottom of stack.  If the configuration constant
+ *! \Arguments   pbos     is a pointer to the task's BOTTOM of stack.  If the configuration constant
  *!                       OS_STK_GROWTH_DOWN is set to 1, the stack is assumed to grow downward (i.e. from high
  *!                       memory to low memory).  'pbos' will thus point to the lowest (valid) memory
  *!                       location of the stack.  If OS_STK_GROWTH_DOWN is set to 0, 'pbos' will point to the

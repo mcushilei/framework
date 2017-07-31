@@ -58,8 +58,8 @@ void __os_list_del(OS_LIST_NODE *prev, OS_LIST_NODE *next)
 void os_list_del(OS_LIST_NODE *entry)
 {
     __os_list_del(entry->Prev, entry->Next);
-    entry->Next = NULL;
-    entry->Prev = NULL;
+    entry->Next = entry;
+    entry->Prev = entry;
 }
 
 

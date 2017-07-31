@@ -39,17 +39,16 @@
  *!
  *! \Arguments   pSemHandle     is a pointer to a handle of the semaphore.
  *!
- *!              cnt            is the initial value for the semaphore.  If the value is 0, no
- *!                             resource is available (or no event has occurred).  You initialize
- *!                             the semaphore to a non-zero value to specify how many resources are
- *!                             available.
+ *!              initCnt        is the initial value for the semaphore. If the value is 0, no
+ *!                             resource is available. You initialize the semaphore to a non-zero 
+ *!                             value to specify how many resources are available.
  *!
  *! \Returns     OS_ERR_NONE            If the call was successful.
  *!              OS_ERR_USE_IN_ISR      If you attempted to create a MUTEX from an ISR
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is a NULL pointer.
  *!              OS_ERR_OBJ_DEPLETED    No more event control blocks available.
  */
-OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 cnt)
+OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 initCnt)
 {
     OS_SEM     *psemp;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
@@ -58,12 +57,12 @@ OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 cnt)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (pSemHandle == NULL) {           //!< Validate pSemHandle
+    if (pSemHandle == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
     if (osIntNesting > 0u) {            //!< See if called from ISR ...
-        return OS_ERR_USE_IN_ISR;       //!< ... can't CREATE from an ISR
+        return OS_ERR_USE_IN_ISR;       //!< ... Should not create object from an ISR.
     }
 
     //! malloc a ECB from pool.
@@ -81,7 +80,7 @@ OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 cnt)
     psemp->OSObjType    = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_SEM)
                         | OS_OBJ_TYPE_WAITABLE_MSK
                         | OS_OBJ_PRIO_TYPE_SET(OS_OBJ_PRIO_TYPE_PRIO_LIST);
-    psemp->OSSemCnt     = cnt;
+    psemp->OSSemCnt     = initCnt;
     os_list_init_head(&psemp->OSSemWaitList);
     
     //! reg waitable object.
@@ -102,10 +101,10 @@ OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 cnt)
  *! \Arguments   pSemHandle     is a pointer to a handle of the semaphore.
  *!
  *!              opt            determines delete options as follows:
- *!                             opt == OS_DEL_NO_PEND   Delete semaphore ONLY if no task pending
- *!                             opt == OS_DEL_ALWAYS    Deletes the semaphore even if tasks are
- *!                                                     waiting. In this case, all the tasks pending
- *!                                                     will be readied.
+ *!                             opt == OS_DEL_NOT_IN_USE    Delete semaphore ONLY if no task pending
+ *!                             opt == OS_DEL_ALWAYS        Deletes the semaphore even if tasks are
+ *!                                                         waiting. In this case, all the tasks pending
+ *!                                                         will be readied.
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and the semaphore was deleted
  *!              OS_ERR_USE_IN_ISR      If you attempted to delete the semaphore from an ISR
@@ -137,7 +136,7 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (pSemHandle == NULL) {           //!< Validate pSemHandle
+    if (pSemHandle == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
@@ -148,7 +147,7 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
         return OS_ERR_INVALID_HANDLE;
     }
     psemp = (OS_SEM *)*pSemHandle;
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate event block type
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -159,7 +158,7 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
         taskPend    = FALSE;                                    //!< No
     }
     switch (opt) {
-        case OS_DEL_NO_PEND:                                    //!< Delete semaphore only if no task waiting
+        case OS_DEL_NOT_IN_USE:                                    //!< Delete semaphore only if no suspended task
             if (taskPend != FALSE) {
                 OSExitCriticalSection(cpu_sr);
                 return OS_ERR_TASK_WAITING;
@@ -175,7 +174,7 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
     }
     OS_DeregWaitableObj((OS_WAITABLE_OBJ *)psemp);
     
-    while (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) { //!< Ready ALL tasks waiting for semaphore
+    while (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) { //!< Ready ALL tasks suspend for semaphore
         OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psemp, OS_STAT_PEND_ABORT);
     }
     psemp->OSObjType    = OS_OBJ_TYPE_UNUSED;
@@ -210,7 +209,7 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
  *!                                     'timeout'.
  *!              OS_ERR_PEND_ABORT      The wait on the semaphore was aborted.
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
- *!              OS_ERR_OBJ_TYPE      If you didn't pass a event semaphore object.
+ *!              OS_ERR_OBJ_TYPE        If you didn't pass a semaphore object.
  *!              OS_ERR_USE_IN_ISR      If you called this function from an ISR and the result
  *!              OS_ERR_PEND_LOCKED     If you called this function when the scheduler is locked
  *!                                     would lead to a suspension.
@@ -226,7 +225,7 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (hSemaphore == NULL) {           //!< Validate hSemaphore
+    if (hSemaphore == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
@@ -236,7 +235,7 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
     if (osLockNesting > 0u) {           //!< See if called with scheduler locked ...
         return OS_ERR_PEND_LOCKED;      //!< ... can't PEND when locked
     }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event type
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -289,7 +288,7 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
  *!              OS_ERR_SEM_OVF         If the semaphore count exceeded its limit. In other words,
  *!                                     you have signaled the semaphore more often than its capable.
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
- *!              OS_ERR_OBJ_TYPE      If you didn't pass a event semaphore object.
+ *!              OS_ERR_OBJ_TYPE        If you didn't pass a event semaphore object.
  */
 OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
 {
@@ -301,11 +300,11 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (hSemaphore == NULL) {           //!< Validate hSemaphore
+    if (hSemaphore == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate event block type
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
     
@@ -363,11 +362,11 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (hSemaphore == NULL) {           //!< Validate hSemaphore
+    if (hSemaphore == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -418,11 +417,11 @@ OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (hSemaphore == NULL) {               //!< Validate hSemaphore
+    if (hSemaphore == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -464,14 +463,14 @@ OS_ERR osSemQuery(OS_HANDLE hSemaphore, OS_SEM_INFO *pInfo)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (hSemaphore == NULL) {           //!< Validate hSemaphore
+    if (hSemaphore == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
-    if (pInfo == NULL) {                //!< Validate 'pInfo'
+    if (pInfo == NULL) {
         return OS_ERR_PDATA_NULL;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate event block type
+    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 

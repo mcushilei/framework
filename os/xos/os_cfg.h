@@ -38,7 +38,7 @@
 #define OS_MAX_SEMAPHORES        16u   //!< Max. number of semaphore in your application
 #define OS_MAX_MUTEXES           16u   //!< Max. number of mutex     in your application
 #define OS_MAX_FLAGS             16u   //!< Max. number of flag      in your application
-#define OS_MAX_TASKS             14u   //!< Max. number of tasks in YOUR application
+#define OS_MAX_TASKS             14u   //!< Max. number of tasks     in your application
 
 #define OS_TICKS_PER_SEC        100u   //!< Set the number of ticks in one second
 #define OS_TIME_TICK_HOOK_EN      1u   //!< Include code for OSTimeTickHook()
@@ -55,6 +55,7 @@
 //! TASK MANAGEMENT
 #define OS_TASK_CHANGE_PRIO_EN    1u   //!< Include code for osTaskChangePrio()
 #define OS_TASK_PROFILE_EN        1u   //!< Include variables in OS_TCB for profiling
+#define OS_TASK_DEL_EN            1u   //!< Include code for os_task_del()
 #define OS_TASK_SW_HOOK_EN        1u   //!< Include code for OSTaskSwHook()
 
 
@@ -68,6 +69,7 @@
 #define OS_MUTEX_EN               1u   //!< Enable (1) or Disable (0) code generation for MUTEX
 #define OS_MUTEX_DEL_EN           1u   //!< Include code for osMutexDelete()
 #define OS_MUTEX_QUERY_EN         1u   //!< Include code for osMutexQuery()
+#define OS_MUTEX_OVERLAP_EN       1u   //!< Enable (1) or Disable (0) mutex overlap usage
 
 
 //! SEMPAPHORES

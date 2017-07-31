@@ -768,11 +768,15 @@ void OS_TCBInit(OS_TCB  *ptcb,
 
     ptcb->OSTCBStkPtr       = psp;                      //!< Load Stack Pointer in TCB
     
-    os_list_init_head(&ptcb->OSTCBList);
-    
     ptcb->OSTCBWaitNode     = NULL;                     //!< Task is not pending on anay object.
     
+    os_list_init_head(&ptcb->OSTCBList);
+    
+#if OS_MUTEX_OVERLAP_EN > 0u
+    os_list_init_head(&ptcb->OSTCBOwnMutexList);
+#else
     ptcb->OSTCBOwnMutex     = NULL;
+#endif
 
 #if OS_TASK_PROFILE_EN > 0u                             //!< Initialize profiling variables
     ptcb->OSTCBStkBase      = pstk;

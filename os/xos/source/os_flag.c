@@ -35,12 +35,12 @@
 /*!
  *! \Brief       CREATE AN EVENT FLAG
  *!
- *! \Description This function is called to create an event flag group.
+ *! \Description This function is called to create an flag object.
  *!
  *! \Arguments   pFlagHandle    Pointer to the handle of flag.
  *!
- *!              init           Initial value of flag. If this value is TRUE, the initial state of the
- *!                             flag is set.
+ *!              initValue      Initial value of flag. If this value is TRUE, the initial state of the
+ *!                             flag is SET.
  *!
  *!              manualReset    If this flag is auto reset. It can be:
  *!                             manualReset == TRUE     The flag will not be reset until you reset it
@@ -52,25 +52,25 @@
  *!              OS_ERR_USE_IN_ISR      If you attempted to create an Event Flag from an ISR.
  *!              OS_ERR_OBJ_DEPLETED    If there are no more event flag control block
  */
-OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manualReset)
+OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL initValue, BOOL manualReset)
 {
     OS_FLAG    *pflag;
+    UINT16      flags = 0;
 #if OS_CRITICAL_METHOD == 3u
     OS_CPU_SR   cpu_sr = 0u;            //!< Allocate storage for CPU status register
 #endif
-    UINT16      flags = 0;
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (pFlagHandle == NULL) {          //!< Validate handle
+    if (pFlagHandle == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
-    if (osIntNesting > 0u) {            //!< Should not CREATE from an ISR
-        return OS_ERR_USE_IN_ISR;
+    if (osIntNesting > 0u) {            //!< See if called from ISR ...
+        return OS_ERR_USE_IN_ISR;       //!< ... Should not create object from an ISR.
     }
 
-    if (init != FALSE) {
+    if (initValue != FALSE) {
         flags |= 0x01u;
     }
     if (manualReset == FALSE) {
@@ -87,8 +87,8 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manualReset)
     OSExitCriticalSection(cpu_sr);
 
     //! set object type.
-    //! init flag's property.
-    //! init flag's wait list.
+    //! initial flag's property.
+    //! initial flag's wait list.
     pflag->OSObjType      = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_FLAG)
                           | OS_OBJ_TYPE_WAITABLE_MSK
                           | OS_OBJ_PRIO_TYPE_SET(OS_OBJ_PRIO_TYPE_LIST);
@@ -114,11 +114,11 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL init, BOOL manualReset)
  *! \Arguments   pFlagHandle    is a pointer to the handle of flag.
  *!
  *!              opt            determines delete options, one of follows:
- *!                             opt == OS_DEL_NO_PEND   Deletes the flag ONLY if no task pending
- *!                                                     for it.
- *!                             opt == OS_DEL_ALWAYS    Deletes the flag even if tasks are pending 
- *!                                                     for it.  In this case, all the pending tasks
- *!                                                     will be readied.
+ *!                             opt == OS_DEL_NOT_IN_USE    Deletes the flag ONLY if no task pending
+ *!                                                         for it.
+ *!                             opt == OS_DEL_ALWAYS        Deletes the flag even if tasks are pending 
+ *!                                                         for it.  In this case, all the pending tasks
+ *!                                                         will be readied.
  *!
  *! \Returns     OS_ERR_NONE            The flag was deleted successfully.
  *!              OS_ERR_USE_IN_ISR      If you attempted to delete the flag from an ISR.
@@ -147,19 +147,19 @@ OS_ERR osFlagDelete(OS_HANDLE *pFlagHandle, UINT8 opt)
 #endif
 
 
-    if (osIntNesting > 0u) {            //!< Can't DELETE from an ISR
-        return OS_ERR_USE_IN_ISR;
-    }
 #if OS_ARG_CHK_EN > 0u
-    if (pFlagHandle == NULL) {          //!< Validate pFlagHandle
+    if (pFlagHandle == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
+    if (osIntNesting > 0u) {            //!< Can't DELETE from an ISR
+        return OS_ERR_USE_IN_ISR;
+    }
     if (*pFlagHandle == NULL) {         //!< Validate handle
         return OS_ERR_INVALID_HANDLE;
     }
     pflag = (OS_FLAG *)*pFlagHandle;
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -171,7 +171,7 @@ OS_ERR osFlagDelete(OS_HANDLE *pFlagHandle, UINT8 opt)
         taskPend    = FALSE;                                        //!< ...No
     }
     switch (opt) {
-        case OS_DEL_NO_PEND:
+        case OS_DEL_NOT_IN_USE:
             if (taskPend != FALSE) {
                 OSExitCriticalSection(cpu_sr);
                 return OS_ERR_TASK_WAITING;
@@ -237,7 +237,7 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (hFlag == NULL) {                //!< Validate 'pflag'
+    if (hFlag == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
@@ -247,7 +247,7 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
     if (osLockNesting > 0u) {           //!< Can't PEND when locked
         return OS_ERR_PEND_LOCKED;
     }
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -314,11 +314,11 @@ OS_ERR osFlagSet(OS_HANDLE hFlag)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (hFlag == NULL) {                //!< Validate hFlag
+    if (hFlag == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -358,11 +358,11 @@ OS_ERR osFlagReset(OS_HANDLE hFlag)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (hFlag == NULL) {                //!< Validate hFlag
+    if (hFlag == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -396,14 +396,14 @@ OS_ERR osFlagQuery(OS_HANDLE hFlag, OS_FLAG_INFO *pInfo)
 
 
 #if OS_ARG_CHK_EN > 0u
-    if (hFlag == NULL) {                //!< Validate hFlag
+    if (hFlag == NULL) {
         return OS_ERR_INVALID_HANDLE;
     }
-    if (pInfo == NULL) {                //!< Validate pInfo
+    if (pInfo == NULL) {
         return OS_ERR_PDATA_NULL;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object type.
+    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 

@@ -101,7 +101,7 @@ enum {
 /*!
  *! \Brief  OS???Delete() OPTIONS
  */
-#define OS_DEL_NO_PEND              (0u)
+#define OS_DEL_NOT_IN_USE           (0u)
 #define OS_DEL_ALWAYS               (1u)
 
 /*!
@@ -145,8 +145,9 @@ enum {
 
     OS_ERR_SEM_OVF                  = 0x90u,
     OS_ERR_NOT_MUTEX_OWNER          = 0x91u,
-    OS_ERR_HAS_OWN_MUTEX            = 0x92u,
+    OS_ERR_MUTEX_IS_OWNED           = 0x92u,
     OS_ERR_OVERLAP_MUTEX            = 0x93u,
+    OS_ERR_MUTEX_OVERFLOW           = 0x94u,
 };
     
 /*!
@@ -233,10 +234,14 @@ struct os_mutex {
         OS_OBJ_HEAD;
         OS_OBJ_HEAD     OSMutexObjHead;
     };
+    UINT8               OSMutexCnt;                 //!< recursive counter.
     UINT8               OSMutexCeilingPrio;         //!< Mutex's ceiling prio.
     UINT8               OSMutexOwnerPrio;           //!< Mutex owner's prio.
     OS_LIST_NODE        OSMutexWaitList;            //!< Pointer to first NODE of task waiting on mutex
-    OS_LIST_NODE        OSMutexObjList;
+    OS_LIST_NODE        OSMutexObjList;             //!< link to os's manage list.
+#if OS_MUTEX_OVERLAP_EN > 0u
+    OS_LIST_NODE        OSMutexOvlpList;
+#endif
     OS_TCB             *OSMutexOwnerTCB;            //!< Pointer to mutex owner's TCB
 };
 #endif
@@ -273,11 +278,15 @@ struct os_tcb {
 
     OS_STK             *OSTCBStkPtr;                //!< Pointer to current TOP of stack
 
-    OS_LIST_NODE        OSTCBList;                  //!< TCB list node for scheduler.
-
     OS_WAIT_NODE       *OSTCBWaitNode;
+
+    OS_LIST_NODE        OSTCBList;                  //!< TCB list node for scheduler.
     
+#if OS_MUTEX_OVERLAP_EN > 0u
+    OS_LIST_NODE        OSTCBOwnMutexList;
+#else
     OS_MUTEX           *OSTCBOwnMutex;
+#endif
     
 #if OS_TASK_PROFILE_EN > 0u
     UINT16              OSTCBStkSize;               //!< Size of task stack (in number of stack elements)
@@ -381,7 +390,7 @@ OS_EXT  OS_STK          osTaskIdleStk[OS_TASK_IDLE_STK_SIZE];   //!< Idle task s
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 
 OS_ERR      osFlagCreate           (OS_HANDLE      *pFlagHandle,
-                                    BOOL            init,
+                                    BOOL            initValue,
                                     BOOL            manualReset);
 
 #if OS_FLAG_DEL_EN > 0u
@@ -625,9 +634,7 @@ void        OS_MemCopy             (char           *pdest,
  *! compile time error.
  */
 
-/*!
- *! EVENT FLAGS
- */
+//! FLAGS
 #ifndef OS_FLAG_EN
 #   error "OS_CFG.H, Missing OS_FLAG_EN: Enable (1) or Disable (0) code generation for Event Flags"
 #else
@@ -646,9 +653,7 @@ void        OS_MemCopy             (char           *pdest,
 #   endif
 #endif
 
-/*!
- *! MUTUAL EXCLUSION SEMAPHORES
- */
+//! MUTEXES
 #ifndef OS_MUTEX_EN
 #   error "OS_CFG.H, Missing OS_MUTEX_EN: Enable (1) or Disable (0) code generation for MUTEX"
 #else
@@ -658,11 +663,12 @@ void        OS_MemCopy             (char           *pdest,
 #   ifndef  OS_MUTEX_QUERY_EN
 #       error "OS_CFG.H, Missing OS_MUTEX_QUERY_EN: Include code for osMutexQuery()"
 #   endif
+#   ifndef OS_MUTEX_OVERLAP_EN
+#       error "OS_CFG.H, Missing OS_MUTEX_OVERLAP_EN: Enable (1) or Disable (0) mutex overlap usage"
+#   endif
 #endif
 
-/*!
- *! SEMAPHORES
- */
+//! SEMAPHORES
 #ifndef OS_SEM_EN
 #   error "OS_CFG.H, Missing OS_SEM_EN: Enable (1) or Disable (0) code generation for SEMAPHORES"
 #else
@@ -680,9 +686,7 @@ void        OS_MemCopy             (char           *pdest,
 #   endif
 #endif
 
-/*!
- *! TASK MANAGEMENT
- */
+//! TASK MANAGEMENT
 #ifndef OS_MAX_PRIO_LEVELS
 #   error "OS_CFG.H, Missing OS_MAX_PRIO_LEVELS: Max. levels of priority in your application"
 #else
@@ -694,29 +698,15 @@ void        OS_MemCopy             (char           *pdest,
 #   endif
 #endif
 
-#ifndef OS_TASK_IDLE_STK_SIZE
-#   error "OS_CFG.H, Missing OS_TASK_IDLE_STK_SIZE: Idle task stack size"
-#endif
-
-#ifndef OS_STAT_EN
-#   error "OS_CFG.H, Missing OS_STAT_EN: Enable (1) or Disable(0) the statistics task"
-#endif
-
-#ifndef OS_TASK_STAT_STK_SIZE
-#   error "OS_CFG.H, Missing OS_TASK_STAT_STK_SIZE: Statistics task stack size"
-#endif
-
-#ifndef OS_STAT_TASK_STK_CHK_EN
-#   error "OS_CFG.H, Missing OS_STAT_TASK_STK_CHK_EN: Check task stacks from statistics task"
-#endif
-
 #ifndef OS_TASK_CHANGE_PRIO_EN
 #   error "OS_CFG.H, Missing OS_TASK_CHANGE_PRIO_EN: Include code for osTaskChangePrio()"
 #endif
 
-/*!
- *! TIME MANAGEMENT
- */
+#ifndef OS_TASK_DEL_EN
+#   error "OS_CFG.H, Missing OS_TASK_DEL_EN: Include code for os_task_del()"
+#endif
+
+//! TIME MANAGEMENT
 #ifndef OS_TICKS_PER_SEC
 #   error "OS_CFG.H, Missing OS_TICKS_PER_SEC: Sets the number of ticks in one second"
 #else
@@ -725,9 +715,16 @@ void        OS_MemCopy             (char           *pdest,
 #   endif
 #endif
 
-/*!
- *! MISCELLANEOUS
- */
+//! TASK STACK SIZE
+#ifndef OS_TASK_STAT_STK_SIZE
+#   error "OS_CFG.H, Missing OS_TASK_STAT_STK_SIZE: Statistics task stack size"
+#endif
+
+#ifndef OS_TASK_IDLE_STK_SIZE
+#   error "OS_CFG.H, Missing OS_TASK_IDLE_STK_SIZE: Idle task stack size"
+#endif
+
+//! MISCELLANEOUS
 #ifndef OS_ARG_CHK_EN
 #   error "OS_CFG.H, Missing OS_ARG_CHK_EN: Enable (1) or Disable (0) argument checking"
 #endif
@@ -752,6 +749,22 @@ void        OS_MemCopy             (char           *pdest,
 #   endif
 #endif
 
+#ifndef OS_MAX_MUTEXES
+#   error "OS_CFG.H, Missing OS_MAX_MUTEXES: Max. number of event control blocks in your application"
+#else
+#   if  OS_MAX_MUTEXES > 65535u
+#       error "OS_CFG.H, OS_MAX_MUTEXES must be <= 65535"
+#   endif
+#endif
+
+#ifndef OS_MAX_FLAGS
+#   error "OS_CFG.H, Missing OS_MAX_FLAGS: Max. number of event control blocks in your application"
+#else
+#   if  OS_MAX_FLAGS > 65535u
+#       error "OS_CFG.H, OS_MAX_FLAGS must be <= 65535"
+#   endif
+#endif
+
 #ifndef OS_SCHED_LOCK_EN
 #   error "OS_CFG.H, Missing OS_SCHED_LOCK_EN: Include code for osLockSched() and osUnlockSched()"
 #endif
@@ -764,9 +777,15 @@ void        OS_MemCopy             (char           *pdest,
 #   error "OS_CFG.H, Missing OS_TIME_TICK_HOOK_EN: Allows you to include the code for OSTimeTickHook() or not"
 #endif
 
-/*!
- *! SAFETY CRITICAL USE
- */
+#ifndef OS_STAT_EN
+#   error "OS_CFG.H, Missing OS_STAT_EN: Enable (1) or Disable(0) the statistics task"
+#endif
+
+#ifndef OS_STAT_TASK_STK_CHK_EN
+#   error "OS_CFG.H, Missing OS_STAT_TASK_STK_CHK_EN: Check task stacks from statistics task"
+#endif
+
+//! SAFETY CRITICAL USE
 #ifdef SAFETY_CRITICAL_RELEASE
 
 #if    OS_ARG_CHK_EN == 0u
@@ -779,6 +798,10 @@ void        OS_MemCopy             (char           *pdest,
 
 #if    OS_STAT_EN > 0u
 #   error "OS_CFG.H, OS_STAT_EN must be disabled for safety-critical release code"
+#endif
+
+#if    OS_TASK_DEL_EN > 0u
+#   error "OS_CFG.H, OS_TASK_DEL_EN must be disabled for safety-critical release code"
 #endif
 
 #if    OS_FLAG_EN > 0u
