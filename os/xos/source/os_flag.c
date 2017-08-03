@@ -196,7 +196,7 @@ OS_ERR osFlagDelete(OS_HANDLE *pFlagHandle, UINT8 opt)
     OSExitCriticalSection(cpu_sr);
     
     if (taskSched) {
-        OS_ScheduleRunPrio();
+        OS_SchedulerRunPrio();
     }
     
     return OS_ERR_NONE;
@@ -269,7 +269,7 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
 
     OS_WaitableObjAddTask((OS_WAITABLE_OBJ *)pflag, &node, timeout);    //!< Suspend task until event occur or timeout
     OSExitCriticalSection(cpu_sr);
-    OS_ScheduleRunNext();
+    OS_SchedulerRunNext();
 
     switch (node.OSWaitNodeRes) {
         case OS_STAT_PEND_OK:
@@ -333,7 +333,7 @@ OS_ERR osFlagSet(OS_HANDLE hFlag)
         }
     }
     OSExitCriticalSection(cpu_sr);
-    OS_ScheduleRunPrio();
+    OS_SchedulerRunPrio();
     
     return OS_ERR_NONE;
 }

@@ -27,7 +27,7 @@ extern "C" {
 /*!
  *! OS VERSION NUMBER
  */
-#define  OS_VERSION                 900u       //!< Version (Vxx.yyy mult. by 1000)
+#define  OS_VERSION                 901u       //!< Version (Vxx.yyy mult. by 1000)
 
 /*!
  *! INCLUDE HEADER FILES
@@ -190,23 +190,26 @@ struct os_mem_pool {
     OS_LIST_NODE        OSMemList;
 };
 
-struct os_wait_node {                               //!< Event Wait List Node.
+//!< Object wait list node.
+struct os_wait_node {
     OS_TCB             *OSWaitNodeTCB;              //!< Pointer to TCB of waiting task.
-    OS_WAITABLE_OBJ    *OSWaitNodeECB;              //!< Pointer to ECB wait for.
+    OS_WAITABLE_OBJ    *OSWaitNodeECB;              //!< Pointer to ECB the task wait for.
     OS_LIST_NODE        OSWaitNodeList;             //!< waiting NODE list.
-    UINT32              OSWaitNodeDly;              //!< Ticks to wait this object.
-    UINT8               OSWaitNodeRes;              //!< Event wait resault.
+    UINT32              OSWaitNodeDly;              //!< Ticks to wait for this object.
+    UINT8               OSWaitNodeRes;              //!< Wait resault.
 };
-    
-struct os_waitable_obj {                            //!< Waitable object head.
+
+//!< Waitable object.
+struct os_waitable_obj {
     OS_OBJ_HEAD;
     UINT16              OSWaitObjCnt;               //!< counter.
     OS_LIST_NODE        OSWaitObjWaitNodeList;      //!< Pointer to waiting NODE of task waits on this object.
     OS_LIST_NODE        OSWaitObjList;
 };
 
+//!< Ready bitmap
 struct os_prio_bitmap {
-    OS_PRIO             Y;                          //!< Ready bitmap
+    OS_PRIO             Y;
     OS_PRIO             X[OS_BITMAP_TBL_SIZE];
 };
 
@@ -282,10 +285,12 @@ struct os_tcb {
 
     OS_LIST_NODE        OSTCBList;                  //!< TCB list node for scheduler.
     
-#if OS_MUTEX_OVERLAP_EN > 0u
+#if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
+#   if OS_MUTEX_OVERLAP_EN > 0u
     OS_LIST_NODE        OSTCBOwnMutexList;
-#else
+#   else
     OS_MUTEX           *OSTCBOwnMutex;
+#   endif
 #endif
     
 #if OS_TASK_PROFILE_EN > 0u
@@ -577,13 +582,13 @@ void       *OS_ObjPoolNew          (OS_LIST_NODE  **ppObj);
 /*!
  *! OS SCHEDULE INTERFACE
  */
-void        OS_ScheduleInit        (void);
-void        OS_ScheduleReadyTask   (OS_TCB         *ptcb);
-void        OS_ScheduleUnreadyTask (OS_TCB         *ptcb);
-void        OS_SchedulePrio        (void);
-void        OS_ScheduleNext        (void);
-void        OS_ScheduleRunPrio     (void);
-void        OS_ScheduleRunNext     (void);
+void        OS_SchedulerInit       (void);
+void        OS_SchedulerReadyTask  (OS_TCB         *ptcb);
+void        OS_SchedulerUnreadyTask(OS_TCB         *ptcb);
+void        OS_SchedulerPrio       (void);
+void        OS_SchedulerNext       (void);
+void        OS_SchedulerRunPrio    (void);
+void        OS_SchedulerRunNext    (void);
 void        OS_LockSched           (void);
 void        OS_UnlockSched         (void);
 
@@ -687,17 +692,6 @@ void        OS_MemCopy             (char           *pdest,
 #endif
 
 //! TASK MANAGEMENT
-#ifndef OS_MAX_PRIO_LEVELS
-#   error "OS_CFG.H, Missing OS_MAX_PRIO_LEVELS: Max. levels of priority in your application"
-#else
-#   if  OS_MAX_PRIO_LEVELS <  1u
-#       error "OS_CFG.H, OS_MAX_PRIO_LEVELS must be >= 1"
-#   endif
-#   if  OS_MAX_PRIO_LEVELS >  256u
-#       error "OS_CFG.H, OS_MAX_PRIO_LEVELS must be <= 256"
-#   endif
-#endif
-
 #ifndef OS_TASK_CHANGE_PRIO_EN
 #   error "OS_CFG.H, Missing OS_TASK_CHANGE_PRIO_EN: Include code for osTaskChangePrio()"
 #endif
@@ -738,7 +732,14 @@ void        OS_MemCopy             (char           *pdest,
 #endif
 
 #ifndef OS_MAX_PRIO_LEVELS
-#   error "OS_CFG.H, Missing OS_MAX_PRIO_LEVELS: Defines the lowest priority that can be assigned"
+#   error "OS_CFG.H, Missing OS_MAX_PRIO_LEVELS: Max. levels of priority in your application"
+#else
+#   if  OS_MAX_PRIO_LEVELS <  1u
+#       error "OS_CFG.H, OS_MAX_PRIO_LEVELS must be >= 1"
+#   endif
+#   if  OS_MAX_PRIO_LEVELS >  256u
+#       error "OS_CFG.H, OS_MAX_PRIO_LEVELS must be <= 256"
+#   endif
 #endif
 
 #ifndef OS_MAX_SEMAPHORES

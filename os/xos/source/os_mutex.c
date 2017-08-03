@@ -146,7 +146,7 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
     OS_TCB     *powner;
     BOOL        taskPend;
     BOOL        taskSched = FALSE;
-#if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
+#if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
 
@@ -156,10 +156,10 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
-    if (osIntNesting > 0u) {                    //!< Should not delete object from an ISR.
+    if (osIntNesting > 0u) {                //!< Should not delete object from an ISR.
         return OS_ERR_USE_IN_ISR;
     }
-    if (*pMutexHandle == NULL) {                //!< Validate handle.
+    if (*pMutexHandle == NULL) {            //!< Validate handle.
         return OS_ERR_INVALID_HANDLE;
     }
     pmutex = (OS_MUTEX *)*pMutexHandle;
@@ -220,12 +220,12 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
     pmutex->OSMutexCnt          = 0u;
     pmutex->OSMutexCeilingPrio  = 0u;
     pmutex->OSMutexOwnerPrio    = 0u;
-    pmutex->OSMutexOwnerTCB = NULL;
+    pmutex->OSMutexOwnerTCB     = NULL;
     OS_ObjPoolFree(&osMutexFreeList, pmutex);
     OSExitCriticalSection(cpu_sr);
     
     if (taskSched) {
-        OS_ScheduleRunPrio();
+        OS_SchedulerRunPrio();
     }
     
     return OS_ERR_NONE;
@@ -288,26 +288,30 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
     }
 
     OSEnterCriticalSection(cpu_sr);
-    if (pmutex->OSMutexOwnerTCB == NULL) {              //!< Is mutex available?
-        pmutex->OSMutexCnt       = 0u;
-        pmutex->OSMutexOwnerPrio = osTCBCur->OSTCBPrio; //!< Yes, current task own this mutex. Save
-        pmutex->OSMutexOwnerTCB  = osTCBCur;            //!< ... current task's TCB and prio to mutex.
+    if (pmutex->OSMutexOwnerTCB == NULL) {              //!< Is mutex owned by any task?
 #if OS_MUTEX_OVERLAP_EN > 0u
         os_list_add(&pmutex->OSMutexOvlpList, osTCBCur->OSTCBOwnMutexList.Prev);
 #else
+        if (osTCBCur->OSTCBOwnMutex != NULL) {
+            OSExitCriticalSection(cpu_sr);
+            return OS_ERR_OVERLAP_MUTEX;
+        }
         osTCBCur->OSTCBOwnMutex  = pmutex;
 #endif
+        pmutex->OSMutexCnt       = 0u;
+        pmutex->OSMutexOwnerPrio = osTCBCur->OSTCBPrio;
+        pmutex->OSMutexOwnerTCB  = osTCBCur;
         OSExitCriticalSection(cpu_sr);
         return OS_ERR_NONE;
     }
     
-    if (pmutex->OSMutexOwnerTCB == osTCBCur) {
+    if (pmutex->OSMutexOwnerTCB == osTCBCur) {          //!< Is mutex owned by CURRENT task?
         if (pmutex->OSMutexCnt < 255u) {
             pmutex->OSMutexCnt++;
             OSExitCriticalSection(cpu_sr);
             return OS_ERR_NONE;
         } else {
-            OSExitCriticalSection(cpu_sr);
+            OSExitCriticalSection(cpu_sr);              //!< this should be fatal error!
             return OS_ERR_MUTEX_OVERFLOW;
         }
     }
@@ -322,13 +326,13 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
     } else {
         prio = osTCBCur->OSTCBPrio;
     }
-    if (pmutex->OSMutexOwnerTCB->OSTCBPrio > prio) {        //!< Is owner has a lower priority?
+    if (pmutex->OSMutexOwnerTCB->OSTCBPrio > prio) {        //!< Does owner have a lower priority?
         OS_ChangeTaskPrio(pmutex->OSMutexOwnerTCB, prio);   //!< Yes. Rise owner's priority.
     }
 
     OS_WaitableObjAddTask((OS_WAITABLE_OBJ *)pmutex, &node, timeout);   //!< Suspend current task.
     OSExitCriticalSection(cpu_sr);
-    OS_ScheduleRunNext();
+    OS_SchedulerRunNext();
 
     switch (node.OSWaitNodeRes) {
         case OS_STAT_PEND_OK:
@@ -386,12 +390,12 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
     }
 
     OSEnterCriticalSection(cpu_sr);
-    if (osTCBCur != pmutex->OSMutexOwnerTCB) {      //!< See if this task owns the mutex.
+    if (osTCBCur != pmutex->OSMutexOwnerTCB) {      //!< See if the mutex owned by current task.
         OSExitCriticalSection(cpu_sr);
         return OS_ERR_NOT_MUTEX_OWNER;
     }
     
-    if (pmutex->OSMutexCnt != 0u) {
+    if (pmutex->OSMutexCnt != 0u) {                 //!< Does current task own this mutex recursively?
         pmutex->OSMutexCnt--;
         OSExitCriticalSection(cpu_sr);
         return OS_ERR_NONE;
@@ -407,8 +411,8 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
     osTCBCur->OSTCBOwnMutex = NULL;
 #endif
     
-    if (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {                 //!< Any task waiting for the mutex?
-        ptcb = OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pmutex, OS_STAT_PEND_OK);   //!< Yes, Make HPT waiting for mutex ready
+    if (pmutex->OSMutexWaitList.Next != &pmutex->OSMutexWaitList) {                 //!< Is any task waiting for the mutex?...
+        ptcb = OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pmutex, OS_STAT_PEND_OK);   //!< ... Yes, Make the HPT waiting for the mutex ready
         pmutex->OSMutexOwnerTCB  = ptcb;
         pmutex->OSMutexOwnerPrio = ptcb->OSTCBPrio;
 #if OS_MUTEX_OVERLAP_EN > 0u
@@ -417,14 +421,14 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
         ptcb->OSTCBOwnMutex      = pmutex;
 #endif
         taskSched = TRUE;
-    } else {                                                                        //!< No.
+    } else {                                                                        //!< ... No.
         pmutex->OSMutexOwnerTCB  = NULL;
-        pmutex->OSMutexOwnerPrio = OS_TASK_IDLE_PRIO;
+        pmutex->OSMutexOwnerPrio = 0u;
     }
     OSExitCriticalSection(cpu_sr);
     
     if (taskSched) {
-        OS_ScheduleRunPrio();
+        OS_SchedulerRunPrio();
     }
     
     return OS_ERR_NONE;
@@ -442,7 +446,7 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and the message was sent
  *!              OS_ERR_INVALID_HANDLE  If 'hMutex' is an invalid handle.
- *!              OS_ERR_OBJ_TYPE      If you didn't pass a event mutex object.
+ *!              OS_ERR_OBJ_TYPE        If you didn't pass a mutex object.
  *!              OS_ERR_PDATA_NULL      If 'pInfo' is a NULL pointer
  */
 #if OS_MUTEX_QUERY_EN > 0u

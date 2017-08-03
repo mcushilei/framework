@@ -40,9 +40,9 @@ typedef struct {
 /*============================ PROTOTYPES ====================================*/
 bool softtimer_init(void);
 void softtimer_config(
-                    uint8_t     Timer,
-                    uint32_t    Value,
-                    uint32_t    Reload,
+                    uint8_t     timer,
+                    uint32_t    initValue,
+                    uint32_t    reloadValue,
                     timer_routine_t *pRoutine,
                     void            *pArg);
 void softtimer_tick(void);

@@ -47,21 +47,21 @@ bool softtimer_init(void)
 }
 
 bool softtimer_config(
-                    uint8_t     Timer,
-                    uint32_t    Value,
-                    uint32_t    Reload,
+                    uint8_t     timer,
+                    uint32_t    initValue,
+                    uint32_t    reloadValue,
                     timer_routine_t *pRoutine,
                     void            *pArg)
 {
-    if (Timer >= SOFTTIMER_MAX_TIMERS) {
+    if (timer >= SOFTTIMER_MAX_TIMERS) {
         return false;
     }
     __SOFTTIMER_SAFE_ATOME_CODE(
-        softTimers[Timer].Count  = Value;
-        softTimers[Timer].Reload = Reload;
-        softTimers[Timer].Flag   = 0;
-        softTimers[Timer].pRoutine = pRoutine;
-        softTimers[Timer].pRoutineArg = pArg;
+        softTimers[timer].Count  = initValue;
+        softTimers[timer].Reload = reloadValue;
+        softTimers[timer].Flag   = 0;
+        softTimers[timer].pRoutine = pRoutine;
+        softTimers[timer].pRoutineArg = pArg;
     )
 
     return true;

@@ -90,7 +90,7 @@ void osInit(void)
 
     os_init_free_obj_list();                                           //!< Initialize the free list of OS_TCBs
 
-    OS_ScheduleInit();                                          //!< Initialize the Ready List
+    OS_SchedulerInit();                                          //!< Initialize the Ready List
 
     os_init_idle_task();                                          //!< Create the Idle Task
 #if OS_STAT_EN > 0u
@@ -301,7 +301,7 @@ void osIntExit(void)
     }
     if (osIntNesting == 0u) {                           //!< Reschedule only if all ISRs complete ...
         if (osLockNesting == 0u) {                      //!< ... and scheduler is not locked.
-            OS_SchedulePrio();
+            OS_SchedulerPrio();
             if (osTCBNextRdy != osTCBCur) {             //!< No Ctx Sw if current task is highest rdy
                 OSExitCriticalSection(cpu_sr);
                 OSIntCtxSw();                           //!< Perform interrupt level ctx switch
@@ -348,7 +348,7 @@ void osLockSched(void)
 void osUnlockSched(void)
 {
     OS_UnlockSched();
-    OS_ScheduleRunPrio();
+    OS_SchedulerRunPrio();
 }
 #endif
 
@@ -373,7 +373,7 @@ void osUnlockSched(void)
 void osStart(void)
 {
     if (osRunning == FALSE) {           //!< os must NOT be running!
-        OS_ScheduleNext();
+        OS_SchedulerNext();
         osTCBCur = osTCBNextRdy;
         OSStartTheFirst();               //!< Execute target specific code to start task
     }
@@ -444,7 +444,7 @@ void osTimeTick(void)
                 if (pnode->OSWaitNodeDly == 0u) {                   //!< If timeout
                     pnode->OSWaitNodeRes = OS_STAT_PEND_TO;         //!< Indicate PEND timeout.
                     OS_WaitNodeRemove(ptcb);
-                    OS_ScheduleReadyTask(ptcb);
+                    OS_SchedulerReadyTask(ptcb);
                 }
             }
         }
@@ -460,7 +460,7 @@ void osTimeTick(void)
             if (pnode->OSWaitNodeDly == 0u) {                       //!< If timeout
                 OS_WaitNodeRemove(ptcb);
                 OSEnterCriticalSection(cpu_sr);
-                OS_ScheduleReadyTask(ptcb);
+                OS_SchedulerReadyTask(ptcb);
                 OSExitCriticalSection(cpu_sr);
             }
         }
@@ -511,10 +511,10 @@ void osTaskSleep(UINT32 ticks)
     
     OSEnterCriticalSection(cpu_sr);
     osTCBCur->OSTCBWaitNode = &node;                        //!< Store node in task's TCB
-    OS_ScheduleUnreadyTask(osTCBCur);                       //!< remove this task from scheduler's ready list.
+    OS_SchedulerUnreadyTask(osTCBCur);                       //!< remove this task from scheduler's ready list.
     os_list_add(&node.OSWaitNodeList, osSleepList.Prev);    //!< add task to the end of sleeping task list.
     OSExitCriticalSection(cpu_sr);
-    OS_ScheduleRunNext();                                   //!< Find next task to run!
+    OS_SchedulerRunNext();                                   //!< Find next task to run!
 }
 
 /*!
@@ -916,7 +916,7 @@ void OS_WaitableObjAddTask( OS_WAITABLE_OBJ    *pobj,
     os_list_init_head(&pnode->OSWaitNodeList);
     
     osTCBCur->OSTCBWaitNode = pnode;                    //!< Store node in task's TCB
-    OS_ScheduleUnreadyTask(osTCBCur);                   //!< Unready this task.
+    OS_SchedulerUnreadyTask(osTCBCur);                   //!< Unready this task.
     if (OS_OBJ_PRIO_TYPE_GET(pobj->OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {
         //! find the node whose priority is lower than current's.
         for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; list = list->Next) {
@@ -961,7 +961,7 @@ OS_TCB *OS_WaitableObjRdyTask(OS_WAITABLE_OBJ *pobj, UINT8 pendRes)
         
     pnode->OSWaitNodeRes = pendRes;
     OS_WaitNodeRemove(ptcb);                //!< Remove this task from event's wait list
-    OS_ScheduleReadyTask(ptcb);             //!< Put task in the ready list
+    OS_SchedulerReadyTask(ptcb);             //!< Put task in the ready list
     return ptcb;
 }
 
@@ -1011,9 +1011,9 @@ void OS_ChangeTaskPrio(OS_TCB *ptcb, UINT8 newprio)
         }
         ptcb->OSTCBPrio = newprio;              //!< Set new task priority
     } else {
-        OS_ScheduleUnreadyTask(ptcb);           //!< Remove TCB from old priority
+        OS_SchedulerUnreadyTask(ptcb);           //!< Remove TCB from old priority
         ptcb->OSTCBPrio = newprio;              //!< Set new task priority        
-        OS_ScheduleReadyTask(ptcb);             //!< Place TCB @ new priority
+        OS_SchedulerReadyTask(ptcb);             //!< Place TCB @ new priority
     }
     OSExitCriticalSection(cpu_sr);
 }

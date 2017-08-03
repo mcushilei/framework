@@ -142,7 +142,7 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
 
     //! give this task's TCB to scheduler.
     OSEnterCriticalSection(cpu_sr);
-    OS_ScheduleReadyTask(ptcb);
+    OS_SchedulerReadyTask(ptcb);
     OSExitCriticalSection(cpu_sr);
     
     if (pHandle != NULL) {
@@ -150,7 +150,7 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
     }
     
     if (osRunning != FALSE) {           //!< try scheduling only the os has been running.
-        OS_ScheduleRunPrio();
+        OS_SchedulerRunPrio();
     }
     
     return OS_ERR_NONE;
@@ -169,6 +169,7 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
  *! \Returns     none
  */
 #if OS_TASK_DEL_EN > 0u
+#if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 static void os_unlock_mutex(OS_MUTEX *pmutex)
 {
     OS_TCB     *ptcb;
@@ -191,6 +192,7 @@ static void os_unlock_mutex(OS_MUTEX *pmutex)
         pmutex->OSMutexOwnerPrio = 0u;
     }
 }
+#endif
 
 static void os_task_del(void)
 {
@@ -209,10 +211,11 @@ static void os_task_del(void)
     if (ptcb->OSTCBWaitNode != NULL) {      //!< Is this task suspend for any object?
         OS_WaitNodeRemove(ptcb);            //!< Yes, set it free from that object.
     } else {                                //!< NO. It's owned by scheduler ...
-        OS_ScheduleUnreadyTask(ptcb);       //!< ... set it free from scheduler.
+        OS_SchedulerUnreadyTask(ptcb);      //!< ... set it free from scheduler.
     }
 
     //! task should has released all mutex. A fatal error may have happened.
+#if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 #if OS_MUTEX_OVERLAP_EN > 0u
     for (list = ptcb->OSTCBOwnMutexList.Next; list != &ptcb->OSTCBOwnMutexList;) {
         list = list->Next;
@@ -226,12 +229,13 @@ static void os_task_del(void)
         os_unlock_mutex(pmutex);
     }
 #endif
+#endif
     
     OS_ObjPoolFree(&osTCBFreeList, ptcb);   //!< Return TCB object to free TCB pool.
     osTCBCur = NULL;
     OSExitCriticalSection(cpu_sr);
     
-    OS_ScheduleRunNext();
+    OS_SchedulerRunNext();
 }
 #endif
 
@@ -251,6 +255,7 @@ static void os_task_del(void)
  *!              OS_ERR_TASK_NOT_EXIST  there is no task with the specified OLD priority (i.e. the OLD task does
  *!                                     not exist.
  */
+#if OS_TASK_CHANGE_PRIO_EN > 0u
 OS_ERR osTaskChangePrio(OS_HANDLE taskHandle, UINT8 newprio)
 {
     OS_TCB     *ptcb = (OS_TCB *)taskHandle;
@@ -272,33 +277,37 @@ OS_ERR osTaskChangePrio(OS_HANDLE taskHandle, UINT8 newprio)
 #endif
 
     OSEnterCriticalSection(cpu_sr);
-#if OS_MUTEX_OVERLAP_EN > 0u
+#if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
+#   if OS_MUTEX_OVERLAP_EN > 0u
     if (ptcb->OSTCBOwnMutexList.Next != &ptcb->OSTCBOwnMutexList) {
         pmutex = OS_CONTAINER_OF(ptcb->OSTCBOwnMutexList.Next, OS_MUTEX, OSMutexOvlpList);
         pmutex->OSMutexOwnerPrio = newprio;
-        if (newprio < ptcb->OSTCBPrio) {                //!< Change the priority only if the new one ...
-                                                        //! ... is higher than the task's current,
-            OS_ChangeTaskPrio(ptcb, newprio);           //! ... else the task will use the new priority
-        }                                               //! ... after it release the mutex.
-#else
+        if (newprio < ptcb->OSTCBPrio) {
+            OS_ChangeTaskPrio(ptcb, newprio);
+        }
+#   else
     if (ptcb->OSTCBOwnMutex != NULL) {                  //!< See if the task has owned a mutex.
         ptcb->OSTCBOwnMutex->OSMutexOwnerPrio = newprio;//!< Yes. Update the priority store in the mutex ...
         if (newprio < ptcb->OSTCBPrio) {                //!< Change the priority only if the new one ...
                                                         //! ... is higher than the task's current,
             OS_ChangeTaskPrio(ptcb, newprio);           //! ... else the task will use the new priority
         }                                               //! ... after it release the mutex.
-#endif
+#   endif
     } else {
+#else
+    {
+#endif
         OS_ChangeTaskPrio(ptcb, newprio);
     }
     OSExitCriticalSection(cpu_sr);
     
     if (osRunning != FALSE) {                           //!< try scheduling only the os has been running.
-        OS_ScheduleRunPrio();
+        OS_SchedulerRunPrio();
     }
     
     return OS_ERR_NONE;
 }
+#endif
 
 /*!
  *! \Brief       CATCH ACCIDENTAL TASK RETURN

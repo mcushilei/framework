@@ -39,7 +39,7 @@
  *!
  *! \Returns     none
  */
-void OS_ScheduleInit(void)
+void OS_SchedulerInit(void)
 {
     UINT16 i;
 
@@ -102,7 +102,7 @@ void OS_UnlockSched(void)
  *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
  *!              2) Interrupts are assumed to be DISABLED when this function is called.
  */
-void OS_ScheduleReadyTask(OS_TCB *ptcb)
+void OS_SchedulerReadyTask(OS_TCB *ptcb)
 {
     os_list_add(&ptcb->OSTCBList, osRdyList[ptcb->OSTCBPrio].Prev); //!< add task to the end of ready task list.
     OS_BitmapSet(&osRdyBitmap, ptcb->OSTCBPrio);
@@ -121,7 +121,7 @@ void OS_ScheduleReadyTask(OS_TCB *ptcb)
  *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
  *!              2) Interrupts are assumed to be DISABLED when this function is called.
  */
-void OS_ScheduleUnreadyTask(OS_TCB *ptcb)
+void OS_SchedulerUnreadyTask(OS_TCB *ptcb)
 {
     UINT8 prio;
     
@@ -147,7 +147,7 @@ void OS_ScheduleUnreadyTask(OS_TCB *ptcb)
  *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
  *!              2) Interrupts are assumed to be DISABLED when this function is called.
  */
-void OS_SchedulePrio(void)
+void OS_SchedulerPrio(void)
 {
     UINT8           prio;
     OS_LIST_NODE   *node;
@@ -176,7 +176,7 @@ void OS_SchedulePrio(void)
  *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
  *!              2) Interrupts are assumed to be DISABLED when this function is called.
  */
-void OS_ScheduleNext(void)
+void OS_SchedulerNext(void)
 {
     UINT8           prio;
     OS_LIST_NODE   *node;
@@ -203,7 +203,7 @@ void OS_ScheduleNext(void)
  *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
  *!              2) Rescheduling is prevented when the scheduler is locked (see OS_SchedLock())
  */
-void OS_ScheduleRunPrio(void)
+void OS_SchedulerRunPrio(void)
 {
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
@@ -218,7 +218,7 @@ void OS_ScheduleRunPrio(void)
     }
 
     OSEnterCriticalSection(cpu_sr);
-    OS_SchedulePrio();
+    OS_SchedulerPrio();
     if (osTCBNextRdy != osTCBCur) {
         OSExitCriticalSection(cpu_sr);
         OSCtxSw();                              //!< Perform a context switch
@@ -241,7 +241,7 @@ void OS_ScheduleRunPrio(void)
  *! \Notes       1) This function is INTERNAL to OS and your application should not call it.
  *!              2) Rescheduling is prevented when the scheduler is locked (see OS_SchedLock())
  */
-void OS_ScheduleRunNext(void)
+void OS_SchedulerRunNext(void)
 {
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
@@ -256,7 +256,7 @@ void OS_ScheduleRunNext(void)
     }
 
     OSEnterCriticalSection(cpu_sr);
-    OS_ScheduleNext();
+    OS_SchedulerNext();
     if (osTCBNextRdy != osTCBCur) {
         OSExitCriticalSection(cpu_sr);
         OSCtxSw();                              //!< Perform a context switch

@@ -183,7 +183,7 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
     OSExitCriticalSection(cpu_sr);
     
     if (taskPend) {
-        OS_ScheduleRunPrio();
+        OS_SchedulerRunPrio();
     }
     
     return OS_ERR_NONE;
@@ -253,7 +253,7 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
 
     OS_WaitableObjAddTask((OS_WAITABLE_OBJ *)psemp, &node, timeout);    //!< Suspend current task until event or timeout occurs
     OSExitCriticalSection(cpu_sr);
-    OS_ScheduleRunNext();
+    OS_SchedulerRunNext();
 
     switch (node.OSWaitNodeRes) {
         case OS_STAT_PEND_OK:
@@ -321,7 +321,7 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
                 OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psemp, OS_STAT_PEND_OK);                //!< ...and ready HPT waiting on event
             }
             OSExitCriticalSection(cpu_sr);
-            OS_ScheduleRunPrio();
+            OS_SchedulerRunPrio();
         } else {
             OSExitCriticalSection(cpu_sr);
         }
@@ -376,7 +376,7 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore)
             OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psemp, OS_STAT_PEND_ABORT);
         }
         OSExitCriticalSection(cpu_sr);
-        OS_ScheduleRunPrio();
+        OS_SchedulerRunPrio();
         err = OS_ERR_PEND_ABORT;
     } else {
         OSExitCriticalSection(cpu_sr);

@@ -69,7 +69,7 @@
 #define OS_MUTEX_EN               1u   //!< Enable (1) or Disable (0) code generation for MUTEX
 #define OS_MUTEX_DEL_EN           1u   //!< Include code for osMutexDelete()
 #define OS_MUTEX_QUERY_EN         1u   //!< Include code for osMutexQuery()
-#define OS_MUTEX_OVERLAP_EN       1u   //!< Enable (1) or Disable (0) mutex overlap usage
+#define OS_MUTEX_OVERLAP_EN       0u   //!< Enable (1) or Disable (0) mutex overlap usage
 
 
 //! SEMPAPHORES
