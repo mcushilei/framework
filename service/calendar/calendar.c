@@ -38,13 +38,18 @@ typedef struct {
     uint8_t     Hour;
     uint8_t     Minute;
     uint8_t     Second;
-} rtime_t;
+} time24_t;
+
+typedef struct {
+    date_t      Date;
+    time24_t    Time;
+} date_time_t;
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
-static const uint8_t daysOfMonth[12]     = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-static const uint8_t daysOfMonthLeap[12] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+static const uint8_t daysOfMonth[13]     = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+static const uint8_t daysOfMonthLeap[13] = {0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 /*============================ IMPLEMENTATION ================================*/
 bool is_leap_year(uint32_t year)
@@ -71,7 +76,7 @@ static bool validate_date(const date_t *pDate)
     if (pDate->Day == 0) {
         return false;
     } else {
-        uint8_t month = pDate->Month - 1u;
+        uint8_t month = pDate->Month;
 
         if (is_leap_year(pDate->Year)) {
             if (pDate->Day > daysOfMonthLeap[month]) {
@@ -102,7 +107,7 @@ static void correct_date(date_t *pDate)
     if (pDate->Day == 0) {
         pDate->Day = 1;
     } else {
-        uint8_t month = pDate->Month - 1u;
+        uint8_t month = pDate->Month;
 
         if (is_leap_year(pDate->Year)) {
             if (pDate->Day > daysOfMonthLeap[month]) {
@@ -116,33 +121,33 @@ static void correct_date(date_t *pDate)
     }
 }
 
+//! count days elapsed in a year.(include the current day)
 uint32_t days_in_year(const date_t *pDate)
 {
-    uint32_t i, days;
-    uint8_t month;
-    date_t date;
+    uint32_t        days;
+    uint_fast8_t    i, month;
+    date_t          date;
 
     date = *pDate;
     correct_date(&date);
 
-    days = 0;
+    days  = date.Day;
     month = date.Month;
     month--;
     if (is_leap_year(date.Year)) {
-        for (i = 0; i < month; i++) {
+        for (i = month; i != 0u; i--) {
             days += daysOfMonthLeap[i];
         }
     } else {
-        for (i = 0; i < month; i++) {
+        for (i = month; i != 0u; i--) {
             days += daysOfMonth[i];
         }
     }
-    days += date.Day;
 
     return days;
 }
 
-//! count leap years from 1 to specified year, exclude specified year.
+//! count leap years from year 1 to specified year, exclude specified year.
 static uint32_t count_leap_years(uint32_t year)
 {
     if (year == 0u) {
@@ -152,7 +157,7 @@ static uint32_t count_leap_years(uint32_t year)
     return year / 4u - year / 100u + year / 400u;
 }
 
-//! count leap years from start to end year, exclude start and end year.
+//! count leap years from year1 to year2.(exclude year1 and year2)
 uint32_t count_leap_years_between(uint32_t year1, uint32_t year2)
 {
     if (year1 == 0u) {
@@ -175,55 +180,63 @@ uint32_t count_leap_years_between(uint32_t year1, uint32_t year2)
     return count_leap_years(year2) - count_leap_years(year1);
 }
 
-uint32_t count_days_between(const date_t *pDate1, const date_t *pDate2)
+//! calculate pEnd - pStart.
+int32_t count_days_between(const date_t *pStart, const date_t *pEnd)
 {
-    uint32_t days, years;
-    const date_t *pDate;
+    int32_t         days;
+    uint32_t        years;
+    const date_t   *pDate;
+    bool            negative = false;
 
     do {
-        if (pDate2->Year > pDate1->Year) {
+        if (pEnd->Year > pStart->Year) {
             break;
         }
         
-        if (pDate2->Year == pDate1->Year) {
-            if (pDate2->Month > pDate1->Month) {
+        if (pEnd->Year == pStart->Year) {
+            if (pEnd->Month > pStart->Month) {
                 break;
             }
             
-            if (pDate2->Month == pDate1->Month) {
-                if (pDate2->Day > pDate1->Day) {
-                    return pDate2->Day - pDate1->Day;
-                } else if (pDate2->Day == pDate1->Day) {
-                    return 0;
+            if (pEnd->Month == pStart->Month) {
+                if (pEnd->Day >= pStart->Day) {
+                    return pEnd->Day - pStart->Day;
                 } else {
-                    return pDate1->Day - pDate2->Day;
+                    days = pStart->Day - pEnd->Day;
+                    return -days;
                 }
             }
         }
         
-        pDate  = pDate1;
-        pDate1 = pDate2;
-        pDate2 = pDate;
+        pDate  = pStart;
+        pStart = pEnd;
+        pEnd   = pDate;
+        negative = true;
     } while (0);
 
-    if (pDate1->Year != pDate2->Year) {
-        if (is_leap_year(pDate1->Year)) {
-            days = 366u - days_in_year(pDate1);
+    if (pStart->Year != pEnd->Year) {
+        if (is_leap_year(pStart->Year)) {
+            days = 366u - days_in_year(pStart);
         } else {
-            days = 365u - days_in_year(pDate1);
+            days = 365u - days_in_year(pStart);
         }
-        years = count_leap_years_between(pDate1->Year, pDate2->Year);
+        years = count_leap_years_between(pStart->Year, pEnd->Year);
         days += 366u * years;
-        days += 365u * (pDate2->Year - pDate1->Year - 1u - years);
-        days += days_in_year(pDate2);
+        days += 365u * (pEnd->Year - pStart->Year - 1u - years);
+        days += days_in_year(pEnd);
     } else {
-        days = days_in_year(pDate2) - days_in_year(pDate1);
+        days = days_in_year(pEnd) - days_in_year(pStart);
     }
 
-    return days;
+    if (negative) {
+        return -days;
+    } else {
+        return days;
+    }
 }
 
-bool make_new_date_by_days(date_t *pDate, int32_t deltaDays)
+//! calculate pDate + deltaDays.
+bool date_plus_days(date_t *pDate, int32_t deltaDays)
 {
     uint32_t year;
     uint8_t  month;
@@ -237,7 +250,7 @@ bool make_new_date_by_days(date_t *pDate, int32_t deltaDays)
     month = pDate->Month;
     day   = pDate->Day;
 
-    if (deltaDays < 0) {
+    if (deltaDays < 0) {        //! see if minus
         dd = -deltaDays;
 __SUB_STATE_0:
         date.Year  = year;
@@ -295,7 +308,7 @@ __SUB_STATE_0:
             day -= dd;
         }
 
-    } else {
+    } else {                    //! or plus
         dd = deltaDays;
 __ADD_STATE_0:
         date.Year  = year;
@@ -363,20 +376,28 @@ __ADD_STATE_0:
     return true;
 }
 
-static void correct_time(rtime_t *pTime)
+static void correct_time(time24_t *pTime)
 {
     pTime->Hour   %= 24u;
     pTime->Minute %= 60u;
     pTime->Second %= 60u;
 }
 
-uint32_t time_to_seconds(rtime_t *pTime)
+uint32_t time_to_seconds(time24_t *pTime)
 {
-    correct_time(pTime);
-    return SECONDS_OF_HOUR * pTime->Hour + SECONDS_OF_MINUTE * pTime->Minute + pTime->Second;
+    uint32_t t, s;
+    
+    s  = 0u;
+    t  = pTime->Hour;
+    s += SECONDS_OF_HOUR * t;
+    t  = pTime->Minute;
+    s += SECONDS_OF_MINUTE * t;
+    s += pTime->Second;
+    
+    return s;
 }
 
-void seconds_to_time(rtime_t *pTime, uint32_t seconds)
+uint32_t seconds_to_time(time24_t *pTime, uint32_t seconds)
 {
     uint32_t days;
 
@@ -390,19 +411,19 @@ void seconds_to_time(rtime_t *pTime, uint32_t seconds)
     seconds -= pTime->Minute * SECONDS_OF_MINUTE;
     
     pTime->Second = seconds;
+
+    return days;
 }
 
-uint32_t seconds_between_time(rtime_t *pTime1, rtime_t *pTime2)
+//! calculate pEnd - pStart.
+int32_t count_seconds_between(time24_t *pStart, time24_t *pEnd)
 {
-    uint32_t s1, s2;
+    int32_t s1, s2;
 
-    s1 = time_to_seconds(pTime1);
-    s2 = time_to_seconds(pTime2);
-    if (s1 < s2) {
-        return s2 - s1;
-    } else {
-        return s1 - s2;
-    }
+    s1 = time_to_seconds(pStart);
+    s2 = time_to_seconds(pEnd);
+    
+    return s2 - s1;
 }
 
 /* EOF */
