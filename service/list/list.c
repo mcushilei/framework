@@ -25,17 +25,49 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-DEF_STRUCTURE(list_node_t)
-    void *      Next;
-END_DEF_STRUCTURE(list_node_t)
 
-DEF_STRUCTURE(dlist_node_t)
-    void *      Next;
-    void *      Prev;
-END_DEF_STRUCTURE(dlist_node_t)
+DEF_STRUCTURE(list_node_t)
+    list_node_t       *Next;
+    list_node_t       *Prev;
+END_DEF_STRUCTURE(list_node_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 /*============================ IMPLEMENTATION ================================*/
+
+void list_init_head(list_node_t *head)
+{
+    head->Next = head;
+    head->Prev = head;
+}
+
+static void __list_add(list_node_t *node, list_node_t *prev, list_node_t *next)
+{
+    next->Prev = node;
+    node->Next = next;
+    node->Prev = prev;
+    prev->Next = node;
+}
+
+void list_add(list_node_t *node, list_node_t *head)
+{
+    __list_add(node, head, head->Next);
+}
+ 
+ 
+void __list_del(list_node_t *prev, list_node_t *next)
+{
+    next->Prev = prev;
+    prev->Next = next;
+}
+ 
+void list_del(list_node_t *entry)
+{
+    __list_del(entry->Prev, entry->Next);
+    entry->Next = entry;
+    entry->Prev = entry;
+}
+
+
 /* EOF */

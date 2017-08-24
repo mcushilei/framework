@@ -25,17 +25,17 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-DEF_STRUCTURE(list_node_t)
-    void *      Next;
-END_DEF_STRUCTURE(list_node_t)
 
-DEF_STRUCTURE(dlist_node_t)
-    void *      Next;
-    void *      Prev;
-END_DEF_STRUCTURE(dlist_node_t)
+DEF_STRUCTURE(list_node_t)
+    list_node_t       *Next;
+    list_node_t       *Prev;
+END_DEF_STRUCTURE(list_node_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
+extern void list_init_head  (list_node_t *head);
+extern void list_add        (list_node_t *node, list_node_t *head);
+extern void list_del        (list_node_t *entry);
 
 #endif
 #endif
