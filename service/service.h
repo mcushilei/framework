@@ -36,6 +36,7 @@
 #include ".\rppp\rppp.h"
 #include ".\geometry\geometry.h"
 #include ".\calendar\calendar.h"
+#include ".\block_memory\block_memory.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/

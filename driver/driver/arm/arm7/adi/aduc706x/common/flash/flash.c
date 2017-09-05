@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -15,13 +15,16 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
+#define __DRIVER_FLASH_C__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\device.h"
 #include ".\reg_flash.h"
+#include ".\public_flash.h"
 
 /*============================ MACROS ========================================*/
+
 #define FLASH_CMD_NULL              (0x00u)
 #define FLASH_CMD_SINGLE_READ       (0x01u)
 #define FLASH_CMD_SINGLE_WRITE      (0x02u)
@@ -35,35 +38,26 @@
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef enum {
-    FLASH_ERR_NONE              = 0,
-    FLASH_ERR_INVALID_ADDR,
-    FLASH_ERR_CMD_FAIL,
-} em_flash_err_t;
-
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
 uint32_t flash_erase_page(uint32_t wPage)
 {
-    uint32_t wState;
-    if ((FLASH_BASE_ADDR + FLASH_SIZE) <= wPage) {
-        return FLASH_ERR_INVALID_ADDR;
-    }
-    wPage &= ~(512u - 1u);
+    uint16_t wState;
+    
     SAFE_ATOM_CODE(
-        FLASH_REG.FEEMOD    = (0u << 9)
-                            | (0u << 8)
-                            | (0u << 5)
-                            | (0u << 4)
-                            | (1u << 3)
-                            | (0u << 0);
-        FLASH_REG.FEEADR = wPage;
-        FLASH_REG.FEECON = 0x05;
+        FLASH_REG.FEEMOD    = (0u << 9)     //!< reserved.
+                            | (1u << 8)     //!< reserved, always set to 1.
+                            | (0u << 5)     //!< reserved.
+                            | (0u << 4)     //!< interrupt not enable.
+                            | (1u << 3)     //!< earse/write command enable
+                            | (0u << 0);    //!< reserved.
+        FLASH_REG.FEEADR = wPage * FLASH_BLOCK_SIZE;
+        FLASH_REG.FEECON = FLASH_CMD_SINGLE_ERASE;
         do {
             wState = FLASH_REG.FEESTA;
-        } while (!(wState & 0x03));
+        } while (wState & (1u << 2));
     )
     if (wState & (1u << 1)) {
         return FLASH_ERR_CMD_FAIL;
@@ -71,27 +65,26 @@ uint32_t flash_erase_page(uint32_t wPage)
     return FLASH_ERR_NONE;
 }
 
-uint32_t flash_write_data(uint32_t wAddr, uint16_t *phwData, uint32_t wLength)
+uint32_t flash_write_page(uint32_t wPage, uint8_t *pData)
 {
-    uint32_t wState;
-    if ((FLASH_BASE_ADDR + FLASH_SIZE) <= wAddr) {
-        return FLASH_ERR_INVALID_ADDR;
-    }
+    uint32_t wAddr;
+    uint16_t wState;
 
-    for (uint32_t i = 0; i < wLength; i++) {
+    wAddr = wPage * FLASH_BLOCK_SIZE;
+    for (uint32_t i = 0; i < FLASH_BLOCK_SIZE; i += 2u) {
         SAFE_ATOM_CODE(
-            FLASH_REG.FEEMOD    = (0u << 9)
-                                | (0u << 8)
-                                | (0u << 5)
-                                | (0u << 4)
-                                | (1u << 3)
-                                | (0u << 0);
+            FLASH_REG.FEEMOD    = (0u << 9)     //!< reserved.
+                                | (1u << 8)     //!< reserved, always set to 1.
+                                | (0u << 5)     //!< reserved.
+                                | (0u << 4)     //!< interrupt not enable.
+                                | (1u << 3)     //!< earse/write command enable
+                                | (0u << 0);    //!< reserved.
             FLASH_REG.FEEADR = wAddr;
-            FLASH_REG.FEEDAT = phwData[i];
+            FLASH_REG.FEEDAT = (pData[i + 1] << 8) + pData[i];
             FLASH_REG.FEECON = FLASH_CMD_SINGLE_WRITE;
             do {
                 wState = FLASH_REG.FEESTA;
-            } while (!(wState & 0x03));
+            } while (wState & (1u << 2));
         )
         if (wState & (1u << 1)) {
             return FLASH_ERR_CMD_FAIL;

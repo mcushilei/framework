@@ -80,20 +80,20 @@ void watchdog_feed(void)
 
 bool real_timer_init(void)
 {
-    TIMER0_REG.LD  = 0;        //!< 0
+    TIMER0_REG.LD  = 0;             //!< 0
     TIMER0_REG.CON =    
-                        (0u << 24) |    //!< Postscale: 0.
-                        (0u << 23) |    //!< Postscale: Disable.
-                        (0u << 19) |
-                        (0u << 18) |    //!< Interrupt source: Timer0.
-                        (0u << 17) |    //!< Event enable: Disable.
-                        (0u << 12) |    //!< Event select: .
-                        (0u << 9) |     //!< Clock: 32768.
-                        (1u << 8) |     //!< Dir: up.
-                        (1u << 7) |     //!< Enable: enable.
-                        (0u << 6) |     //!< Mode: Free running.
-                        (0u << 4) |     //!< Format: binary.
-                        (0xFu << 0);    //!< Prescaler: 32768.
+                    (0u << 24) |    //!< Postscale: 0.
+                    (0u << 23) |    //!< Postscale: Disable.
+                    (0u << 19) |
+                    (0u << 18) |    //!< Interrupt source: Timer0.
+                    (0u << 17) |    //!< Event enable: Disable.
+                    (0u << 12) |    //!< Event select: .
+                    (0u << 9) |     //!< Clock: 32768.
+                    (1u << 8) |     //!< Dir: up.
+                    (1u << 7) |     //!< Enable: enable.
+                    (0u << 6) |     //!< Mode: Free running.
+                    (0u << 4) |     //!< Format: binary.
+                    (0xFu << 0);    //!< Prescaler: 32768.
     
     return true;
 }

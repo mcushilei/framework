@@ -56,10 +56,10 @@ REMAP_OFFSET    EQU         0x0220
 ;  Absolute addressing mode must be used.
 Vectors
         LDR     PC, Reset_Addr          ; Reset
-        LDR     PC, Undefined_Addr          ; Undefined instructions
+        LDR     PC, Undefined_Addr      ; Undefined instructions
         LDR     PC, SWI_Addr            ; Software interrupt (SWI/SYS)
-        LDR     PC, Prefetch_Addr           ; Prefetch abort
-        LDR     PC, Abort_Addr           ; Data abort
+        LDR     PC, Prefetch_Addr       ; Prefetch abort
+        LDR     PC, Abort_Addr          ; Data abort
         B       .                       ; RESERVED
         LDR     PC, IRQ_Addr            ; IRQ
         LDR     PC, FIQ_Addr            ; FIQ
@@ -69,7 +69,7 @@ Undefined_Addr  DCD Undefined_Handler
 SWI_Addr        DCD SWI_Handler
 Prefetch_Addr   DCD Prefetch_Handler
 Abort_Addr      DCD Abort_Handler
-                DCD 0                   ; Reserved Address 
+                DCD 0
 IRQ_Addr        DCD IRQ_Handler_Wrapping
 FIQ_Addr        DCD FIQ_Handler_Wrapping
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -16,18 +16,22 @@
 *******************************************************************************/
 
 
-#ifndef __FLASH_H__
-#define __FLASH_H__
+#ifndef __DRIVER_FLASH_C__
+#ifndef __DRIVER_FLASH_H__
+#define __DRIVER_FLASH_H__
 
 /*============================ INCLUDES ======================================*/
+#include ".\app_cfg.h"
+#include "..\device.h"
+#include ".\reg_flash.h"
+#include ".\public_flash.h"
+
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern uint32_t flash_write_data(uint32_t wAddr, uint16_t *phwData, uint32_t wLength);
-extern uint32_t flash_erase_page(uint32_t wPage);
 
-
+#endif
 #endif
 /* EOF */
