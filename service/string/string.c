@@ -129,18 +129,15 @@ bool memory_set(void *m, uint32_t v, size_t n)
 
 uint32_t hex_str2uint(const uint8_t *str)
 {
-    uint32_t i, val = 0;
+    uint32_t val = 0;
 
     if (NULL == str) {
         return 0;
     }
 
-    for (i = 0; i < 8; i++) {
-        if (CHAR_IS_NOT_HEX(*str)) {
-            break;
-        }
-        val = (val << 4) + ((*str > '9')? ((*str < 'a')? (10 + (*str - 'A')) : (10 + (*str - 'a'))) : (*str - '0')) ;
-        ++str;
+    for (; !CHAR_IS_NOT_HEX(*str); str++) {
+        val <<= 4;
+        val += (*str > '9')? ((*str < 'a')? (10 + (*str - 'A')) : (10 + (*str - 'a'))) : (*str - '0');
     }
 
     return val;
@@ -155,14 +152,8 @@ int32_t int_str2int(const uint8_t *str)
         return 0;
     }
 
-    for (; CHAR_IS_SPACE(*str); ++str);
-
     if ('-' == *str) {
         sign = 1;
-    }
-
-    if ('-' == *str || '+' == *str) {
-        ++str;
     }
 
     for (; !CHAR_IS_NOT_INT(*str); str++) {
@@ -176,7 +167,7 @@ int32_t int_str2int(const uint8_t *str)
     return val;
 }
 
-float dec_str2float(const uint8_t *DecimalString)
+float dec_str2float(const uint8_t *decimalString)
 { 
     bool IsNegative = false; 
     bool IsDecimal = false;
@@ -185,24 +176,24 @@ float dec_str2float(const uint8_t *DecimalString)
     float Decimal = 0.0f; 
     float DecPower = 0.1f; 
 
-    if (NULL == DecimalString) { 
+    if (NULL == decimalString) { 
         return 0.0; 
     } 
 
-    if (DecimalString[0] == '-') { 
+    if (decimalString[0] == '-') { 
         IsNegative = true; 
-        DecimalString++; 
+        decimalString++; 
     } else { 
         IsNegative = false; 
     } 
  
-    for (; *DecimalString != '\0'; ++DecimalString) {
-        ByteChar = *DecimalString;
+    for (; *decimalString != '\0'; ++decimalString) {
+        ByteChar = *decimalString;
 
         if (CHAR_IS_NOT_INT(ByteChar)) { 
             if (ByteChar == '.') { 
                 IsDecimal = true;
-                ++DecimalString;
+                ++decimalString;
             }
             break; 
         } else {
@@ -211,8 +202,8 @@ float dec_str2float(const uint8_t *DecimalString)
     } 
 
     if (IsDecimal) {
-        for (; *DecimalString != '\0'; ++DecimalString) {
-            ByteChar = *DecimalString;
+        for (; *decimalString != '\0'; ++decimalString) {
+            ByteChar = *decimalString;
 
             if (CHAR_IS_NOT_INT(ByteChar)) {
                 break;
@@ -223,7 +214,7 @@ float dec_str2float(const uint8_t *DecimalString)
         } 
     }
 
-    return (IsNegative? -(Integer + Decimal) : Integer + Decimal); 
+    return (IsNegative? -(Integer + Decimal) : (Integer + Decimal)); 
 } 
 
 size_t string_length(const uint8_t *s)
@@ -271,35 +262,52 @@ bool string_cmpn(const uint8_t *s1, const uint8_t *s2, uint32_t n)
     return false;
 }
 
-uint8_t *string_copy(uint8_t *d, const uint8_t *s)
+bool string_copy(uint8_t *d, const uint8_t *s)
 {
     if ((NULL == d) || (NULL == s)) {
-        return d;
+        return false;
     }
 
     while ('\0' != *s) {
-        *d++ = *s++;
+        *d = *s;
+        d++;
+        s++;
     }
     *d = *s;
 
-    return d;
+    return true;
 }
 
+bool string_copyn(uint8_t *d, const uint8_t *s, uint32_t n)
+{
+    if ((NULL == d) || (NULL == s)) {
+        return false;
+    }
+
+    while ('\0' != *s && n != 0) {
+        *d = *s;
+        d++;
+        s++;
+        n--;
+    }
+
+    return true;
+}
 //! find s2 in s1.
 uint8_t *string_string(const uint8_t *s1, const uint8_t *s2)
 {
     uint32_t n;
     
-    if (*s2) {
+    if (*s2 != '\0') {
         for (; *s1; s1++) {
             for (n = 0; s1[n] == s2[n]; n++) {
-                if (!s2[n + 1]) {
+                if ('\0' == s2[n + 1]) {
                     return (uint8_t *)s1;
                 }
             }
         }
     } else {
-        for (; *s1; s1++);
+        for (; *s1 != '\0'; s1++);
         return (uint8_t *)s1;
     }
     
@@ -345,30 +353,30 @@ uint8_t *strsep(uint8_t **ppStringRef, const uint8_t *pDelim)
 }
 
 
-uint8_t *itostr(int32_t Value, uint8_t *IntegerString, int32_t Radix)
+uint8_t *itostr(int32_t value, uint8_t *integerString, int32_t radix)
 {
     const static unsigned char c[16] = "0123456789ABCDEF";
-    uint32_t wValue = Value;
+    uint32_t wValue = value;
 
-    if (Radix < 0) {
-        Radix = -Radix;
+    if (radix < 0) {
+        radix = -radix;
 
-        if (Value < 0) {
-            wValue = -Value;
+        if (value < 0) {
+            wValue = -value;
         }
     }
 
-    if ((NULL == IntegerString)
-    || ((10 != Radix) && (16 != Radix))) {
+    if ((NULL == integerString)
+    || ((10 != radix) && (16 != radix))) {
         return NULL;
     }
 
     if (0 == wValue) {
-        *IntegerString++ = c[0];
-        *IntegerString = '\0';
+        *integerString++ = c[0];
+        *integerString = '\0';
     } else {
         uint32_t i = 0;
-        if (10 == Radix) {         // decimal
+        if (10 == radix) {         // decimal
             uint32_t tmp;
             const static uint32_t muntable[10] = {1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1};
             for (i = 0; i < 10; ++i) {
@@ -379,7 +387,7 @@ uint8_t *itostr(int32_t Value, uint8_t *IntegerString, int32_t Radix)
             }
             for (; i < 10; ++i) {
                 tmp = wValue / muntable[i];
-                *IntegerString++ = c[tmp];
+                *integerString++ = c[tmp];
                 wValue -= tmp * muntable[i];
             }
         } else {                    // hex
@@ -389,14 +397,14 @@ uint8_t *itostr(int32_t Value, uint8_t *IntegerString, int32_t Radix)
                 }
             }
             for (; i; --i) {
-                *IntegerString++ = c[(wValue >> (i << 2)) & 0x0000000Fu];
+                *integerString++ = c[(wValue >> (i << 2)) & 0x0000000Fu];
             }
-            *IntegerString++ = c[wValue & 0x0000000Fu];
+            *integerString++ = c[wValue & 0x0000000Fu];
         }
-        *IntegerString = '\0';
+        *integerString = '\0';
     }
 
-    return IntegerString;
+    return integerString;
 }
 
 
@@ -579,35 +587,32 @@ uint8_t *itostr(int32_t Value, uint8_t *IntegerString, int32_t Radix)
 
 extern int user_printf_output_char(char cChar);
 #define USER_PRINTF_OUT(__C)        user_printf_output_char(__C)
-#define USER_PRINTF_ARG(__T)        (__T)Argument
+#define USER_PRINTF_ARG(__T)        (__T)argument
 
-void string_printf(const uint8_t *FormatString, uint32_t Argument)
+void string_printf(const uint8_t *formatString, uint32_t argument)
 {
-    PRINT(FormatString, USER_PRINTF_OUT, USER_PRINTF_ARG)
+    PRINT(formatString, USER_PRINTF_OUT, USER_PRINTF_ARG)
 }
 
 #define USER_SPRINTFN_OUT(__C)                                                  \
     do {                                                                        \
-        if (wCnt >= BufferLength) {                                                     \
-            Buffer[wCnt] = '\0';                                         \
+        if (wCnt >= bufferLength) {                                                     \
             return wCnt;                                                        \
         }                                                                       \
                                                                                 \
-        Buffer[wCnt] = __C;                                              \
+        buffer[wCnt] = __C;                                              \
         wCnt++;                                                                 \
     } while (0)
 
-uint32_t string_snprintf(uint8_t *Buffer, uint32_t BufferLength, const uint8_t *FormatString, uint32_t Argument)
+uint32_t string_snprintf(uint8_t *buffer, uint32_t bufferLength, const uint8_t *formatString, uint32_t argument)
 {
     uint32_t wCnt = 0;
 
-    if ((NULL == Buffer) || (0 == BufferLength)) {
+    if ((NULL == buffer) || (0 == bufferLength)) {
         return 0;
     }
 
-    BufferLength--;
-    PRINT(FormatString, USER_SPRINTFN_OUT, USER_PRINTF_ARG)
-    Buffer[wCnt] = '\0';
+    PRINT(formatString, USER_SPRINTFN_OUT, USER_PRINTF_ARG)
 
     return wCnt;
 }

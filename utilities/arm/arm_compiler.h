@@ -57,6 +57,7 @@
 #   define RAMFUNC          __ramfunc
 #   define __asm__          __asm
 #   define ALIGN(__N)       _Pragma(STRINGZ(data_alignment=__N))
+#   define ALIGN_OF(__V)    __ALIGNOF__(__V)
 #   define AT_ADDR(__ADDR)  _Pragma(STRINGZ(location=__ADDR))
 #   define SECTION(__SEC)   _Pragma(STRINGZ(location=__SEC))
 #elif   __IS_COMPILER_GCC__
@@ -67,6 +68,7 @@
 #   define RAMFUNC          __attribute__((section("textrw")))
 #   define __asm__          __asm
 #   define ALIGN(__N)       __attribute__((aligned(__N)))
+#   define ALIGN_OF(__V)    alignof(__V)
 #   define AT_ADDR(__ADDR)  __attribute__((at(__ADDR)))
 #   define SECTION(__SEC)   __attribute__((section(__SEC)))
 #elif   __IS_COMPILER_MDK__
@@ -77,6 +79,7 @@
 #   define RAMFUNC          __attribute__((section("textrw")))
 #   define __asm__          __asm
 #   define ALIGN(__N)       __attribute__((aligned(__N)))
+#   define ALIGN_OF(__V)    __ALIGNOF__(__V)
 #   define AT_ADDR(__ADDR)  __attribute__((at(__ADDR)))
 #   define SECTION(__SEC)   __attribute__((section(__SEC)))
 #endif

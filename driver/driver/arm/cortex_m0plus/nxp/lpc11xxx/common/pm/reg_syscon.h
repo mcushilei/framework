@@ -28,15 +28,15 @@
 #define SCON_SYSPLLCLKSEL_MASK          BIT(0)
 
 #define SCON_SYSPLLCTRL_MSEL_BIAS       (0u)
-#define SCON_SYSPLLCTRL_MSEL_MASK       MASK(4, 0)
+#define SCON_SYSPLLCTRL_MSEL_MASK       BITMASK(4, 0)
 #define SCON_SYSPLLCTRL_PSEL_BIAS       (5u)
-#define SCON_SYSPLLCTRL_PSEL_MASK       MASK(6, 5)
+#define SCON_SYSPLLCTRL_PSEL_MASK       BITMASK(6, 5)
 
 #define SCON_SYSPLLSTAT_LOCK_BIAS       (0u)
 #define SCON_SYSPLLSTAT_LOCK_MASK       BIT(0)
 
 #define SCON_MAINCLKSEL_SEL_BIAS        (0u)
-#define SCON_MAINCLKSEL_SEL_MASK        MASK(2, 0)
+#define SCON_MAINCLKSEL_SEL_MASK        BITMASK(2, 0)
 
 #define SCON_SYSOSC_BYPASS_BIAS         (0u)
 #define SCON_SYSOSC_BYPASS_MASK         BIT(0)
@@ -47,15 +47,15 @@
 #define SCON_RTCOSCCTRL_RTCOSCEN_MASK   BIT(0)
 
 #define SCON_FLASHCFG_TIM_BIAS          0
-#define SCON_FLASHCFG_TIM_MASK          MASK(1, 0)
+#define SCON_FLASHCFG_TIM_MASK          BITMASK(1, 0)
 
 #define SCON_WDTOSCCRTL_DIV_BIAS        0
-#define SCON_WDTOSCCRTL_DIV_MASK        MASK(4, 0)
+#define SCON_WDTOSCCRTL_DIV_MASK        BITMASK(4, 0)
 #define SCON_WDTOSCCRTL_FREQSEL_BIAS    5
-#define SCON_WDTOSCCRTL_FREQSEL_MASK    MASK(8, 5)
+#define SCON_WDTOSCCRTL_FREQSEL_MASK    BITMASK(8, 5)
 
 #define SCON_USART0CLKDIV_BIAS          0
-#define SCON_USART0CLKDIV_MASK          MASK(7, 0)
+#define SCON_USART0CLKDIV_MASK          BITMASK(7, 0)
 
 #define SCON_PRESETCTRL_SSP0_BIAS       0
 #define SCON_PRESETCTRL_SSP0_MASK       BIT(0)
@@ -137,6 +137,7 @@ typedef enum {
     POWER_USBPAD    = BIT(10),
     POWER_TEMPSENSE = BIT(13),
 } em_power_t;
+
 //! \name Peripheral AHB Clock Macros
 //! @{
 typedef enum {

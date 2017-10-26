@@ -521,8 +521,8 @@ void        osStatInit             (void);
 
 UINT16      osVersion              (void);
 
-#define     osEnterCriticalSection()     OSEnterCriticalSection()
-#define     osExitCriticalSection()      OSExitCriticalSection()
+#define     osEnterCriticalSection(__CS)     OSEnterCriticalSection(__CS)
+#define     osExitCriticalSection(__CS)      OSExitCriticalSection(__CS)
 
 /*!
  *! TARGET SPECIFIC FUNCTION PROTOTYPES

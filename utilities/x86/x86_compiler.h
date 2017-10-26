@@ -40,11 +40,13 @@
 #   define INLINE           inline
 #   define WEAK
 #   define ROOT
+#   define ALIGN_OF(__V)    __alignof(__V)
 #elif   __IS_COMPILER_GCC__
 #   define NO_INIT          
 #   define INLINE           inline
 #   define WEAK
 #   define ROOT
+#   define ALIGN_OF(__V)    alignof(__V)
 #endif
 
 #endif

@@ -24,7 +24,6 @@
 #include "..\application\common_environment_cfg.h"
 #include ".\utilities\utilities.h"
 #include "..\application\common_plateform_cfg.h"
-#include "..\arch\framework_interface.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/

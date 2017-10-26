@@ -46,15 +46,15 @@ extern bool block_memory_device_init(
                             uint32_t                       blockNum,
                             uint8_t                       *pBuffer);
 extern bool block_memory_write(
-                            block_mem_device_t  *pDevice,
-                            uint32_t             addr,
-                            uint8_t             *pData,
-                            uint32_t             dataLength);
+                            const block_mem_device_t   *pDevice,
+                            uint32_t                    addr,
+                            const uint8_t              *pData,
+                            uint32_t                    dataLength);
 extern bool block_memory_read(
-                            block_mem_device_t  *pDevice,
-                            uint32_t             addr,
-                            uint8_t             *pData,
-                            uint32_t             dataLength);
+                            const block_mem_device_t   *pDevice,
+                            uint32_t                    addr,
+                            uint8_t                    *pData,
+                            uint32_t                    dataLength);
 
 #endif  //! #ifndef __BLOCK_H__
 #endif  //! #ifndef __BLOCK_C__

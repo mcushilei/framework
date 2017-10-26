@@ -5,19 +5,21 @@
 /*============================ MACROS ========================================*/
 #define USART0_REG                      (*(usart0_reg_t *)USART0_BASE_ADDRESS)
 #define USART1_REG                      (*(usart_reg_t *)USART1_BASE_ADDRESS)
+#define USART2_REG                      (*(usart_reg_t *)USART2_BASE_ADDRESS)
+#define USART3_REG                      (*(usart_reg_t *)USART3_BASE_ADDRESS)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define USART_RBR_BIAS                  0
-#define USART_RBR_MASK                  MASK(7, 0)
+#define USART_RBR_MASK                  BITMASK(7, 0)
 
 #define USART_THR_BIAS                  0
-#define USART_THR_MASK                  MASK(7, 0)
+#define USART_THR_MASK                  BITMASK(7, 0)
 
 #define USART_DLLSB_BIAS                0
-#define USART_DLLSB_MASK                MASK(7, 0)
+#define USART_DLLSB_MASK                BITMASK(7, 0)
 
 #define USART_DLMSB_BIAS                0
-#define USART_DLMSB_MASK                MASK(7, 0)
+#define USART_DLMSB_MASK                BITMASK(7, 0)
 
 #define USART_IER_RBRIE_BIAS            0     
 #define USART_IER_RBRIE_MASK            BIT(USART_IER_RBRIE_BIAS)     
@@ -39,9 +41,9 @@
 #define USART_IIR_INTSTATUS_BIAS	    0
 #define USART_IIR_INTSTATUS_MASK        BIT(USART_IIR_INTSTATUS_BIAS)
 #define USART_IIR_INTID_BIAS            1
-#define USART_IIR_INTID_MASK            MASK(3, 1)
+#define USART_IIR_INTID_MASK            BITMASK(3, 1)
 #define USART_IIR_FIFOENABLE_BIAS       6
-#define USART_IIR_FIFOENABLE_MASK       MASK(7, 6)
+#define USART_IIR_FIFOENABLE_MASK       BITMASK(7, 6)
 #define USART_IIR_ABEOINT_BIAS          8
 #define USART_IIR_ABEOINT_MASK          BIT(USART_IIR_ABEOINT_BIAS)     
 #define USART_IIR_ABTOINT_BIAS          9 
@@ -58,16 +60,16 @@
 #define USART_FCR_DMA_MO_BIAS           3
 #define USART_FCR_DMA_MO_MASK           BIT(USART_FCR_DMA_MO_BIAS)
 #define USART_FCR_RXTL_BIAS             6
-#define USART_FCR_RTXL_MASK             MASK(7, 6)
+#define USART_FCR_RTXL_MASK             BITMASK(7, 6)
 
 #define USART_LCR_WLS_BIAS              0
-#define USART_LCR_WLS_MASK              MASK(1, 0)
+#define USART_LCR_WLS_MASK              BITMASK(1, 0)
 #define USART_LCR_SBS_BIAS              2
 #define USART_LCR_SBS_MASK              BIT(USART_LCR_SBS_BIAS)
 #define USART_LCR_PE_BIAS               3
 #define USART_LCR_PE_MASK               BIT(USART_LCR_PE_BIAS)
 #define USART_LCR_PS_BIAS               4
-#define USART_LCR_PS_MASK               MASK(5, 4)
+#define USART_LCR_PS_MASK               BITMASK(5, 4)
 #define USART_LCR_BC_BIAS               6
 #define USART_LCR_BC_MASK               BIT(USART_LCR_BC_BIAS)
 #define USART_LCR_DLAB_BIAS             7
@@ -125,7 +127,7 @@
 #define USART_MSR_DCD_MASK              BIT(USART_MSR_DCD_BIAS)
 
 #define USART_SCR_PAD_BIAS              0
-#define USART_SCR_PAD_MASK              MASK(7, 0)
+#define USART_SCR_PAD_MASK              BITMASK(7, 0)
 
 #define USART_ACR_AUTO_BAUD_START_BIAS  0
 #define USART_ACR_AUTO_BAUD_START_MASK  BIT(USART_ACR_AUTO_BAUD_START_BIAS)
@@ -176,9 +178,9 @@
 #define USART_CFG_ENABLE_BIAS           0
 #define USART_CFG_ENABLE_MASK           BIT(0)
 #define USART_CFG_DATALEN_BIAS          2
-#define USART_CFG_DATALEN_MASK          MASK(3, 2)
+#define USART_CFG_DATALEN_MASK          BITMASK(3, 2)
 #define USART_CFG_PARITYSEL_BIAS        4
-#define USART_CFG_PARITYSEL_MASK        MASK(5, 4)
+#define USART_CFG_PARITYSEL_MASK        BITMASK(5, 4)
 #define USART_CFG_STOPLEN_BIAS          6
 #define USART_CFG_STOPLEN_MASK          BIT(6)
 #define USART_CFG_MODE32K_BIAS          7

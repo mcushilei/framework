@@ -21,8 +21,9 @@
 #include "..\pm\pm.h"
 
 /*============================ MACROS ========================================*/
-#define IAP_LOCATION                (0x1FFF1FF1u)
 #define IAP_FLASH_PAGE_SIZE         (256u)
+
+#define IAP_LOCATION                (0x1FFF1FF1u)
 
 #define IAP_CMD_PREPARE_SECTOR      (50u)
 #define IAP_CMD_WRITE               (51u)
@@ -51,6 +52,13 @@
 #define IAP_RET_COMPARE_NOT_SAME    (10u)
 #define IAP_RET_BUSY                (11u)
 #define IAP_RET_INVALD_PARAM        (12u)
+#define IAP_RET_ADDR_ERROR          (13u)
+#define IAP_RET_ADDR_NOT_MAPPED     (14u)
+#define IAP_RET_ADDR_CMD_LOCKED     (15u)
+#define IAP_RET_INVALID_CODE        (16u)
+#define IAP_RET_INVALID_BAUD_RATE               (17u)
+#define IAP_RET_INVALID_STOP_BIT                (18u)
+#define IAP_RET_CODE_READ_PROTECTION_ENABLED    (19u)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define IAP_EXECUTE_CMD(__CMD, __RET)   \
@@ -67,371 +75,255 @@ typedef void fn_iap_t(uint32_t [], uint32_t []);
 /*============================ PROTOTYPES ====================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-/*****************************************************************************
-** Function name:	IAP_PrepareSectors	
-**
-** Description:		Prepares sector(s) for erasing or write operations. This
-** 					command must be executed before executing the "Copy RAM to
-** 					Flash" or "Erase Sector(s)" commands.
-**
-** Parameters:		wStartSector - Number of first sector to prepare.
-** 					wEndSector - Number of last sector to prepare.
-**
-** Returned value:	Status code returned by IAP ROM function.
-**
-******************************************************************************/
-static uint32_t IAP_PrepareSectors(uint32_t wStartSector, uint32_t wEndSector)
+static uint32_t iap_prepare_sectors(uint32_t firstSector, uint32_t lastSector)
 {
-	uint32_t wCommand[5];
-	uint32_t wResult[5];
+	uint32_t command[5];
+	uint32_t result[5];
 
-	if (wEndSector < wStartSector) {
+	if (lastSector < firstSector) {
 		return IAP_RET_INVALD_PARAM;
 	}
     
-    wCommand[0] = IAP_CMD_PREPARE_SECTOR;
-    wCommand[1] = wStartSector;
-    wCommand[2] = wEndSector;
+    command[0] = IAP_CMD_PREPARE_SECTOR;
+    command[1] = firstSector;
+    command[2] = lastSector;
     
-    IAP_EXECUTE_CMD(wCommand, wResult);
+    IAP_EXECUTE_CMD(command, result);
 
-    return wResult[0];
+    return result[0];
 }
 
-/*****************************************************************************
-** Function name:	IAP_CopyRAMToFlash  IAP RAM->Flash
-**
-** Description:		Program the flash memory with data stored in RAM.
-**
-** Parameters:	   	StartPage - Destination Flash page address.
-**			 		pBuffer - Source RAM address, should be a word boundary.
-**			 		Num     - Number of pages to write
-*
-** Returned value:	Status code returned by IAP ROM function.
-**
-******************************************************************************/
-static uint32_t IAP_CopyRAMToFlash(uint32_t StartPage, uint32_t *pBuffer, uint32_t Num)
+static uint32_t iap_copy_ram_to_flash(uint32_t firstPage, uint32_t *buffer, uint32_t num)
 {
-	uint32_t wCommand[5];
-	uint32_t wResult[5];
+	uint32_t command[5];
+	uint32_t result[5];
 
-	if ((0 == Num) || (3 < Num)) {
+	if ((0 == num) || (3 < num)) {
 		return IAP_RET_INVALD_PARAM;
 	}
 
-	wCommand[0] = IAP_CMD_WRITE;
-	wCommand[1] = StartPage * IAP_FLASH_PAGE_SIZE;
-	wCommand[2] = (uint32_t)pBuffer;
-	wCommand[3] = Num * IAP_FLASH_PAGE_SIZE;
-	wCommand[4] = PM_CORE_CLK_GET() / 1000UL;
+	command[0] = IAP_CMD_WRITE;
+	command[1] = firstPage * IAP_FLASH_PAGE_SIZE;
+	command[2] = (uint32_t)buffer;
+	command[3] = num * IAP_FLASH_PAGE_SIZE;
+	command[4] = PM_CORE_CLK_GET() / 1000u;
 	
-	IAP_EXECUTE_CMD(wCommand, wResult);
+	IAP_EXECUTE_CMD(command, result);
 
-	return wResult[0];
+	return result[0];
 }
 
-/*****************************************************************************
-** Function name:	IAP_EraseSectors	 
-**
-** Description:		Erase a sector or multiple sectors of on-chip Flash memory.
-**
-** Parameters:		wStartSector - Number of first sector to erase.
-** 					wEndSector - Number of last sector to erase.
-*
-** Returned value:	Status code returned by IAP ROM function.
-**
-******************************************************************************/
-static uint32_t IAP_EraseSectors(uint32_t wStartSector, uint32_t wEndSector)
+static uint32_t iap_erase_sectors(uint32_t firstSector, uint32_t lastSector)
 {
-	uint32_t wCommand[5];
-	uint32_t wResult[5];
+	uint32_t command[5];
+	uint32_t result[5];
 
-	if (wEndSector < wStartSector) {
+	if (lastSector < firstSector) {
 		return IAP_RET_INVALD_PARAM;
 	}
     
-    wCommand[0] = IAP_CMD_ERASE_SECTOR;
-    wCommand[1] = wStartSector;
-    wCommand[2] = wEndSector;
-    wCommand[3] = PM_CORE_CLK_GET() / 1000UL;
+    command[0] = IAP_CMD_ERASE_SECTOR;
+    command[1] = firstSector;
+    command[2] = lastSector;
+    command[3] = PM_CORE_CLK_GET() / 1000u;
     
-    IAP_EXECUTE_CMD(wCommand, wResult);
+    IAP_EXECUTE_CMD(command, result);
 
-	return wResult[0];
+	return result[0];
 }
 
-/*****************************************************************************
-** Function name:	IAP_BlankCheckSectors
-**
-** Description:		Blank check a sector or multiple sectors of on-chip flash
-** 					memory.
-**
-** Parameters:		wStartSector - Number of first sector to check.
-** 					wEndSector - Number of last sector to check.
-** 					pu32Result[0] - Offset of the first non blank word location
-**                  if the Status Code is IAP_STA_SECTOR_NOT_BLANK.
-** 					pu32Result[1] - Contents of non blank word location.
-**
-** Returned value:	Status code returned by IAP ROM function.
-**
-******************************************************************************/
-static uint32_t IAP_BlankCheckSectors(uint32_t wStartSector, uint32_t wEndSector, uint32_t *pu32Result)
+static uint32_t iap_check_blank_ectors(uint32_t firstSector, uint32_t lastSector, uint32_t *pu32Result)
 {
-	uint32_t wCommand[5];
-	uint32_t wResult[5];
+	uint32_t command[5];
+	uint32_t result[5];
 
-	if (wEndSector < wStartSector) {
+	if (lastSector < firstSector) {
 		return IAP_RET_INVALD_PARAM;
 	}
     
-    wCommand[0] = IAP_CMD_BLANK_CHECK;
-    wCommand[1] = wStartSector;
-    wCommand[2] = wEndSector;
+    command[0] = IAP_CMD_BLANK_CHECK;
+    command[1] = firstSector;
+    command[2] = lastSector;
 
-    IAP_EXECUTE_CMD(wCommand, wResult);
+    IAP_EXECUTE_CMD(command, result);
 
-    if (wResult[0] == IAP_RET_SECTOR_NOT_BLANK) {
-        *pu32Result = wResult[1];
+    if (result[0] == IAP_RET_SECTOR_NOT_BLANK) {
+        *pu32Result = result[1];
     }
 
-    return wResult[0];
+    return result[0];
 }
 
-/*****************************************************************************
-** Function name:	IAP_ReadPartID	 
-**
-** Description:		Read the part identification number.
-**
-** Parameters:		pu32PartID - Pointer to storage for part ID number.
-*
-** Returned value:	Status code returned by IAP ROM function.
-**
-******************************************************************************/
-static uint32_t IAP_ReadPartID(uint32_t *pu32PartID)
+static uint32_t iap_read_part_id(uint32_t *id)
 {
-	uint32_t wCommand[5];
-	uint32_t wResult[5];
+	uint32_t command[5];
+	uint32_t result[5];
 
-	wCommand[0] = IAP_CMD_READ_PID;
+	command[0] = IAP_CMD_READ_PID;
 
-	IAP_EXECUTE_CMD(wCommand, wResult);
+	IAP_EXECUTE_CMD(command, result);
 
-	*pu32PartID = wResult[1];
+	*id = result[1];
 
-	return wResult[0];
+	return result[0];
 }
 
-/*****************************************************************************
-** Function name:	IAP_ReadBootVersion
-**
-** Description:		Read the boot code version number.
-**
-** Parameters:		pu32Major - Major version number in ASCII format.
-** 					pu32Minor - Minor version number in ASCII format.
-**
-** Returned value:	Status code returned by IAP ROM function.
-**
-******************************************************************************/
-static uint32_t IAP_ReadBootVersion(uint32_t *pu32Major, uint32_t *pu32Minor)
+static uint32_t iap_read_boot_code_version(uint32_t *major, uint32_t *minor)
 {
-	uint32_t wCommand[5];
-	uint32_t wResult[5];
+	uint32_t command[5];
+	uint32_t result[5];
 
-	wCommand[0] = IAP_CMD_READ_BOOT_VER;
+	command[0] = IAP_CMD_READ_BOOT_VER;
 
-	IAP_EXECUTE_CMD(wCommand, wResult);
+	IAP_EXECUTE_CMD(command, result);
 
-	*pu32Major = (wResult[1] & 0x0000FF00UL) >> 8;
-	*pu32Minor =  wResult[1] & 0x000000FFUL;
+	*major = (result[1] & 0x0000FF00UL) >> 8;
+	*minor =  result[1] & 0x000000FFUL;
 
-	return wResult[0];
+	return result[0];
 }
 
-/*****************************************************************************
-** Function name:	IAP_Compare	 IAP У׼
-**
-** Description:		Compares the memory contents at two locations.
-**
-** Parameters:		wLen - Number of bytes to compare, must be a multiple of 4.
-**					pu32Offset - Offset of the first mismatch if the Status Code is COMPARE_ERROR
-**
-** Returned value:	Status code returned by IAP ROM function.
-**
-******************************************************************************/
-static uint32_t IAP_Compare(uint32_t wDstAddr, uint32_t wSrcAddr, uint32_t wLen, uint32_t *pu32Offset)
+static uint32_t iap_compare_memory(uint32_t dst, uint32_t src, uint32_t len, uint32_t *offset)
 {
-	uint32_t wCommand[5];
-	uint32_t wResult[5];
+	uint32_t command[5];
+	uint32_t result[5];
 
-	wCommand[0] = IAP_CMD_COMPARE;
-	wCommand[1] = wDstAddr;
-	wCommand[2] = wSrcAddr;
-	wCommand[3] = wLen;
+	command[0] = IAP_CMD_COMPARE;
+	command[1] = dst;
+	command[2] = src;
+	command[3] = len;
 
-	IAP_EXECUTE_CMD(wCommand, wResult);
+	IAP_EXECUTE_CMD(command, result);
 
-	if (wResult[0] == IAP_RET_COMPARE_NOT_SAME) {
-        *pu32Offset = wResult[1];
+	if (result[0] == IAP_RET_COMPARE_NOT_SAME) {
+        *offset = result[1];
 	}
     
-	return wResult[0];
+	return result[0];
 }
 
-/*****************************************************************************
-** Function name:	vIAP_ReinvokeISP
-**
-** Description:		Invoke the bootloader in ISP mode.
-**
-** Parameters:		None.
-*
-** Returned value:	None.
-**
-******************************************************************************/
-static void IAP_ReinvokeISP(void)
+static void iap_reinvoke_isp(void)
 {
-	uint32_t wCommand[5];
-	uint32_t wResult[5];
+	uint32_t command[5];
+	uint32_t result[5];
 
-	wCommand[0] = IAP_CMD_REINVOKE_ISP;
+	command[0] = IAP_CMD_REINVOKE_ISP;
 
-	IAP_EXECUTE_CMD(wCommand, wResult);
+	IAP_EXECUTE_CMD(command, result);
 }
 
-/*****************************************************************************
-** Function name:	IAP_ReadBootVersion
-**
-** Description:		Read the boot code version number.
-**
-** Parameters:		pu32Major - Major version number in ASCII format.
-** 					pu32Minor - Minor version number in ASCII format.
-**
-** Returned value:	Status code returned by IAP ROM function.
-**
-******************************************************************************/
-static uint32_t IAP_ReadUID(uint32_t *pu32byte0, uint32_t *pu32byte1,
+static uint32_t iap_read_uid(uint32_t *pu32byte0, uint32_t *pu32byte1,
                      uint32_t *pu32byte2, uint32_t *pu32byte3)
 {
-	uint32_t wCommand[5];
-	uint32_t wResult[5];
+	uint32_t command[5];
+	uint32_t result[5];
 
-	wCommand[0] = IAP_CMD_READ_UID;
+	command[0] = IAP_CMD_READ_UID;
 
-	IAP_EXECUTE_CMD(wCommand, wResult);
+	IAP_EXECUTE_CMD(command, result);
 
-	*pu32byte0 = wResult[1];
-	*pu32byte1 = wResult[2];
-	*pu32byte2 = wResult[3];
-	*pu32byte3 = wResult[4];
+	*pu32byte0 = result[1];
+	*pu32byte1 = result[2];
+	*pu32byte2 = result[3];
+	*pu32byte3 = result[4];
     
-    return wResult[0];
+    return result[0];
 }
 
-/*****************************************************************************
-** Function name:	IAP Erase Pages
-**
-** Description:		
-**
-** Parameters:		wStartPage		
-**					wEndPage		
-** Returned value:	None.
-**
-******************************************************************************/
-static uint32_t IAP_ErasePages(uint32_t wStartPage, uint32_t wEndPage)
+static uint32_t iap_erase_pages(uint32_t firstPage, uint32_t lastPage)
 {
-	uint32_t wCommand[5];
-	uint32_t wResult[5];
+	uint32_t command[5];
+	uint32_t result[5];
 
-	if (wEndPage < wStartPage) {
+	if (lastPage < firstPage) {
 		return IAP_RET_INVALD_PARAM;
 	}
     
-    wCommand[0] = IAP_CMD_ERASE_PAGE;
-    wCommand[1] = wStartPage;
-    wCommand[2] = wEndPage;
-    wCommand[3] = PM_CORE_CLK_GET() / 1000UL;
+    command[0] = IAP_CMD_ERASE_PAGE;
+    command[1] = firstPage;
+    command[2] = lastPage;
+    command[3] = PM_CORE_CLK_GET() / 1000u;
     
-    IAP_EXECUTE_CMD(wCommand, wResult);
+    IAP_EXECUTE_CMD(command, result);
 
-	return wResult[0];
+	return result[0];
 }
 
-uint32_t iap_eeprom_write(uint32_t Addr, uint8_t *pBuffer, uint32_t Length)
+uint32_t iap_eeprom_write(uint32_t addr, const void *buffer, uint32_t len)
 {
-	uint32_t wCommand[5];
-	uint32_t wResult[5];
+	uint32_t command[5];
+	uint32_t result[5];
 
-    wCommand[0] = IAP_CMD_EEPROM_WRITE;
-    wCommand[1] = Addr;
-    wCommand[2] = (uint32_t)pBuffer;
-    wCommand[3] = Length;
-    wCommand[4] = PM_CORE_CLK_GET() / 1000UL;
+    command[0] = IAP_CMD_EEPROM_WRITE;
+    command[1] = addr;
+    command[2] = (uint32_t)buffer;
+    command[3] = len;
+    command[4] = PM_CORE_CLK_GET() / 1000u;
     
-    IAP_EXECUTE_CMD(wCommand, wResult);
+    IAP_EXECUTE_CMD(command, result);
 
-	return wResult[0];
+	return result[0];
 }
 
-uint32_t iap_eeprom_read(uint32_t Addr, uint8_t *pBuffer, uint32_t Length)
+uint32_t iap_eeprom_read(uint32_t addr, uint8_t *buffer, uint32_t len)
 {
-	uint32_t wCommand[5];
-	uint32_t wResult[5];
+	uint32_t command[5];
+	uint32_t result[5];
 
-    wCommand[0] = IAP_CMD_EEPROM_READ;
-    wCommand[1] = Addr;
-    wCommand[2] = (uint32_t)pBuffer;
-    wCommand[3] = Length;
-    wCommand[4] = PM_CORE_CLK_GET() / 1000UL;
+    command[0] = IAP_CMD_EEPROM_READ;
+    command[1] = addr;
+    command[2] = (uint32_t)buffer;
+    command[3] = len;
+    command[4] = PM_CORE_CLK_GET() / 1000u;
     
-    IAP_EXECUTE_CMD(wCommand, wResult);
+    IAP_EXECUTE_CMD(command, result);
 
-	return wResult[0];
+	return result[0];
 }
 
-uint32_t iap_flash_write_pages(uint32_t wStartPage, uint32_t *pBuffer, uint32_t cnt)
+uint32_t iap_flash_erase_pages(uint32_t firstPage, uint32_t lastPage)
 {
-	uint32_t wErrorCode = 0;
-    uint32_t wStartSector, wEndSector;
+    uint32_t error = 0;
+    uint32_t firstSector, lastSector;
     
-    wStartSector = wStartPage >> 3; //!< / 8
-    wEndSector   = (wStartPage + cnt) >> 3;
+    firstSector = firstPage >> 4; //!< firstPage / 16. One sector contain 16 pages.
+    lastSector   = lastPage   >> 4;
     
-    wErrorCode = IAP_PrepareSectors(wStartSector, wEndSector);
-	if (IAP_RET_CMD_SUCCESS != wErrorCode) {
-        return wErrorCode;
-    }
-
-    wErrorCode = IAP_ErasePages(wStartPage, wStartPage + cnt);
-    if (IAP_RET_CMD_SUCCESS != wErrorCode) {
-        return wErrorCode;
-    }
-
-    wErrorCode = IAP_PrepareSectors(wStartSector, wEndSector);
-	if (IAP_RET_CMD_SUCCESS != wErrorCode) {
-        return wErrorCode;
-    }
-
-    wErrorCode = IAP_CopyRAMToFlash(wStartPage, pBuffer, cnt);
-    
-    return wErrorCode;
-}
-
-uint32_t iap_flash_erase_pages(uint32_t wStartPage, uint32_t cnt)
-{
-    uint32_t wErrorCode = 0;
-    uint32_t wStartSector, wEndSector;
-    
-    wStartSector = wStartPage >> 3; //!< / 8
-    wEndSector   = (wStartPage + cnt) >> 3;
-    
-    wErrorCode = IAP_PrepareSectors(wStartSector, wEndSector);
-	if (IAP_RET_CMD_SUCCESS != wErrorCode) {
-	    return wErrorCode;
+    error = iap_prepare_sectors(firstSector, lastSector);
+	if (IAP_RET_CMD_SUCCESS != error) {
+	    return error;
     }
     
-    wErrorCode = IAP_ErasePages(wStartPage, wStartPage + cnt);
+    error = iap_erase_pages(firstPage, lastPage);
     
-    return wErrorCode;
+    return error;
 }
 
+uint32_t iap_flash_write_page(uint32_t page, uint32_t *buffer)
+{
+	uint32_t error = 0;
+    uint32_t sector;
+    
+    sector = page >> 4;             //!< page / 16
+    
+    error = iap_prepare_sectors(sector, sector);
+	if (IAP_RET_CMD_SUCCESS != error) {
+        return error;
+    }
+
+    error = iap_erase_pages(page, 1);
+    if (IAP_RET_CMD_SUCCESS != error) {
+        return error;
+    }
+
+    error = iap_prepare_sectors(sector, sector);
+	if (IAP_RET_CMD_SUCCESS != error) {
+        return error;
+    }
+
+    error = iap_copy_ram_to_flash(page, buffer, IAP_FLASH_PAGE_SIZE);
+    
+    return error;
+}
 
 /* EOF */

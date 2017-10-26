@@ -19,8 +19,8 @@
 //! \note do not move this pre-processor statement to other places
 #include "..\app_cfg.h"
 
-#ifndef __DRIVER_ARM_M0_LPC12XX_FLASH_APP_CFG_H__
-#define __DRIVER_ARM_M0_LPC12XX_FLASH_APP_CFG_H__
+#ifndef __DRIVER_ARM_M0P_LPC11XXX_FLASH_APP_CFG_H__
+#define __DRIVER_ARM_M0P_LPC11XXX_FLASH_APP_CFG_H__
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/

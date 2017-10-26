@@ -74,12 +74,20 @@ bool rtc_init(void)
                         | (0u << 4);        //!< calibration is not enabled.
         RTC_REG.CIIR    = (0u << 0)         //!< increment of second will not trige an interrupt.
                         | (0u << 1)         //!< increment of minute will not trige an interrupt.
-                        | (0u << 1)         //!< increment of hour   will not trige an interrupt.
-                        | (0u << 1)         //!< increment of day of month will trige an interrupt.
-                        | (0u << 1)         //!< increment of day of week  will not trige an interrupt.
-                        | (0u << 1)         //!< increment of day of yeat  will not trige an interrupt.
-                        | (0u << 1)         //!< increment of month  will not trige an interrupt.
-                        | (0u << 1);        //!< increment of year   will not trige an interrupt.
+                        | (0u << 2)         //!< increment of hour   will not trige an interrupt.
+                        | (0u << 3)         //!< increment of day of month will trige an interrupt.
+                        | (0u << 4)         //!< increment of day of week  will not trige an interrupt.
+                        | (0u << 5)         //!< increment of day of yeat  will not trige an interrupt.
+                        | (0u << 6)         //!< increment of month  will not trige an interrupt.
+                        | (0u << 7);        //!< increment of year   will not trige an interrupt.
+        RTC_REG.AMR     = (0u << 0)         //!< second will not trige an interrupt.
+                        | (0u << 1)         //!< minute will not trige an interrupt.
+                        | (0u << 2)         //!< hour   will not trige an interrupt.
+                        | (0u << 3)         //!< day of month will trige an interrupt.
+                        | (0u << 4)         //!< day of week  will not trige an interrupt.
+                        | (0u << 5)         //!< day of yeat  will not trige an interrupt.
+                        | (0u << 6)         //!< month  will not trige an interrupt.
+                        | (0u << 7);        //!< year   will not trige an interrupt.
     )
     return true;
 }

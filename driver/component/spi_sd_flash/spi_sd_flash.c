@@ -261,19 +261,18 @@ extern void     sd_spi_write_byte(uint8_t Data);
 extern uint8_t  sd_spi_read_byte(void);
 extern void     sd_spi_cs_clr(void);
 extern void     sd_spi_cs_set(void);
-extern uint8_t sd_crc7_calculator(uint8_t chCRCValue, uint8_t chData);
-extern uint8_t sd_crc16_calculator(uint16_t hwCRCValue, uint8_t chData);
+extern uint8_t  sd_crc7_calculator(uint8_t chCRCValue, uint8_t chData);
+extern uint8_t  sd_crc16_calculator(uint16_t hwCRCValue, uint8_t chData);
 
 /*============================ IMPLEMENTATION ================================*/
 static bool spi_sd_wait_busy(void)
 {
-    uint32_t wCnt = 1000;
-    
+    SD_TIME_SET(1000);
     do {
         if (sd_spi_read_byte() == 0xFF) {
             return TRUE;
         }
-    } while (--wCnt);
+    } while (!SD_TIME_IS_OVERFLOW());
 
     return FALSE;
 }

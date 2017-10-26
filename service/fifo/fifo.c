@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2015-2017 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -15,7 +15,6 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-
 //! \note do not move this pre-processor statement to other places
 #define __FIFO_C__
 
@@ -27,9 +26,9 @@
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 typedef struct {
-    void               *pBuffer;
-    __fifo_uint_t       fifoSize;       //!< buffer size.
-    __fifo_uint_t       itemSize;       //!< item size.
+    void               *Buffer;
+    __fifo_uint_t       Size;           //!< buffer size.
+    __fifo_uint_t       ItemSize;       //!< item size.
     __fifo_uint_t       Out;            //!< point to space filled.
     __fifo_uint_t       In;             //!< point to space empty.
 } fifo_t;
@@ -39,48 +38,48 @@ typedef struct {
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
 
-bool fifo_init(void *fifoObj, void *pBuffer, size_t fifoSize, size_t itemSize)
+bool fifo_init(void *obj, void *buffer, size_t size, size_t itemSize)
 {
-    fifo_t *FIFO = (fifo_t *)fifoObj;
+    fifo_t *FIFO = (fifo_t *)obj;
     
-    if (NULL == FIFO || NULL == pBuffer || (!IS_POWER_OF_2(fifoSize))) {
+    if (NULL == FIFO || NULL == buffer || (!IS_POWER_OF_2(size))) {
         return false;
     }
 
-    FIFO->pBuffer   = pBuffer;
-    FIFO->itemSize  = itemSize;
-    FIFO->fifoSize  = fifoSize;
+    FIFO->Buffer    = buffer;
+    FIFO->ItemSize  = itemSize;
+    FIFO->Size      = size;
     FIFO->Out       = 0u;
     FIFO->In        = 0u;
 
     return true;
 }
 
-bool fifo_in(void *fifoObj, const void *pBuffer)
+bool fifo_in(void *obj, const void *buffer)
 {
-    fifo_t *FIFO = (fifo_t *)fifoObj;
+    fifo_t *FIFO = (fifo_t *)obj;
     __fifo_uint_t L1;
 
-    if (NULL == FIFO || NULL == pBuffer) {
+    if (NULL == FIFO || NULL == buffer) {
         return false;
     }
 
-    L1 = FIFO->fifoSize - (FIFO->In - FIFO->Out);
+    L1 = FIFO->Size - (FIFO->In - FIFO->Out);
     if (L1 == 0u) {      //!< fifo is full.
         return false;
     }
 
     L1 = MIN(1u, L1);
 
-    memory_copy((void *)((uintptr_t)FIFO->pBuffer + (FIFO->In & (FIFO->fifoSize - 1u)) * FIFO->itemSize), pBuffer, FIFO->itemSize);
+    memory_copy((void *)((uintptr_t)FIFO->Buffer + (FIFO->In & (FIFO->Size - 1u)) * FIFO->ItemSize), buffer, FIFO->ItemSize);
     FIFO->In += L1;
 
     return true;
 }
 
-bool fifo_out(void *fifoObj, void *pBuffer)
+bool fifo_out(void *obj, void *buffer)
 {
-    fifo_t *FIFO = (fifo_t *)fifoObj;
+    fifo_t *FIFO = (fifo_t *)obj;
     __fifo_uint_t L1;
 
     if (NULL == FIFO) {
@@ -94,56 +93,56 @@ bool fifo_out(void *fifoObj, void *pBuffer)
 
     L1 = MIN(1u, L1);
 
-    if (NULL != pBuffer) {
-        memory_copy(pBuffer, (void *)((uintptr_t)FIFO->pBuffer + (FIFO->Out & (FIFO->fifoSize - 1u)) * FIFO->itemSize), FIFO->itemSize);
+    if (NULL != buffer) {
+        memory_copy(buffer, (void *)((uintptr_t)FIFO->Buffer + (FIFO->Out & (FIFO->Size - 1u)) * FIFO->ItemSize), FIFO->ItemSize);
     }
     FIFO->Out += L1;
 
     return true;
 }
 
-bool fifo8_init(void *fifoObj, uint8_t *pBuffer, size_t fifoSize)
+bool fifo8_init(void *obj, uint8_t *buffer, size_t size)
 {
-    fifo_t *FIFO = (fifo_t *)fifoObj;
+    fifo_t *FIFO = (fifo_t *)obj;
     
-    if (NULL == FIFO || NULL == pBuffer || (!IS_POWER_OF_2(fifoSize))) {
+    if (NULL == FIFO || NULL == buffer || (!IS_POWER_OF_2(size))) {
         return false;
     }
 
-    FIFO->pBuffer   = pBuffer;
-    FIFO->itemSize  = sizeof(uint8_t);
-    FIFO->fifoSize  = fifoSize;
+    FIFO->Buffer    = buffer;
+    FIFO->ItemSize  = sizeof(uint8_t);
+    FIFO->Size      = size;
     FIFO->Out       = 0u;
     FIFO->In        = 0u;
 
     return true;
 }
 
-bool fifo8_in(void *fifoObj, const uint8_t *pBuffer)
+bool fifo8_in(void *obj, const uint8_t *buffer)
 {
-    fifo_t *FIFO = (fifo_t *)fifoObj;
+    fifo_t *FIFO = (fifo_t *)obj;
     __fifo_uint_t L1;
 
-    if (NULL == FIFO || NULL == pBuffer) {
+    if (NULL == FIFO || NULL == buffer) {
         return false;
     }
 
-    L1 = FIFO->fifoSize - (FIFO->In - FIFO->Out);
+    L1 = FIFO->Size - (FIFO->In - FIFO->Out);
     if (L1 == 0u) {      //!< fifo is full.
         return false;
     }
 
     L1 = MIN(1u, L1);
 
-    ((uint8_t *)FIFO->pBuffer)[FIFO->In & (FIFO->fifoSize - 1u)] = *pBuffer;
+    ((uint8_t *)FIFO->Buffer)[FIFO->In & (FIFO->Size - 1u)] = *buffer;
     FIFO->In += L1;
 
     return true;
 }
 
-bool fifo8_out(void *fifoObj, uint8_t *pBuffer)
+bool fifo8_out(void *obj, uint8_t *buffer)
 {
-    fifo_t *FIFO = (fifo_t *)fifoObj;
+    fifo_t *FIFO = (fifo_t *)obj;
     __fifo_uint_t L1;
 
     if (NULL == FIFO) {
@@ -157,25 +156,25 @@ bool fifo8_out(void *fifoObj, uint8_t *pBuffer)
 
     L1 = MIN(1u, L1);
 
-    if (NULL != pBuffer) {
-        *pBuffer = ((uint8_t *)FIFO->pBuffer)[FIFO->Out & (FIFO->fifoSize - 1u)];
+    if (NULL != buffer) {
+        *buffer = ((uint8_t *)FIFO->Buffer)[FIFO->Out & (FIFO->Size - 1u)];
     }
     FIFO->Out += L1;
 
     return true;
 }
 
-//__fifo_uint_t fifo8_in_burst(void *fifoObj, const uint8_t *pBuffer, size_t bufferSize)
+//__fifo_uint_t fifo8_in_burst(void *obj, const uint8_t *buffer, size_t bufferSize)
 //{
-//    fifo_t *FIFO = (fifo_t *)fifoObj;
+//    fifo_t *FIFO = (fifo_t *)obj;
 //    __fifo_uint_t L1, L2;
 //
-//    if (NULL == FIFO || NULL == pBuffer) {
+//    if (NULL == FIFO || NULL == buffer) {
 //        return 0;
 //    }
 //
-//    L1 = FIFO->fifoSize - (FIFO->In - FIFO->Out);
-//    L2 = FIFO->fifoSize - (FIFO->In & (FIFO->fifoSize - 1u));
+//    L1 = FIFO->Size - (FIFO->In - FIFO->Out);
+//    L2 = FIFO->Size - (FIFO->In & (FIFO->Size - 1u));
 //    if (L1 == 0u) {     //!< fifo is full.
 //        return 0;
 //    }
@@ -183,16 +182,16 @@ bool fifo8_out(void *fifoObj, uint8_t *pBuffer)
 //    L1 = MIN(bufferSize, L1); //!< all those without data, include back around
 //    L2 = MIN(L1, L2);   //!< those can be access at once.
 //
-//    memcpy(FIFO->pBuffer + (FIFO->In & (FIFO->fifoSize - 1u)), pBuffer, L2);
-//    memcpy(FIFO->pBuffer, pBuffer + L2, L1 - L2);
+//    memory_copy(FIFO->Buffer + (FIFO->In & (FIFO->Size - 1u)), buffer, L2);
+//    memory_copy(FIFO->Buffer, buffer + L2, L1 - L2);
 //    FIFO->In += L1;
 //
 //    return L1;
 //}
 //
-//__fifo_uint_t fifo8_out_burst(void *fifoObj, uint8_t *pBuffer, size_t bufferSize)
+//__fifo_uint_t fifo8_out_burst(void *obj, uint8_t *buffer, size_t bufferSize)
 //{
-//    fifo_t *FIFO = (fifo_t *)fifoObj;
+//    fifo_t *FIFO = (fifo_t *)obj;
 //    __fifo_uint_t L1, L2;
 //
 //    if (NULL == FIFO) {
@@ -200,7 +199,7 @@ bool fifo8_out(void *fifoObj, uint8_t *pBuffer)
 //    }
 //
 //    L1 = FIFO->In - FIFO->Out;
-//    L2 = FIFO->fifoSize - (FIFO->Out & (FIFO->fifoSize - 1u));
+//    L2 = FIFO->Size - (FIFO->Out & (FIFO->Size - 1u));
 //    if (L1 == 0u) {     //!< fifo is empty.
 //        return 0;
 //    }
@@ -208,9 +207,9 @@ bool fifo8_out(void *fifoObj, uint8_t *pBuffer)
 //    L1 = MIN(bufferSize, L1); //!< all those with data, include back around
 //    L2 = MIN(L1, L2);   //!< those can be access at once.
 //
-//    if (NULL != pBuffer) {
-//        memcpy(pBuffer, FIFO->pBuffer + (FIFO->Out & (FIFO->fifoSize - 1u)), L2);
-//        memcpy(pBuffer + L2, FIFO->pBuffer, L1 - L2);
+//    if (NULL != buffer) {
+//        memory_copy(buffer, FIFO->Buffer + (FIFO->Out & (FIFO->Size - 1u)), L2);
+//        memory_copy(buffer + L2, FIFO->Buffer, L1 - L2);
 //    }
 //    FIFO->Out += L1;
 //

@@ -29,6 +29,7 @@
 #include "..\common\rtc\rtc.h"
 #include "..\common\iap\iap.h"
 #include "..\common\wdt\wdt.h"
+#include "..\common\adc\adc.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/

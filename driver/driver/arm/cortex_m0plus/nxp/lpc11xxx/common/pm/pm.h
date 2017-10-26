@@ -49,10 +49,10 @@ typedef enum {
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool     power_enable(uint32_t Part);
-extern bool     power_disable(uint32_t Part);
-extern uint32_t power_status_get(uint32_t Part);
-extern bool     power_status_resume(uint32_t Part , uint32_t Status);
+extern bool     power_enable(uint32_t parts);
+extern bool     power_disable(uint32_t parts);
+extern uint32_t power_status_get(uint32_t parts);
+extern bool     power_status_resume(uint32_t parts , uint32_t status);
 
 //! Before call: PLL should NOT be in use AND should be power down.
 //! After  call: If there is any error(return false), PLL is power down;
@@ -63,10 +63,10 @@ extern bool     pll_disable(void);
 extern uint32_t pll_get_in_clock(void);
 extern uint32_t pll_get_out_clock(void);
 
-extern bool     ahb_clock_enable(uint32_t Part);
-extern bool     ahb_clock_disable(uint32_t Part);
-extern uint32_t ahb_clock_get_status(uint32_t Part);
-extern bool     ahb_clock_resume_status(uint32_t Part, uint32_t Status);
+extern bool     ahb_clock_enable(uint32_t parts);
+extern bool     ahb_clock_disable(uint32_t parts);
+extern uint32_t ahb_clock_get_status(uint32_t parts);
+extern bool     ahb_clock_resume_status(uint32_t parts, uint32_t status);
 
 extern bool     core_clock_config(uint32_t Source, uint32_t Div);
 extern uint32_t core_clock_get(void);

@@ -71,10 +71,11 @@ typedef enum IRQn {
  */
 
 /* Configuration of the Cortex-M0 Processor and Core Peripherals */
-#define __CM0_REV                 0x0000	/*!< Cortex-M0 Core Revision                          */
-#define __MPU_PRESENT             0         /*!< MPU present or not                               */
-#define __NVIC_PRIO_BITS          2         /*!< Number of Bits used for Priority Levels          */
-#define __Vendor_SysTickConfig    0         /*!< Set to 1 if different SysTick Config is used     */
+#define __CM0_REV                   0x0000  /*!< Cortex-M0 Core Revision                          */
+#define __MPU_PRESENT               0       /*!< MPU present or not                               */
+#define __VTOR_PRESENT              1       /*!< Set to 1 if vector table is used     */
+#define __NVIC_PRIO_BITS            2       /*!< Number of Bits used for Priority Levels          */
+#define __Vendor_SysTickConfig      0       /*!< Set to 1 if different SysTick Config is used     */
 
 #include "..\..\..\common\common.h"
 
@@ -104,6 +105,7 @@ typedef enum IRQn {
 #define FLASH_BASE_ADDRESS              (0x4003C000ul)
 #define PMU_BASE_ADDRESS                (0x40038000ul)
 #define PININT_BASE_ADDRESS             (0xA0004000ul)
+#define ADC_BASE_ADDRESS                (0x4001C000u)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/

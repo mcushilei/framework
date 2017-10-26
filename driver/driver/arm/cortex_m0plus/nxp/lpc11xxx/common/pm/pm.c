@@ -27,7 +27,7 @@
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#define IS_POWER_ENABLED(__PART)    ((~SYSCON_REG.PDRUNCFG) & Parts)
+#define IS_POWER_ENABLED(__PART)    ((~SYSCON_REG.PDRUNCFG) & parts)
 
 /*============================ TYPES =========================================*/
 //! \name the lowpower mode
@@ -44,32 +44,32 @@ typedef enum {
 /*============================ PROTOTYPES ====================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-bool power_enable(uint32_t Parts)
+bool power_enable(uint32_t parts)
 {
     SAFE_ATOM_CODE(
-        SYSCON_REG.PDRUNCFG &= ~Parts;
+        SYSCON_REG.PDRUNCFG &= ~parts;
     )
     return true;
 }
 
-bool power_disable(uint32_t Parts)
+bool power_disable(uint32_t parts)
 {
     SAFE_ATOM_CODE(
-        SYSCON_REG.PDRUNCFG |= Parts;
+        SYSCON_REG.PDRUNCFG |= parts;
     )
     return true;
 }
 
-uint32_t power_status_get(uint32_t Parts)
+uint32_t power_status_get(uint32_t parts)
 {
-    return SYSCON_REG.PDRUNCFG & Parts;
+    return SYSCON_REG.PDRUNCFG & parts;
 }
 
-bool power_status_resume(uint32_t Parts , uint32_t Status)
+bool power_status_resume(uint32_t parts , uint32_t status)
 {
     SAFE_ATOM_CODE(
-        SYSCON_REG.PDRUNCFG = (SYSCON_REG.PDRUNCFG & ~Parts) 
-                            | (Status & Parts);
+        SYSCON_REG.PDRUNCFG = (SYSCON_REG.PDRUNCFG & ~parts) 
+                            | (status & parts);
     )
     return true;
 }
@@ -254,14 +254,14 @@ uint32_t ahb_clock_get_status(uint32_t Part)
 }
 
 //! \brief Resume part's ahb clock status
-bool ahb_clock_resume_status(uint32_t Part, uint32_t Status)
+bool ahb_clock_resume_status(uint32_t Part, uint32_t status)
 {
     if (Part > 31) {
         return false;
     }
 
     SYSCON_REG.SYSAHBCLKCTRL = (SYSCON_REG.SYSAHBCLKCTRL & ~BIT(Part))
-                             | (Status & BIT(Part));
+                             | (status & BIT(Part));
 
     return true;
 }
@@ -269,10 +269,10 @@ bool ahb_clock_resume_status(uint32_t Part, uint32_t Status)
 
 #define SAFE_CLK_CODE(...)  \
     {\
-        uint32_t Status   = ahb_clock_get_status(AHBCLK_FLASHREG);       \
+        uint32_t status   = ahb_clock_get_status(AHBCLK_FLASHREG);       \
         ahb_clock_enable(AHBCLK_FLASHREG);                                \
         __VA_ARGS__;                                                    \
-        ahb_clock_resume_status(AHBCLK_FLASHREG, Status);                \
+        ahb_clock_resume_status(AHBCLK_FLASHREG, status);                \
     }
 
 bool core_clock_config(uint32_t Source, uint32_t Div)

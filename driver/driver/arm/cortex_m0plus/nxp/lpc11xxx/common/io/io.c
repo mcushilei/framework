@@ -186,29 +186,32 @@ static bool io_configurate(io_cfg_t const *pConfig, uint32_t Size)
     SAFE_CLK_CODE(
         //! io configure
         for (; Size; --Size) {
-            uint32_t RegValue = pConfig->Mode | pConfig->Function;
+            uint32_t cfg = pConfig->Mode | pConfig->Function;
             switch (pConfig->Port) {
-            case 0:
-                if (pConfig->PIN >= 24) {
+                case 0:
+                    if (pConfig->PIN >= 24) {
+                        break;
+                    }
+                    IOCON_REG.PIO0[pConfig->PIN] = cfg;
                     break;
-                }
-                IOCON_REG.PIO0[pConfig->PIN] = RegValue;
-                break;
-            case 1:
-                if (pConfig->PIN >= 32) {
+                    
+                case 1:
+                    if (pConfig->PIN >= 32) {
+                        break;
+                    }
+                    IOCON_REG.PIO1[pConfig->PIN] = cfg;
                     break;
-                }
-                IOCON_REG.PIO1[pConfig->PIN] = RegValue;
-                break;
-            case 2:
-                if (pConfig->PIN < 2) {
-                    IOCON_REG.PIO2A[pConfig->PIN] = RegValue;
-                } else if (pConfig->PIN < 24) {
-                    IOCON_REG.PIO2B[pConfig->PIN - 2] = RegValue;
-                }
-                break;
-            default:
-                break;
+                    
+                case 2:
+                    if (pConfig->PIN < 2) {
+                        IOCON_REG.PIO2A[pConfig->PIN] = cfg;
+                    } else if (pConfig->PIN < 24) {
+                        IOCON_REG.PIO2B[pConfig->PIN - 2] = cfg;
+                    }
+                    break;
+                    
+                default:
+                    break;
             }
             pConfig++;
         }

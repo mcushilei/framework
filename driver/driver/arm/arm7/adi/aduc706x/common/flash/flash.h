@@ -24,7 +24,7 @@
 #include ".\app_cfg.h"
 #include "..\device.h"
 #include ".\reg_flash.h"
-#include ".\public_flash.h"
+#include ".\flash_public.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/

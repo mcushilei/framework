@@ -55,7 +55,7 @@ bool block_memory_device_init(block_mem_device_t            *pDevice,
     return true;
 }
 
-bool block_memory_write(block_mem_device_t *pDevice, uint32_t addr, uint8_t *pData, uint32_t dataLength)
+bool block_memory_write(const block_mem_device_t *pDevice, uint32_t addr, const uint8_t *pData, uint32_t dataLength)
 {
     uint32_t blockAddr, byteAddr, byteCnt;
     uint8_t state = 0;
@@ -97,7 +97,7 @@ bool block_memory_write(block_mem_device_t *pDevice, uint32_t addr, uint8_t *pDa
 
         case 1:
             while (dataLength >= pDevice->BlockSize) {
-                if (false == pDevice->Write(blockAddr, pData)) {
+                if (false == pDevice->Write(blockAddr, (uint8_t *)pData)) {
                     res = false;
                     goto __EXIT;
                 }
@@ -131,7 +131,7 @@ __EXIT:
     return res;
 }
 
-bool block_memory_read(block_mem_device_t *pDevice, uint32_t addr, uint8_t *pData, uint32_t dataLength)
+bool block_memory_read(const block_mem_device_t *pDevice, uint32_t addr, uint8_t *pData, uint32_t dataLength)
 {
     uint32_t blockAddr, byteAddr, byteCnt;
     bool res = true;

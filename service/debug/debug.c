@@ -36,12 +36,10 @@
 }
 
 #define DEBUG_PRINT_LOCATION(__FILE, __LINE) {       \
-    DEBUG_OUTPUT_CHAR('<');                          \
     debug_print_string(__FILE);                      \
-    DEBUG_OUTPUT_CHAR('>');                          \
-    debug_print_number_unsigned(__LINE);             \
     DEBUG_OUTPUT_CHAR(':');                          \
-    DEBUG_OUTPUT_CHAR(' ');                          \
+    debug_print_number_unsigned(__LINE);             \
+    DEBUG_OUTPUT_CHAR('>');                          \
 }
 
 /*============================ TYPES =========================================*/
@@ -62,8 +60,8 @@ static void debug_print_number_hex(const _UINT number, const _UINT nibbles_to_pr
 static void debug_print_mask(const _UINT mask, const _UINT number);
 
 /*============================ LOCAL VARIABLES ===============================*/
-static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrFail[]      = "[Err]";
-static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrMessage[]   = "[Msg]";
+static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrFail[]      = "{Err}";
+static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrMessage[]   = "{Msg}";
 static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrNull[]      = "NULL";
 static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrExpected[]  = "Expected ";
 static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrWas[]       = " Was ";

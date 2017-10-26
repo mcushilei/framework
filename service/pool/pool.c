@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2015-2017 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -15,9 +15,9 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-
 //! \note do not move this pre-processor statement to other places
 #define __POOL_C__
+
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
@@ -25,32 +25,38 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
+//! \note   this structure should be inherited by the memory block you want to be managed by pool.
+//! @{
 DEF_STRUCTURE(pool_block_t)
-    pool_block_t   *pNext;
+    pool_block_t   *Next;
 END_DEF_STRUCTURE(pool_block_t)
+//! @}
 
 //! ADT: list stack.
-DEF_CLASS(pool_t)
-    void           *pFreeList;
-    pool_uint_t     BlockSize;      //!< size of one block in BYTE.
+DEF_STRUCTURE(pool_t)
+    void           *FreeList;
+    size_t          BlockSize;      //!< size of one memory block.
     pool_uint_t     Size;           //!< pool size.
     pool_uint_t     Level;          //!< pool level
     pool_uint_t     LevelMin;       //!< minimum pool level
-END_DEF_CLASS(pool_t)
+END_DEF_STRUCTURE(pool_t)
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-bool pool_init(void *pPoolObj, pool_uint_t blockSize)
+/*! \brief  init an empty pool.
+ */
+bool pool_init(void *obj, pool_uint_t blockSize)
 {    
-    CLASS(pool_t) *Pool = (CLASS(pool_t) *)pPoolObj;
+    pool_t *Pool = (pool_t *)obj;
 
-    if (NULL == pPoolObj || 0u == blockSize || 0 != (blockSize % sizeof(void *))) {
+    //! block size should be mulitple size of pointer.
+    if (NULL == obj || 0u == blockSize || 0u != (blockSize % sizeof(void *))) {
         return false;
     }
 
-    Pool->pFreeList = NULL;
+    Pool->FreeList  = NULL;
     Pool->BlockSize = blockSize;
     Pool->Size      = 0u;
     Pool->Level     = 0u;
@@ -59,44 +65,47 @@ bool pool_init(void *pPoolObj, pool_uint_t blockSize)
     return true;
 }
 
-bool pool_deinit(void *pPoolObj)
+bool pool_deinit(void *obj)
 {
     return true;
 }
 
-bool pool_add_memory(void *pPoolObj, void *pMem, pool_uint_t num)
+/*! \brief  add memory to pool.
+ */
+bool pool_add_memory(void *obj, void *pMem, pool_uint_t num)
 {
-    CLASS(pool_t) *Pool = (CLASS(pool_t) *)pPoolObj;
+    pool_t *Pool = (pool_t *)obj;
 
-    if ((NULL == pPoolObj) || (NULL == pMem)) {
+    if ((NULL == obj) || (NULL == pMem)) {
         return false;
     }
 
     __POOL_ATOM_ACCESS(
         for (; num; num--) {
-            ((pool_block_t *)pMem)->pNext = (pool_block_t *)Pool->pFreeList;
-            Pool->pFreeList = pMem;
-            pMem = (uint8_t *)pMem + Pool->BlockSize;
+            ((pool_block_t *)pMem)->Next = (pool_block_t *)Pool->FreeList;
+            Pool->FreeList = pMem;
+            pMem = (char *)pMem + Pool->BlockSize;
         }
-        Pool->Level += num;
+        Pool->Level     += num;
+        Pool->LevelMin  += num;
     )
 
 
     return true;
 }
 
-bool pool_free(void* pPoolObj, void* pMem)
+bool pool_free(void* obj, void* pMem)
 {    
-    CLASS(pool_t) *Pool = (CLASS(pool_t) *)pPoolObj;
+    pool_t *Pool = (pool_t *)obj;
 
-    if ((NULL == pPoolObj) || (NULL == pMem)) {
+    if ((NULL == obj) || (NULL == pMem)) {
         return false;
     }
 
     __POOL_ATOM_ACCESS(
         do {
-            ((pool_block_t *)pMem)->pNext = (pool_block_t *)Pool->pFreeList;
-            Pool->pFreeList = pMem;
+            ((pool_block_t *)pMem)->Next = (pool_block_t *)Pool->FreeList;
+            Pool->FreeList = pMem;
             Pool->Level++;
         } while (0);
     )
@@ -104,23 +113,23 @@ bool pool_free(void* pPoolObj, void* pMem)
     return true;
 }
 
-void *pool_new(void *pPoolObj)
+void *pool_new(void *obj)
 {
-    CLASS(pool_t) *Pool = (CLASS(pool_t) *)pPoolObj;
+    pool_t *Pool = (pool_t *)obj;
     void *pMem = NULL;
 
-    if (NULL == pPoolObj) {
+    if (NULL == obj) {
         return NULL;
     }
 
      __POOL_ATOM_ACCESS(
         do {
-            if (NULL == Pool->pFreeList) {
+            if (NULL == Pool->FreeList) {
                 break; 
             }
-            pMem = Pool->pFreeList;
-            Pool->pFreeList = ((pool_block_t *)pMem)->pNext; 
-            ((pool_block_t*)pMem)->pNext = NULL;
+            pMem = Pool->FreeList;
+            Pool->FreeList = ((pool_block_t *)pMem)->Next; 
+            ((pool_block_t*)pMem)->Next = NULL;
             Pool->Level--;
             if (Pool->Level < Pool->LevelMin) {
                 Pool->LevelMin = Pool->Level;
@@ -131,22 +140,22 @@ void *pool_new(void *pPoolObj)
     return pMem;     
 }    
 
-pool_uint_t pool_get_level(void *pPoolObj)
+pool_uint_t pool_get_level(void *obj)
 {
-    CLASS(pool_t) *Pool = (CLASS(pool_t) *)pPoolObj;
+    pool_t *Pool = (pool_t *)obj;
 
-    if (NULL == pPoolObj) {
+    if (NULL == obj) {
         return 0;
     }
 
     return Pool->Level;
 }
 
-pool_uint_t pool_get_min_level(void *pPoolObj)
+pool_uint_t pool_get_min_level(void *obj)
 {
-    CLASS(pool_t) *Pool = (CLASS(pool_t) *)pPoolObj;
+    pool_t *Pool = (pool_t *)obj;
 
-    if (NULL == pPoolObj) {
+    if (NULL == obj) {
         return 0;
     }
 

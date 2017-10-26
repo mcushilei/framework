@@ -103,6 +103,11 @@ typedef enum {
 #define RTC_CLK_FREQ            (32768u)
 //! @}
 
+#define GPIO0_BASE_ADDRESS          (0x2009C000)
+#define GPIO1_BASE_ADDRESS          (0x2009C020)
+#define GPIO2_BASE_ADDRESS          (0x2009C040)
+#define GPIO3_BASE_ADDRESS          (0x2009C060)
+#define GPIO4_BASE_ADDRESS          (0x2009C080)
 #define UART0_BASE_ADDRESS              (0x4000C000u)
 #define UART1_BASE_ADDRESS              (0x40010000u)
 #define UART2_BASE_ADDRESS              (0x40098000u)

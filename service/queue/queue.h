@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2015-2017 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -42,30 +42,30 @@
 #define QUEUE_PEEK(__PQUEUE, __POBJ)        queue_peek(__PQUEUE, __POBJ)
 #define QUEUE_GET_ALL_PEEKED(__PQUEUE)      queue_get_all_peeked(__PQUEUE)
 #define QUEUE_RESET_PEEK(__PQUEUE)          queue_reset_peek(__PQUEUE)
-#define QUEUE_GET_OBJECT_COUNT(__PQUEUE)    queue_get_object_count(__PQUEUE)
+#define QUEUE_GET_OBJECT_COUNT(__PQUEUE)    queue_get_length(__PQUEUE)
 
 /*============================ TYPES =========================================*/
-EXTERN_CLASS(queue_t)
-    void *              pBuffer;
-    __queue_uint_t      bufferSize;
-    __queue_uint_t      itemSize;
+DEF_STRUCTURE(queue_t)
+    void               *Buffer;
+    __queue_uint_t      Size;
+    __queue_uint_t      ItemSize;
     __queue_uint_t      Head;
     __queue_uint_t      Tail;
-    __queue_uint_t      Counter;
+    __queue_uint_t      Length;
     __queue_uint_t      Peek;
-    __queue_uint_t      PeekCounter;
-END_EXTERN_CLASS(queue_t)
+    __queue_uint_t      PeekLength;
+END_DEF_STRUCTURE(queue_t)
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool queue_init      (void *queueObj, void *pBuffer, __queue_uint_t bufferSize, __queue_uint_t itemSize);
-extern bool queue_deinit    (void *queueObj);
-extern bool queue_enqueue   (void *queueObj, void *pData);
-extern bool queue_dequeue   (void *queueObj, void *pData);
-extern bool queue_peek      (void *queueObj, void *pData);
-extern void queue_get_all_peeked(void *queueObj);
-extern void queue_reset_peek(void *queueObj);
-extern __queue_uint_t queue_get_object_count(void *queueObj);
+extern bool queue_init          (void *obj, void *buffer, size_t size, size_t itemSize);
+extern bool queue_deinit        (void *obj);
+extern bool queue_enqueue       (void *obj, void *data);
+extern bool queue_dequeue       (void *obj, void *data);
+extern bool queue_peek          (void *obj, void *data);
+extern void queue_get_all_peeked(void *obj);
+extern void queue_reset_peek    (void *obj);
+extern __queue_uint_t queue_get_length(void *obj);
 
 #endif
 #endif

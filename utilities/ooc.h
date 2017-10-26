@@ -25,27 +25,20 @@
 /*============================ MACROFIED FUNCTIONS ===========================*/
 //! \name class definition
 //! @{
-#define CLASS(__NAME)                   __##__NAME
+#define CLASS(__NAME)           __NAME
 
-#define DEF_CLASS(__NAME)          \
-            typedef union __NAME __NAME;\
-            typedef struct __##__NAME __##__NAME;\
-            struct __##__NAME {
+#define DEF_CLASS(__NAME)                   \
+            typedef struct __NAME __NAME;   \
+            struct __NAME {
 
-#define END_DEF_CLASS(__NAME)           \
-            };                          \
-            union __NAME {              \
-                struct __##__NAME;      \
-                uint_fast8_t __MSK[(sizeof(__##__NAME) + sizeof(uint_fast8_t) - 1) / sizeof(uint_fast8_t)];\
+#define END_DEF_CLASS(__NAME)               \
             };
 
-#define EXTERN_CLASS(__NAME)       \
-            typedef union __NAME __NAME;\
-            union __NAME {              \
-                uint_fast8_t __MSK[(sizeof(struct {
+#define EXTERN_CLASS(__NAME)                \
+            typedef struct __NAME __NAME;   \
+            struct __NAME {
 
-#define END_EXTERN_CLASS(__NAME)        \
-                }) + sizeof(uint_fast8_t) - 1) / sizeof(uint_fast8_t)];\
+#define END_EXTERN_CLASS(__NAME)            \
             };
 //! @}
 

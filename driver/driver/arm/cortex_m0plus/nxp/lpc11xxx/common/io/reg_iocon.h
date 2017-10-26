@@ -98,7 +98,7 @@ typedef enum {
     
     IO_HYSTERESIS       = (1u << 5),
     IO_INPUT_INVERT     = (1u << 6),
-    IO_ANALOG_MODE      = (1u << 7),
+    IO_ANALOG_MODE      = (0u << 7),
     IO_GLITCH_FILTER    = (1u << 8),
     IO_OPEN_DRAIN       = (1u << 10),
     

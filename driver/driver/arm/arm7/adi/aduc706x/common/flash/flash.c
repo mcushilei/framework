@@ -21,7 +21,7 @@
 #include ".\app_cfg.h"
 #include "..\device.h"
 #include ".\reg_flash.h"
-#include ".\public_flash.h"
+#include ".\flash_public.h"
 
 /*============================ MACROS ========================================*/
 
@@ -94,4 +94,32 @@ uint32_t flash_write_page(uint32_t wPage, uint8_t *pData)
     return FLASH_ERR_NONE;
 }
 
+uint32_t flash_write_data(uint32_t wPage, uint8_t *pData, uint8_t len)
+{
+    uint32_t wAddr;
+    uint16_t wState;
+
+    wAddr = wPage * 512u;
+    for (uint32_t i = 0; i < FLASH_BLOCK_SIZE; i += 2u) {
+        SAFE_ATOM_CODE(
+            FLASH_REG.FEEMOD    = (0u << 9)     //!< reserved.
+                                | (1u << 8)     //!< reserved, always set to 1.
+                                | (0u << 5)     //!< reserved.
+                                | (0u << 4)     //!< interrupt not enable.
+                                | (1u << 3)     //!< earse/write command enable
+                                | (0u << 0);    //!< reserved.
+            FLASH_REG.FEEADR = wAddr;
+            FLASH_REG.FEEDAT = (pData[i + 1] << 8) + pData[i];
+            FLASH_REG.FEECON = FLASH_CMD_SINGLE_WRITE;
+            do {
+                wState = FLASH_REG.FEESTA;
+            } while (wState & (1u << 2));
+        )
+        if (wState & (1u << 1)) {
+            return FLASH_ERR_CMD_FAIL;
+        }
+        wAddr += 2;
+    }
+    return FLASH_ERR_NONE;
+}
 /* EOF */

@@ -20,11 +20,11 @@
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define GPIO0_REG               (*(gpio_reg_t      *) GPIO0_BASE    )
-#define GPIO1_REG               (*(gpio_reg_t      *) GPIO1_BASE    )
-#define GPIO2_REG               (*(gpio_reg_t      *) GPIO2_BASE    )
-#define GPIO3_REG               (*(gpio_reg_t      *) GPIO3_BASE    )
-#define GPIO4_REG               (*(gpio_reg_t      *) GPIO4_BASE    )
+#define GPIO0_REG               (*(gpio_reg_t      *) GPIO0_BASE_ADDRESS    )
+#define GPIO1_REG               (*(gpio_reg_t      *) GPIO1_BASE_ADDRESS    )
+#define GPIO2_REG               (*(gpio_reg_t      *) GPIO2_BASE_ADDRESS    )
+#define GPIO3_REG               (*(gpio_reg_t      *) GPIO3_BASE_ADDRESS    )
+#define GPIO4_REG               (*(gpio_reg_t      *) GPIO4_BASE_ADDRESS    )
 #define GPIOINT_REG             (*(gpioint_reg_t   *) GPIOINT_BASE  )
 
 /*============================ MACROFIED FUNCTIONS ===========================*/

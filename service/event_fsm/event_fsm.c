@@ -30,8 +30,8 @@ typedef efsm_state_t *efsm_stack_t;
 typedef struct {
     efsm_stack_t   *Stack;
     uint8_t         StackSize;
-    uint8_t         SP;           //!< stack point.
-    uint8_t         CurrentSP;    //!< current stack point, it's alwayse less or equal to SP.
+    uint8_t         TopLevel;           //!< stack point.
+    uint8_t         CurrentLevel;       //!< current level point, it's alwayse less or equal to TopLevel.
 } efsm_t;
 
 /*============================ PROTOTYPES ====================================*/
@@ -43,39 +43,39 @@ bool efsm_init     (efsm_t         *EFSM,
                     uint8_t         stackSize,
                     efsm_state_t   *pInitState)
 {
-    EFSM->Stack      = pStack;
-    EFSM->StackSize  = stackSize;
-    EFSM->SP         = 0;
-    EFSM->CurrentSP  = 0;
-    EFSM->Stack[0]   = pInitState;
+    EFSM->Stack         = pStack;
+    EFSM->StackSize     = stackSize;
+    EFSM->TopLevel      = 0;
+    EFSM->CurrentLevel  = 0;
+    EFSM->Stack[0]      = pInitState;
 
     return true;
 }
 
 static bool efsm_current_level_decrease(efsm_t *EFSM)
 {
-    if (EFSM->CurrentSP != 0u) {
-        EFSM->CurrentSP--;
+    if (EFSM->CurrentLevel != 0u) {
+        EFSM->CurrentLevel--;
         return true;
     } else {
         return false;
     }
 }
 
-//!< reset current-SP to SP.
-static void efsm_reset_current(efsm_t *EFSM)
+//!< reset current-TopLevel to TopLevel.
+static void efsm_reset_current_level(efsm_t *EFSM)
 {
-    EFSM->CurrentSP = EFSM->SP;
+    EFSM->CurrentLevel = EFSM->TopLevel;
 }
 
 static efsm_state_t *efsm_get_current_state(efsm_t *EFSM)
 {
-    return EFSM->Stack[EFSM->CurrentSP];
+    return EFSM->Stack[EFSM->CurrentLevel];
 }
 
 bool efsm_level_to_current(efsm_t *EFSM)
 {
-    EFSM->SP = EFSM->CurrentSP;             //!< POP stack to current level.
+    EFSM->TopLevel = EFSM->CurrentLevel;
     
     return true;
 }
@@ -83,7 +83,7 @@ bool efsm_level_to_current(efsm_t *EFSM)
 //! transfer to specified state within current level.
 bool efsm_current_level_to_state(efsm_t *EFSM, efsm_state_t *pState)
 {
-    EFSM->Stack[EFSM->CurrentSP] = pState;   //!< transfer to State.
+    EFSM->Stack[EFSM->CurrentLevel] = pState;       //!< transfer to State.
 
     return true;
 }
@@ -93,22 +93,22 @@ bool efsm_current_level_to_state(efsm_t *EFSM, efsm_state_t *pState)
 //! then call efsm_current_level_transfer_to.
 bool efsm_to_state(efsm_t *EFSM, efsm_state_t *pState)
 {
-    EFSM->SP = EFSM->CurrentSP;             //!< POP stack to current level.
-    EFSM->Stack[EFSM->SP] = pState;         //!< transfer to State.
+    EFSM->TopLevel = EFSM->CurrentLevel;            //!< POP stack to current level.
+    EFSM->Stack[EFSM->TopLevel] = pState;           //!< transfer to State.
     
     return true;
 }
 
 //! transfer to specified state that locate in a upper level.
-bool efsm_to_uper(efsm_t *EFSM, efsm_state_t *pState)
+bool efsm_to_upper(efsm_t *EFSM, efsm_state_t *pState)
 {
-    if ((EFSM->CurrentSP + 1u) >= EFSM->StackSize) { //!< avoid overflow.
-        return false;
+    if ((EFSM->CurrentLevel + 1u) >= EFSM->StackSize) { //!< avoid overflow.
+        return false;                                   //!< this should be fatal error!
     }
 
-    EFSM->CurrentSP++;
-    EFSM->SP = EFSM->CurrentSP;             //!< POP stack to current level.
-    EFSM->Stack[EFSM->SP] = pState;         //!< transfer to State.
+    EFSM->CurrentLevel++;
+    EFSM->TopLevel = EFSM->CurrentLevel;                //!< POP stack to current level.
+    EFSM->Stack[EFSM->TopLevel] = pState;               //!< transfer to State.
     
     return true;
 }
@@ -116,17 +116,17 @@ bool efsm_to_uper(efsm_t *EFSM, efsm_state_t *pState)
 //! transfer to specified state that locate in a lower level.
 bool efsm_to_lower(efsm_t *EFSM, efsm_state_t *pState)
 {
-    if (EFSM->CurrentSP == 0u) {            //!< avoid overflow.
-        return false;
+    if (EFSM->CurrentLevel == 0u) {             //!< avoid overflow.
+        return false;                           //!< this should be fatal error!
     }
     
     //! POP stack.
-    EFSM->CurrentSP--;
-    EFSM->SP = EFSM->CurrentSP;             //!< POP stack to current level.
+    EFSM->CurrentLevel--;
+    EFSM->TopLevel = EFSM->CurrentLevel;        //!< POP stack to current level.
     if (pState != NULL) {
-        EFSM->Stack[EFSM->SP] = pState;     //!< transfer to specified state.
+        EFSM->Stack[EFSM->TopLevel] = pState;   //!< transfer to specified state.
     } else {
-                                            //!< no state transfer.
+                                                //!< no state transfer.
     }
     
     return true;
@@ -155,7 +155,7 @@ __RUN_HANDLE:
         case FSM_RT_UNHANDLE:
             //! Try to handle this event at lower level if current state does not handle it.
             if (!efsm_current_level_decrease(EFSM)) {
-                efsm_reset_current(EFSM);
+                efsm_reset_current_level(EFSM);
                 return FSM_RT_CPL;
             }
             goto __RUN_HANDLE;
@@ -165,7 +165,7 @@ __RUN_HANDLE:
 
         case FSM_RT_CPL:
         default:
-            efsm_reset_current(EFSM);
+            efsm_reset_current_level(EFSM);
             return FSM_RT_CPL;
     }
 }

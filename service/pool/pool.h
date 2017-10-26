@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2015-2017 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -15,7 +15,6 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-
 #ifndef __POOL_C__
 #ifndef __POOL_H__
 #define __POOL_H__
@@ -26,28 +25,31 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
+//! \note   this structure should be inherited by the memory block you want to be managed by pool.
+//! @{
 DEF_STRUCTURE(pool_block_t)
-    pool_block_t   *pNext;
+    pool_block_t   *Next;
 END_DEF_STRUCTURE(pool_block_t)
+//! @}
 
-EXTERN_CLASS(pool_t)
-    pool_block_t   *pFreeList;
-    pool_uint_t     BlockSize;      //!< size of one block in BYTE.
+DEF_STRUCTURE(pool_t)
+    void           *FreeList;
+    size_t          BlockSize;      //!< size of one memory block.
     pool_uint_t     Size;           //!< pool size.
-    pool_uint_t     Level;          //!< amount of block allocable
-    pool_uint_t     LevelMin;       //!< minimum amount of block allocable
-END_EXTERN_CLASS(pool_t)
+    pool_uint_t     Level;          //!< pool level
+    pool_uint_t     LevelMin;       //!< minimum pool level
+END_DEF_STRUCTURE(pool_t)
 
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool         pool_init           (void *pPoolObj, pool_uint_t blockSize);
-extern bool         pool_deinit         (void *pPoolObj);
-extern bool         pool_add_memory     (void *pPoolObj, void *pMem, pool_uint_t num);
-extern void *       pool_new            (void *pPoolObj);
-extern bool         pool_free           (void *pPoolObj, void *pMem);
-extern pool_uint_t  pool_get_level      (void *pPoolObj);
-extern pool_uint_t  pool_get_min_level  (void *pPoolObj);
+extern bool         pool_init           (void *obj, pool_uint_t blockSize);
+extern bool         pool_deinit         (void *obj);
+extern bool         pool_add_memory     (void *obj, void *pMem, pool_uint_t num);
+extern void        *pool_new            (void *obj);
+extern bool         pool_free           (void *obj, void *pMem);
+extern pool_uint_t  pool_get_level      (void *obj);
+extern pool_uint_t  pool_get_min_level  (void *obj);
 
 #endif      //!< #ifndef __POOL_H__
 #endif      //!< #ifndef __POOL_C__

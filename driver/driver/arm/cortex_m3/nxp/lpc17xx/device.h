@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2016 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -23,9 +23,11 @@
 #include ".\app_cfg.h"
 
 #if     defined(__LPC1754__)
-    #include ".\lpc1754\device.h"
+#   include ".\lpc1754\device.h"
+#elif   defined(__LPC1768__)
+#   include ".\LPC1768\device.h"
 #else
-    #error "No supported arm devices, please check whether you forget defining the core family."
+#   error "No supported arm devices, please check whether you forget defining the core family."
 #endif
 
 /*============================ MACROS ========================================*/

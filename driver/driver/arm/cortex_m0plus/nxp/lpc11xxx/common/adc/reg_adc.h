@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -16,39 +16,57 @@
 *******************************************************************************/
 
 
-#ifndef __REG_PMU_H__
-#define __REG_PMU_H__
+#ifndef __DRIVER_REG_ADC_H__
+#define __DRIVER_REG_ADC_H__
+
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define PMU_REG                     (*(pmu_reg_t *)PMU_BASE_ADDRESS)
-
-#define PMU_PCON_PM_BIAS            0
-#define PMU_PCON_PM_MASK            BITMASK(2, 0)
-
-#define PMU_PCON_NODPD_BIAS         3
-#define PMU_PCON_NODPD_MASK         BIT(3)
-
-#define PMU_PCON_SLEEPFLAG_BIAS     8
-#define PMU_PCON_SLEEPFLAG_MASK     BIT(8)
-
-#define PMU_PCON_DPDFLAG_BIAS       11
-#define PMU_PCON_DPDFLAG_MASK       BIT(11)
+#define ADC_REG                         (*(adc_reg_t *)ADC_BASE_ADDRESS)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-//! \name register page type 
-//! @{
+
+//! ADC Register File
 typedef volatile struct {
-	reg32_t PCON;		/*!< Offset: 0x000 Power control Register (R/W) */
-	reg32_t GPREG[4];	/*!< Offset: 0x004 General purpose Registers 0..3 (R/W) */
-	reg32_t DPDCTRL;	/*!< Offset: 0x014 Deep power-down control register (R/W) */
-} pmu_reg_t;
-//! @}
+    reg32_t     CTRL;
+    REG32_RSVD(1)
+    reg32_t     SEQA_CTRL;
+    reg32_t     SEQB_CTRL;
+    reg32_t     SEQA_GDAT;
+    reg32_t     SEQB_GDAT;
+    REG32_RSVD(2)
+    union{
+        reg32_t DAT[12];
+        struct{
+            reg32_t DAT0;
+            reg32_t DAT1;
+            reg32_t DAT2;
+            reg32_t DAT3;
+            reg32_t DAT4;
+            reg32_t DAT5;
+            reg32_t DAT6;
+            reg32_t DAT7;
+            reg32_t DAT8;
+            reg32_t DAT9;
+            reg32_t DAT10;
+            reg32_t DAT11;
+        };
+    };
+    reg32_t     THR0_LOW;
+    reg32_t     THR1_LOW;
+    reg32_t     THR0_HIGH;
+    reg32_t     THR1_HIGH;
+    reg32_t     CHAN_THRSEL;
+    reg32_t     INTEN;
+    reg32_t     FLAGS;
+    reg32_t     TRM;
+} adc_reg_t;
+
 
 /*============================ GLOBAL VARIABLES ==============================*/
-/*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
-/*============================ IMPLEMENTATION ================================*/
 
-#endif
+
+#endif  //! #ifndef __DRIVER_REG_ADC_H__
+/* EOF */

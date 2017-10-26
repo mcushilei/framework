@@ -32,11 +32,8 @@
 #define FSM_MAX_SEMS            (4u)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#define FSM_SAFE_ATOM_CODE(...) {   \
-        ENTER_SAFE_ATOM_CODE(); \
-        __VA_ARGS__             \
-        EXIT_SAFE_ATOM_CODE();  \
-    }
+#define FSM_SAFE_ATOM_CODE(...) SAFE_ATOM_CODE(__VA_ARGS__)
+
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/

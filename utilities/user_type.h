@@ -40,9 +40,11 @@
 #define Hz                  *1u
 #define KHz                 *1000u
 #define MHz                 *1000000u
+#define GHz                 *1000000000u
 
 #define KB                  *1024u
 #define MB                  *1024u*1024u
+#define GB                  *1024u*1024u*1024u
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define __REG_MACRO__

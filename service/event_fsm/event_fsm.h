@@ -46,7 +46,7 @@ extern bool     efsm_init  (efsm_t         *EFSM,
                             efsm_state_t   *InitState);
 extern uint8_t  efsm_dispatch_event    (efsm_t *EFSM, void *Event);
 
-extern bool efsm_to_uper   (efsm_t *EFSM, efsm_state_t *State);
+extern bool efsm_to_upper  (efsm_t *EFSM, efsm_state_t *State);
 extern bool efsm_to_lower  (efsm_t *EFSM, efsm_state_t *State);
 extern bool efsm_level_to_current      (efsm_t *EFSM);
 extern bool efsm_current_level_to_state(efsm_t *EFSM, efsm_state_t *State);

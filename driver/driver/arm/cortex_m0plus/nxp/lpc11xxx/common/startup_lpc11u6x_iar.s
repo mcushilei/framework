@@ -36,7 +36,6 @@
 __vector_table
         DCD SFE(CSTACK)
         DCD Reset_Handler
-
         DCD NMI_Handler
         DCD HardFault_Handler
         DCD 0

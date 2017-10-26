@@ -127,11 +127,11 @@
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 #define UART_MODE_BITLENGTH_BIAS        0
-#define UART_MODE_BITLENGTH_MASK        MASK(3, 0)
+#define UART_MODE_BITLENGTH_MASK        BITMASK(3, 0)
 #define UART_MODE_PARITY_BIAS           4
-#define UART_MODE_PARITY_MASK           MASK(7, 4)
+#define UART_MODE_PARITY_MASK           BITMASK(7, 4)
 #define UART_MODE_STOPBIT_BIAS          8
-#define UART_MODE_STOPBIT_MASK          MASK(9, 8)
+#define UART_MODE_STOPBIT_MASK          BITMASK(9, 8)
 #define UART_MODE_FIFOEN_BIAS           10
 #define UART_MODE_FIFOEN_MASK           BIT(10)
 #define UART_MODE_AUTOBAUD_BIAS         11

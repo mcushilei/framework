@@ -362,72 +362,11 @@ typedef struct
   };
 } usb_reg_t;
 
-/*------------- Ethernet Media Access Controller (EMAC) ----------------------*/
-/** @brief  Ethernet Media Access Controller (EMAC) register structure definition */
-typedef struct
-{
-      reg32_t MAC1;                   /* MAC Registers                      */
-      reg32_t MAC2;
-      reg32_t IPGT;
-      reg32_t IPGR;
-      reg32_t CLRT;
-      reg32_t MAXF;
-      reg32_t SUPP;
-      reg32_t TEST;
-      reg32_t MCFG;
-      reg32_t MCMD;
-      reg32_t MADR;
-      reg32_t MWTD;
-      reg32_t MRDD;
-      reg32_t MIND;
-      reg32_t RESERVED0[2];
-      reg32_t SA0;
-      reg32_t SA1;
-      reg32_t SA2;
-      reg32_t RESERVED1[45];
-      reg32_t Command;                /* Control Registers                  */
-      reg32_t Status;
-      reg32_t RxDescriptor;
-      reg32_t RxStatus;
-      reg32_t RxDescriptorNumber;
-      reg32_t RxProduceIndex;
-      reg32_t RxConsumeIndex;
-      reg32_t TxDescriptor;
-      reg32_t TxStatus;
-      reg32_t TxDescriptorNumber;
-      reg32_t TxProduceIndex;
-      reg32_t TxConsumeIndex;
-      reg32_t RESERVED2[10];
-      reg32_t TSV0;
-      reg32_t TSV1;
-      reg32_t RSV;
-      reg32_t RESERVED3[3];
-      reg32_t FlowControlCounter;
-      reg32_t FlowControlStatus;
-      reg32_t RESERVED4[34];
-      reg32_t RxFilterCtrl;           /* Rx Filter Registers                */
-      reg32_t RxFilterWoLStatus;
-      reg32_t RxFilterWoLClear;
-      reg32_t RESERVED5;
-      reg32_t HashFilterL;
-      reg32_t HashFilterH;
-      reg32_t RESERVED6[882];
-      reg32_t IntStatus;              /* Module Control Registers           */
-      reg32_t IntEnable;
-      reg32_t IntClear;
-      reg32_t IntSet;
-      reg32_t RESERVED7;
-      reg32_t PowerDown;
-      reg32_t RESERVED8;
-      reg32_t Module_ID;
-} emac_reg_t;
 
 /******************************************************************************/
 /*                         Peripheral memory map                              */
 /******************************************************************************/
-/* Base addresses                                                             */
-#define FLASH_BASE          (0x00000000UL)
-#define RAM_BASE            (0x10000000UL)
+
 #ifdef __LPC17XX_REV00
 #define AHBRAM0_BASE        (0x20000000UL)
 #define AHBRAM1_BASE        (0x20004000UL)
@@ -435,6 +374,7 @@ typedef struct
 #define AHBRAM0_BASE        (0x2007C000UL)
 #define AHBRAM1_BASE        (0x20080000UL)
 #endif
+
 #define GPIO_BASE           (0x2009C000UL)
 #define APB0_BASE           (0x40000000UL)
 #define APB1_BASE           (0x40080000UL)
@@ -462,7 +402,6 @@ typedef struct
 #define SC_BASE             (APB1_BASE + 0x7C000)
 
 /* AHB peripherals                                                            */
-#define EMAC_BASE           (AHB_BASE  + 0x00000)
 #define GPDMA_BASE          (AHB_BASE  + 0x04000)
 #define GPDMACH0_BASE       (AHB_BASE  + 0x04100)
 #define GPDMACH1_BASE       (AHB_BASE  + 0x04120)
@@ -473,13 +412,6 @@ typedef struct
 #define GPDMACH6_BASE       (AHB_BASE  + 0x041C0)
 #define GPDMACH7_BASE       (AHB_BASE  + 0x041E0)
 #define USB_BASE            (AHB_BASE  + 0x0C000)
-
-/* GPIOs                                                                      */
-#define GPIO0_BASE          (GPIO_BASE + 0x00000)
-#define GPIO1_BASE          (GPIO_BASE + 0x00020)
-#define GPIO2_BASE          (GPIO_BASE + 0x00040)
-#define GPIO3_BASE          (GPIO_BASE + 0x00060)
-#define GPIO4_BASE          (GPIO_BASE + 0x00080)
 
 /******************************************************************************/
 /*                         Peripheral declaration                             */
@@ -495,7 +427,6 @@ typedef struct
 #define CAN2_REG                (*(can_reg_t       *) CAN2_BASE     )
 #define MCPWM_REG               (*(wcpwm_reg_t     *) MCPWM_BASE    )
 #define QEI_REG                 (*(qei_reg_t       *) QEI_BASE      )
-#define EMAC_REG                (*(emac_reg_t      *) EMAC_BASE     )
 #define GPDMA_REG               (*(gpdma_reg_t     *) GPDMA_BASE    )
 #define GPDMACH0_REG            (*(gpdmach_reg_t   *) GPDMACH0_BASE )
 #define GPDMACH1_REG            (*(gpdmach_reg_t   *) GPDMACH1_BASE )
@@ -506,7 +437,6 @@ typedef struct
 #define GPDMACH6_REG            (*(gpdmach_reg_t   *) GPDMACH6_BASE )
 #define GPDMACH7_REG            (*(gpdmach_reg_t   *) GPDMACH7_BASE )
 #define USB_REG                 (*(usb_reg_t       *) USB_BASE      )
-
 
 #define DMAReqSel           (*(reg32_t *)0x4000C1C4ul)
 

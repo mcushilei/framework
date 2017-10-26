@@ -26,14 +26,14 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef void timer_routine_t(void *pArg);
+typedef void timer_routine_t(void);
 
 typedef struct {
     uint8_t         Flag;
+    uint8_t         Ctrl;
     uint32_t        Count;
     uint32_t        Reload;
     timer_routine_t *pRoutine;
-    void            *pRoutineArg;
 } softtimer_t;
 
 /*============================ GLOBAL VARIABLES ==============================*/
@@ -43,12 +43,11 @@ void softtimer_config(
                     uint8_t     timer,
                     uint32_t    initValue,
                     uint32_t    reloadValue,
-                    timer_routine_t *pRoutine,
-                    void            *pArg);
+                    timer_routine_t *pRoutine);
 void softtimer_tick(void);
 void softtimer_start(uint8_t Timer, uint32_t Value);
 void softtimer_stop(uint8_t Timer);
-bool softtimer_check_timeout(uint8_t Timer);
+bool softtimer_is_timeout(uint8_t Timer);
 
 #endif  //! #ifndef __SOFTTIMER_H__
 #endif  //! #ifndef __SOFTTIMER_C__

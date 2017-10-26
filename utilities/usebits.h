@@ -22,9 +22,9 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 //! \brief bit mask
-#define BIT(__N)            (1u << (__N))
-#define __MASK(__N)         (BIT(__N) - 1u)
-#define MASK(__MSB, __LSB)  ((BIT(__MSB) | __MASK(__MSB)) ^ __MASK(__LSB))
+#define BIT(__N)                (1u << (__N))
+#define __BITMASK(__WIDTH)      (BIT(__WIDTH) - 1u)
+#define BITMASK(__MSB, __LSB)   ((BIT(__MSB) | __BITMASK(__MSB)) ^ __BITMASK(__LSB))
 
 /*============================ TYPES =========================================*/
 typedef union {

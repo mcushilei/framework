@@ -122,19 +122,18 @@ static bool fsm_task_stack_pop(fsm_tcb_t *Task)
 }
 
 /*! \brief perform a state transfer.
- *  \param pT a pointer of task control block
- *  \param State target state
- *  \param Arg a pointer of argument control block
- *  \retval false invalid param
- *  \retval true succeeded to transfer state
+ *  \param State    target state. Transfering to a NULL state will terminal this FSM.
+ *  \param Arg a    argument to the task.
+ *  \retval false   invalid param
+ *  \retval true    succeeded to transfer state
  */
 bool fsm_state_transfer(fsm_state_t *State, void *Arg)
 {
-    fsm_tcb_t      *Task     = fsmScheduler.CurrentTask;
-    task_stack_t   *ptRoutine = Task->Stack + Task->StackPoint;
+    fsm_tcb_t      *pTCB      = fsmScheduler.CurrentTask;
+    task_stack_t   *ptRoutine = pTCB->Stack + pTCB->StackPoint;
 
-    ptRoutine->State  = State;
-    ptRoutine->Arg     = Arg;
+    ptRoutine->State = State;
+    ptRoutine->Arg   = Arg;
 
     return true;
 }

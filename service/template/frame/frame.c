@@ -78,7 +78,8 @@ extern bool frame_poll_byte(uint8_t *pByte, uint8_t *pTimeoutFlag);
 /*============================ LOCAL VARIABLES ===============================*/
 DEBUG_DEFINE_THIS_FILE("FRAME");
 
-FRAME_QUEUE tFrameRcvQueue;
+static uint8_t chFrameRcvQueueBuf[FRAME_HEAD_SEGMENT_SIZE + FRAME_LENGTH_SEGMENT_SIZE + FRAME_PAYLOAD_MAX_SIZE + FRAME_CHECKSUM_SEGMENT_SIZE];
+static FRAME_QUEUE tFrameRcvQueue;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
@@ -147,7 +148,6 @@ fsm_rt_t frame_rcv_fsm(uint8_t *pchData, uint16_t *phwLength)
                 switch (s_tState1) {
                     case WAIT_FOR_HEAD_0:
                         if (FRAME_RCV_HEAD_BYTE_0 == chByte) {
-                            DEBUG_MSG(FRAME_DEBUG, "Rcv start.");
                             s_Checksum   = 0;
                             s_DataLength = 0;
                             s_WritePoint = 0;
@@ -228,7 +228,6 @@ fsm_rt_t frame_rcv_fsm(uint8_t *pchData, uint16_t *phwLength)
                             FRAME_DEQUEUE(&dummy);
                             break;
                         }
-                        DEBUG_MSG(FRAME_DEBUG, "Rcv cpl.");
                         FRAME_GET_ALL_PEEKED_QUEUE();
                         s_tState0 = RCV_HANDLE;
                         bReturn = true;
@@ -280,7 +279,6 @@ fsm_rt_t frame_snd_fsm(const uint8_t *pchData, uint16_t hwLength)
             if (0 == hwLength) {
                 return FSM_RT_CPL;
             }
-            DEBUG_MSG(FRAME_DEBUG, "Snd start:");
             s_Checksum = 0;
             s_WritePoint  = 0;
             if (frame_output_byte(FRAME_SND_HEAD_BYTE_0)) {
@@ -348,7 +346,6 @@ fsm_rt_t frame_snd_fsm(const uint8_t *pchData, uint16_t hwLength)
 
         case SND_CHECKSUM_1:
             if (frame_output_byte((uint8_t)s_Checksum)) {
-                DEBUG_MSG(FRAME_DEBUG, "Snd cpl.");
                 s_tState = SND_HEAD_0;
                 return FSM_RT_CPL;
             }

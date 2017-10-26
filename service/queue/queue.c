@@ -1,23 +1,23 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2015-2017 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
- *  by the Free Software Foundation; either version 2 of the License, or      *
+ *  by the Free Software Foundation; either version 3 of the License, or      *
  *  (at your option) any later version.                                       *
  *                                                                            *
  *  This program is distributed in the hope that it will be useful, but       *
  *  WITHOUT ANY WARRANTY; without even the implied warranty of                *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU         *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU          *
  *  General Public License for more details.                                  *
  *                                                                            *
  *  You should have received a copy of the GNU Lesser General Public License  *
- *  along with Queue program; if not, write to the Free Software Foundation,   *
- *  Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.           *
+ *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-//! \note do not move Queue pre-processor statement to other places
+//! \note do not move queue pre-processor statement to other places
 #define __QUEUE_C__
+
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
@@ -26,106 +26,106 @@
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-DEF_CLASS(queue_t)
-    void *              pBuffer;
-    __queue_uint_t      bufferSize;
-    __queue_uint_t      itemSize;
+DEF_STRUCTURE(queue_t)
+    void               *Buffer;
+    __queue_uint_t      Size;
+    __queue_uint_t      ItemSize;
     __queue_uint_t      Head;
     __queue_uint_t      Tail;
-    __queue_uint_t      Counter;
+    __queue_uint_t      Length;
     __queue_uint_t      Peek;
-    __queue_uint_t      PeekCounter;
-END_DEF_CLASS(queue_t)
+    __queue_uint_t      PeekLength;
+END_DEF_STRUCTURE(queue_t)
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
-bool queue_init(void *queueObj, void *pBuffer, __queue_uint_t bufferSize, __queue_uint_t itemSize)
+bool queue_init(void *obj, void *buffer, size_t size, size_t itemSize)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
+    queue_t *queue = (queue_t *)obj;
     
-    if (NULL == Queue || NULL == pBuffer || 0 == bufferSize) {
+    if (NULL == queue || NULL == buffer || 0u == size) {
         return false;
     }
 
-    Queue->pBuffer  = pBuffer;
-    Queue->itemSize = itemSize;
-    Queue->bufferSize   = bufferSize;
-    Queue->Head     = 0;
-    Queue->Tail     = 0;
-    Queue->Peek     = 0;
-    Queue->Counter  = 0;
-    Queue->PeekCounter = 0;
+    queue->Buffer       = buffer;
+    queue->ItemSize     = itemSize;
+    queue->Size         = size;
+    queue->Head         = 0;
+    queue->Tail         = 0;
+    queue->Peek         = 0;
+    queue->Length       = 0;
+    queue->PeekLength   = 0;
 
     return true;
 }
 
-bool queue_deinit(void *queueObj)
+bool queue_deinit(void *obj)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
+    queue_t *queue = (queue_t *)obj;
 
-    if (NULL == Queue) {
+    if (NULL == queue) {
         return false;
     }
 
-    Queue->pBuffer  = NULL;
-    Queue->itemSize = 0;
-    Queue->bufferSize   = 0;
-    Queue->Head     = 0;
-    Queue->Tail     = 0;
-    Queue->Peek     = 0;
-    Queue->Counter  = 0;
-    Queue->PeekCounter = 0;
+    queue->Buffer       = NULL;
+    queue->ItemSize     = 0;
+    queue->Size         = 0;
+    queue->Head         = 0;
+    queue->Tail         = 0;
+    queue->Peek         = 0;
+    queue->Length       = 0;
+    queue->PeekLength   = 0;
 
     return true;
 }
 
-bool queue_enqueue(void *queueObj, void *pData)
+bool queue_enqueue(void *obj, void *data)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
+    queue_t *queue = (queue_t *)obj;
     bool bResult = false;
 
-    if (NULL == Queue) {
+    if (NULL == queue) {
         return false;
     }
 
-    if (NULL == Queue->pBuffer) {
+    if (NULL == queue->Buffer) {
         return false;
     }
 
     __QUEUE_ATOM_ENTER();
         do {
-            if ((Queue->Head ==  Queue->Tail)
-            &&  (0 != Queue->Counter)) {
+            if ((queue->Head ==  queue->Tail)
+            &&  (0 != queue->Length)) {
                 break;
             }
 
-            switch (Queue->itemSize) {
+            switch (queue->ItemSize) {
                 case sizeof(uint8_t):
-                    ((uint8_t *)(Queue->pBuffer))[
-                                 Queue->Tail] = *(uint8_t *)pData;
+                    ((uint8_t *)(queue->Buffer))[
+                                 queue->Tail] = *(uint8_t *)data;
                     break;
                 case sizeof(uint16_t):
-                    ((uint16_t *)(Queue->pBuffer))[
-                                  Queue->Tail] = *(uint16_t *)pData;
+                    ((uint16_t *)(queue->Buffer))[
+                                  queue->Tail] = *(uint16_t *)data;
                     break;
                 case sizeof(uint32_t):
-                    ((uint32_t *)(Queue->pBuffer))[
-                                  Queue->Tail] = *(uint32_t *)pData;
+                    ((uint32_t *)(queue->Buffer))[
+                                  queue->Tail] = *(uint32_t *)data;
                     break;
                 default:
-                    memory_copy((void *)((uint32_t)Queue->pBuffer + Queue->Tail * Queue->itemSize),
-                             pData,
-                             Queue->itemSize);
+                    memory_copy((void *)((uintptr_t)queue->Buffer + queue->Tail * queue->ItemSize),
+                             data,
+                             queue->ItemSize);
                     break;
             }
-            Queue->Tail++;
-            if (Queue->Tail >= Queue->bufferSize) {
-                Queue->Tail = 0;
+            queue->Tail++;
+            if (queue->Tail >= queue->Size) {
+                queue->Tail = 0;
             }
-            Queue->Counter++;
-            Queue->PeekCounter++;
+            queue->Length++;
+            queue->PeekLength++;
             bResult = true;
         } while (false);
     __QUEUE_ATOM_EXIT();
@@ -133,54 +133,54 @@ bool queue_enqueue(void *queueObj, void *pData)
     return bResult;
 }
 
-bool queue_dequeue(void *queueObj, void *pData)
+bool queue_dequeue(void *obj, void *data)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
+    queue_t *queue = (queue_t *)obj;
     bool bResult = false;
 
-    if (NULL == Queue) {
+    if (NULL == queue) {
         return false;
     }
 
-    if (NULL == Queue->pBuffer) {
+    if (NULL == queue->Buffer) {
         return false;
     }
 
     __QUEUE_ATOM_ENTER();
         do {
-            if ((Queue->Head ==  Queue->Tail)
-            &&  (0 == Queue->Counter)) {
+            if ((queue->Head ==  queue->Tail)
+            &&  (0u == queue->Length)) {
                 break;
             }
 
-            if (NULL != pData) {
-                switch (Queue->itemSize) {
+            if (NULL != data) {
+                switch (queue->ItemSize) {
                     case sizeof(uint8_t):
-                        *(uint8_t *)pData = ((uint8_t *)(Queue->pBuffer))[
-                                                         Queue->Head];
+                        *(uint8_t *)data = ((uint8_t *)(queue->Buffer))[
+                                                         queue->Head];
                         break;
                     case sizeof(uint16_t):
-                        *(uint16_t *)pData = ((uint16_t *)(Queue->pBuffer))[
-                                                           Queue->Head];
+                        *(uint16_t *)data = ((uint16_t *)(queue->Buffer))[
+                                                           queue->Head];
                         break;
                     case sizeof(uint32_t):
-                        *(uint32_t *)pData = ((uint32_t *)(Queue->pBuffer))[
-                                                           Queue->Head];
+                        *(uint32_t *)data = ((uint32_t *)(queue->Buffer))[
+                                                           queue->Head];
                         break;
                     default:
-                        memory_copy(pData,
-                                 (void *)((uint32_t)Queue->pBuffer + Queue->Head * Queue->itemSize),
-                                 Queue->itemSize);
+                        memory_copy(data,
+                                 (void *)((uintptr_t)queue->Buffer + queue->Head * queue->ItemSize),
+                                 queue->ItemSize);
                         break;
                 }
             }
-            Queue->Head++;
-            if (Queue->Head >= Queue->bufferSize) {
-                Queue->Head = 0;
+            queue->Head++;
+            if (queue->Head >= queue->Size) {
+                queue->Head = 0;
             }
-            Queue->Counter--;
-            Queue->Peek = Queue->Head;
-            Queue->PeekCounter = Queue->Counter;
+            queue->Length--;
+            queue->Peek = queue->Head;
+            queue->PeekLength = queue->Length;
             bResult = true;
         } while (false);
     __QUEUE_ATOM_EXIT();
@@ -188,50 +188,50 @@ bool queue_dequeue(void *queueObj, void *pData)
     return bResult;
 }
 
-bool queue_peek(void *queueObj, void *pData)
+bool queue_peek(void *obj, void *data)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
+    queue_t *queue = (queue_t *)obj;
     bool bResult = false;
 
-    if (NULL == Queue) {
+    if (NULL == queue) {
         return false;
     }
 
-    if (NULL == Queue->pBuffer) {
+    if (NULL == queue->Buffer) {
         return false;
     }
 
     __QUEUE_ATOM_ENTER();
         do {
-            if ((Queue->Peek == Queue->Tail)
-            &&  (0 == Queue->PeekCounter)) {
+            if ((queue->Peek == queue->Tail)
+            &&  (0u == queue->PeekLength)) {
                 break;
             }
-            if (NULL != pData) {
-                switch (Queue->itemSize) {
+            if (NULL != data) {
+                switch (queue->ItemSize) {
                     case sizeof(uint8_t):
-                        *(uint8_t *)pData = ((uint8_t *)(Queue->pBuffer))[
-                                                         Queue->Peek];
+                        *(uint8_t *)data = ((uint8_t *)(queue->Buffer))[
+                                                         queue->Peek];
                         break;
                     case sizeof(uint16_t):
-                        *(uint16_t *)pData = ((uint16_t *)(Queue->pBuffer))[
-                                                           Queue->Peek];
+                        *(uint16_t *)data = ((uint16_t *)(queue->Buffer))[
+                                                           queue->Peek];
                         break;
                     case sizeof(uint32_t):
-                        *(uint32_t *)pData = ((uint32_t *)(Queue->pBuffer))[
-                                                           Queue->Peek];
+                        *(uint32_t *)data = ((uint32_t *)(queue->Buffer))[
+                                                           queue->Peek];
                         break;
                     default:
-                        memory_copy(pData,
-                                 (void *)((uint32_t)Queue->pBuffer + Queue->Peek * Queue->itemSize),
-                                 Queue->itemSize);
+                        memory_copy(data,
+                                 (void *)((uintptr_t)queue->Buffer + queue->Peek * queue->ItemSize),
+                                 queue->ItemSize);
                         break;
                 }
             }
-            Queue->Peek++;
-            Queue->PeekCounter--;
-            if (Queue->Peek >= Queue->bufferSize) {
-                Queue->Peek = 0;
+            queue->Peek++;
+            queue->PeekLength--;
+            if (queue->Peek >= queue->Size) {
+                queue->Peek = 0;
             }
             bResult = true;
         } while (false);
@@ -240,47 +240,47 @@ bool queue_peek(void *queueObj, void *pData)
     return bResult;
 }
 
-void queue_get_all_peeked(void *queueObj)
+void queue_get_all_peeked(void *obj)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
+    queue_t *queue = (queue_t *)obj;
 
-    if (NULL == Queue) {
+    if (NULL == queue) {
         return ;
     }
 
     __QUEUE_ATOM_ENTER();
-        Queue->Head = Queue->Peek;
-        Queue->Counter = Queue->PeekCounter;
+        queue->Head = queue->Peek;
+        queue->Length = queue->PeekLength;
     __QUEUE_ATOM_EXIT();
 }
 
-void queue_reset_peek(void *queueObj)
+void queue_reset_peek(void *obj)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
+    queue_t *queue = (queue_t *)obj;
 
-    if (NULL == Queue) {
+    if (NULL == queue) {
         return;
     }
 
     __QUEUE_ATOM_ENTER();
-        Queue->Peek = Queue->Head;
-        Queue->PeekCounter = Queue->Counter;
+        queue->Peek = queue->Head;
+        queue->PeekLength = queue->Length;
     __QUEUE_ATOM_EXIT();
 }
 
-__queue_uint_t queue_get_object_count(void *queueObj)
+__queue_uint_t queue_get_length(void *obj)
 {
-    CLASS(queue_t) *Queue = (CLASS(queue_t) *)queueObj;
-    __queue_uint_t Counter;
+    queue_t *queue = (queue_t *)obj;
+    __queue_uint_t Length;
 
-    if (NULL == Queue) {
+    if (NULL == queue) {
         return 0;
     }
 
     __QUEUE_ATOM_ENTER();
-        Counter = Queue->Counter;
+        Length = queue->Length;
     __QUEUE_ATOM_EXIT();
 
-    return Counter;
+    return Length;
 }
 
