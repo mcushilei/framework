@@ -51,12 +51,6 @@
 #define FSM_CALL(__ROUTINE, __ARG_ADDR)                                         \
             fsm_call_sub(__ROUTINE, __ARG_ADDR)
 
-//! \brief call sub sfm and return to specified state when sub sfm run complete
-#define FSM_CALL_EX(__ROUTINE, __ARG_ADDR, __RET_ROUTINE, __RET_ARG_ADDR)       \
-            fsm_call_sub_ex(__ROUTINE, __ARG_ADDR,                              \
-                            __RET_ROUTINE, __RET_ARG_ADDR)
-                
-
 /*============================ TYPES =========================================*/
 enum {
     FSM_ERR_NONE            = 0,
@@ -86,7 +80,7 @@ enum {
 };
 
 enum {
-    FSM_TASK_STATUS_READY = 0,
+    FSM_TASK_STATUS_READY   = 0,
     FSM_TASK_STATUS_PEND,
     FSM_TASK_STATUS_PEND_OK,
     FSM_TASK_STATUS_PEND_TIMEOUT,
@@ -193,10 +187,6 @@ extern fsm_err_t    fsm_task_create     (fsm_tcb_t        **pptTask,
                                          uint8_t            StackSize);
 extern bool         fsm_state_transfer  (fsm_state_t       *State,
                                          void              *Arg);
-extern fsm_err_t    fsm_call_sub_ex     (fsm_state_t       *State,
-                                         void              *Arg,
-                                         fsm_state_t       *ReturnState,
-                                         void              *ReturnArg);
 extern fsm_err_t    fsm_call_sub        (fsm_state_t       *State,
                                          void              *Arg);
 

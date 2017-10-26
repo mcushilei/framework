@@ -138,55 +138,21 @@ bool fsm_state_transfer(fsm_state_t *State, void *Arg)
     return true;
 }
 
-/*! \brief call a sub task routine.
- *  \param State target routine
- *  \param Arg a pointer of argument
- *  \param ReturnState return to this routine when sub FSM completed
- *  \param ReturnArg argument for return routine
- *  \retval false invalid param or stack overflow
- *  \retval true succeeded to call sub FSM
- */
-fsm_err_t fsm_call_sub_ex(
-        fsm_state_t    *State,
-        void           *Arg,
-        fsm_state_t    *ReturnState,
-        void           *ReturnArg)
-{
-    fsm_tcb_t *Task = fsmScheduler.CurrentTask;
-
-    if ((NULL == State)
-    ||  (NULL == ReturnState)) {
-        return FSM_ERR_INVALID_PARAM;
-    }
-
-    do {
-        task_stack_t *ptRoutine = Task->Stack + Task->StackPoint;
-
-        ptRoutine->State  = ReturnState;
-        ptRoutine->Arg     = ReturnArg;
-    } while (0);
-
-    if (!fsm_task_stack_push(Task, State, Arg)) {
-        return FSM_ERR_TASK_STACK_FULL;
-    }
-
-    return FSM_ERR_NONE;
-}
-
-/*! \brief call a sub routine and return CURRENT state when sub fsm complete.
- *  \param pT a pointer of task control block
- *  \param State target routine
- *  \param Arg a pointer of argument control block
+/*! \brief  call a sub routine and return CURRENT state when sub fsm complete.
+ *  \param  State target routine
+ *  \param  Arg a pointer of argument control block
  *  \retval false invalid param or stack overflow
  *  \retval true succeeded to call sub FSM
  */
 fsm_err_t fsm_call_sub(fsm_state_t *State, void *Arg)
 {
     fsm_tcb_t      *Task = fsmScheduler.CurrentTask;
-    task_stack_t   *ptRoutine = Task->Stack + Task->StackPoint;
 
-    return fsm_call_sub_ex(
-            State, Arg, ptRoutine->State, ptRoutine->Arg);
+    if (!fsm_task_stack_push(Task, State, Arg)) {
+        return FSM_ERR_TASK_STACK_FULL;
+    }
+
+    return FSM_ERR_NONE;
 }
 
 /*! \brief get a new task control block from pool and initial it
