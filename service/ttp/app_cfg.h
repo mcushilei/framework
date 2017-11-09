@@ -19,20 +19,18 @@
 //! \note do not move this pre-processor statement to other places
 #include "..\app_cfg.h"
 
-#ifndef __RPPP_APP_CFG_H__
-#define __RPPP_APP_CFG_H__
+#ifndef __TTP_APP_CFG_H__
+#define __TTP_APP_CFG_H__
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define RPPP_PAYLOAD_MAX_SIZE   (128u)
-#define RPPP_HEAD_BYTE          (0xF5)
-
-#define RPPP_DEBUG              DEBUG_ON
+#define TTP_PAYLOAD_MAX_SIZE   (128u)
+#define TTP_HEAD_BYTE          (0xF5)
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 
-#endif  //! #ifndef __RPPP_APP_CFG_H__
+#endif  //! #ifndef __TTP_APP_CFG_H__
 /* EOF */

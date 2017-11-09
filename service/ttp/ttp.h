@@ -15,22 +15,20 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-#ifndef __RPPP_C__
-#ifndef __RPPP_H__
-#define __RPPP_H__
+#ifndef __TTP_C__
+#ifndef __TTP_H__
+#define __TTP_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
+#include ".\ttp_public.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool     rppp_ini(void);
-extern fsm_rt_t rppp_rcv_fsm(uint8_t *pPort, uint8_t **ppData, uint16_t *pDataLength);
-extern fsm_rt_t rppp_snd_fsm(uint8_t port, const uint8_t *pData, uint16_t dataLength);
 
-#endif  //! #ifndef __RPPP_H__
-#endif  //! #ifndef __RPPP_C__
+#endif  //! #ifndef __TTP_H__
+#endif  //! #ifndef __TTP_C__
 /* EOF */

@@ -55,9 +55,9 @@ bool adc_init(void)
         div--;
     }
     SAFE_CLK_CODE(
-          ADC_REG.CTRL =  (div << 0)    //!< ADC clock division.
-                        | (1u << 10)    //!< enable low-power mode.
-                        | (0u << 30);   //!< stop calibration.
+        ADC_REG.CTRL =  (div << 0)    //!< ADC clock division.
+                      | (1u << 10)    //!< enable low-power mode.
+                      | (0u << 30);   //!< stop calibration.
     )
     
     return true;
@@ -68,27 +68,27 @@ bool adc_enable(void)
     uint32_t regSaved;
     uint32_t div;
     
-    ahb_clock_enable(AHBCLK_ADC);
     power_enable(POWER_ADC);
+    ahb_clock_enable(AHBCLK_ADC);
     
-    regSaved = ADC_REG.CTRL;
-    div = core_clock_get() / 500000u;
-    if (div != 0u) {
-        div--;
-    }
-    ADC_REG.CTRL = (div << 0)   //!< ADC clock division.
-             | (0u << 10)       //!< disable low-power mode.
-             | (1u << 30);      //!< start calibration.
-    while (ADC_REG.CTRL & (1u << 30));
-    ADC_REG.CTRL = regSaved;
+//    regSaved = ADC_REG.CTRL;
+//    div = core_clock_get() / (500KHz);
+//    if (div != 0u) {
+//        div--;
+//    }
+//    ADC_REG.CTRL = (div << 0)   //!< ADC clock division.
+//             | (0u << 10)       //!< disable low-power mode.
+//             | (1u << 30);      //!< start calibration.
+//    while (ADC_REG.CTRL & (1u << 30));
+//    ADC_REG.CTRL = regSaved;
     
     return true;
 }
 
 bool adc_disable(void)
 {
-    ahb_clock_disable(AHBCLK_ADC);
     power_disable(POWER_ADC);
+    ahb_clock_disable(AHBCLK_ADC);
     
     return true;
 }
@@ -118,20 +118,20 @@ bool adc_stop_convert(void)
     return true;
 }
 
-bool adc_check_channel_statue(uint32_t wChannel)
+bool adc_is_work_ongoing(uint32_t ch)
 {
     uint32_t reg;
     
-    reg = ADC_REG.DAT[wChannel];
+    reg = ADC_REG.DAT[ch];
     if (reg & (1u << 31)) {
         return true;
     }
     return false;         //!< resault not available.
 }
 
-uint32_t adc_get_channel_resault(uint32_t wChannel)
+uint32_t adc_get_resault(uint32_t ch)
 {
-    return ADC_REG.DAT[wChannel] & 0xFFFFu;
+    return ADC_REG.DAT[ch] & 0xFFFFu;
 }
 
 

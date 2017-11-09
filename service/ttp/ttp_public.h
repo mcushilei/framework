@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -16,43 +16,55 @@
 *******************************************************************************/
 
 
-#ifndef __IAP_H__
-#define __IAP_H__
+
+#ifndef __TTP_PUBLIC_H__
+#define __TTP_PUBLIC_H__
+
+
 
 /*============================ INCLUDES ======================================*/
-/*============================ MACROS ========================================*/
-#define IAP_FLASH_PAGE_SIZE         (256u)
+#include ".\app_cfg.h"
+#include "..\queue\queue.h"
 
-#define IAP_RET_CMD_SUCCESS         (0u)
-#define IAP_RET_INVALID_COMMAND     (1u)
-#define IAP_RET_SRC_ADDR_ERROR      (2u)
-#define IAP_RET_DST_ADDR_ERROR      (3u)
-#define IAP_RET_SRC_ADDR_NOT_MAPPED (4u)
-#define IAP_RET_DST_ADDR_NOT_MAPPED (5u)
-#define IAP_RET_COUNT_ERROR         (6u)
-#define IAP_RET_INVALID_SECTOR      (7u)
-#define IAP_RET_SECTOR_NOT_BLANK    (8u)
-#define IAP_RET_SECTOR_NOT_PREPARED (9u)
-#define IAP_RET_COMPARE_NOT_SAME    (10u)
-#define IAP_RET_BUSY                (11u)
-#define IAP_RET_INVALD_PARAM        (12u)
-#define IAP_RET_ADDR_ERROR          (13u)
-#define IAP_RET_ADDR_NOT_MAPPED     (14u)
-#define IAP_RET_ADDR_CMD_LOCKED     (15u)
-#define IAP_RET_INVALID_CODE        (16u)
-#define IAP_RET_INVALID_BAUD_RATE               (17u)
-#define IAP_RET_INVALID_STOP_BIT                (18u)
-#define IAP_RET_CODE_READ_PROTECTION_ENABLED    (19u)
+/*============================ MACROS ========================================*/
+#define TTP_QUEUE                      queue_t
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-/*============================ GLOBAL VARIABLES ==============================*/
-/*============================ LOCAL VARIABLES ===============================*/
-/*============================ PROTOTYPES ====================================*/
-extern uint32_t iap_flash_write_page(uint32_t page, uint32_t *buffer);
-extern uint32_t iap_flash_erase_pages(uint32_t startPage, uint32_t endPage);
-extern uint32_t iap_eeprom_write(uint32_t addr, const void *buffer, uint32_t len);
-extern uint32_t iap_eeprom_read(uint32_t addr, void *buffer, uint32_t len);
+typedef bool ttp_output_byte_t(uint8_t byte);
+typedef bool ttp_poll_byte_t(uint8_t *pByte, bool *pIsTimeout);
 
-#endif
+typedef struct {
+    ttp_output_byte_t   *OutputByte;
+    ttp_poll_byte_t     *PollByte;
+
+    uint8_t     RcvState0;
+    uint8_t     RcvState1;
+    uint16_t    RcvDataLength;
+    uint16_t    RcvWritePoint;
+    uint16_t    RcvChecksum;
+    uint8_t     RcvPort;
+    uint8_t     RcvQueueBuffer[TTP_PAYLOAD_MAX_SIZE + 6];
+    TTP_QUEUE   RcvQueue;
+
+    uint8_t     SndState;
+    uint16_t    SndWritePoint;
+    uint16_t    SndChecksum;
+} ttp_t;
+
+/*============================ GLOBAL VARIABLES ==============================*/
+/*============================ PROTOTYPES ====================================*/
+extern bool ttp_ini(ttp_t               *obj,
+                    ttp_output_byte_t   *pOutputByte,
+                    ttp_poll_byte_t     *pPollByte);
+extern uint8_t ttp_rcv_fsm( ttp_t       *obj,
+                            uint8_t     *pPort,
+                            uint8_t     *pBuffer,
+                            uint16_t    *pLength);
+extern uint8_t ttp_snd_fsm( ttp_t          *obj,
+                            uint8_t         port,
+                            const uint8_t  *pBuffer,
+                            uint16_t        length);
+
+#endif  //! #ifndef __TTP_PUBLIC_H__
 /* EOF */

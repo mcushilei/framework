@@ -36,8 +36,8 @@ extern bool adc_enable(void);
 extern bool adc_disable(void);
 extern bool adc_trige_single_convert(uint32_t wChannel);
 extern bool adc_stop_convert(void);
-extern bool adc_check_channel_statue(uint32_t wChannel);
-extern uint32_t adc_get_channel_resault(uint32_t wChannel);
+extern bool adc_is_work_ongoing(uint32_t ch);
+extern uint32_t adc_get_resault(uint32_t ch);
 
 #endif  //! #ifndef __DRIVER_ADC_PUBLIC_H__
 /* EOF */

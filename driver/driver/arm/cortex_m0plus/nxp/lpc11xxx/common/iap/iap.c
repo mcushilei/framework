@@ -265,7 +265,7 @@ uint32_t iap_eeprom_write(uint32_t addr, const void *buffer, uint32_t len)
 	return result[0];
 }
 
-uint32_t iap_eeprom_read(uint32_t addr, uint8_t *buffer, uint32_t len)
+uint32_t iap_eeprom_read(uint32_t addr, void *buffer, uint32_t len)
 {
 	uint32_t command[5];
 	uint32_t result[5];
