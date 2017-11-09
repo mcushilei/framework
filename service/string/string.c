@@ -21,12 +21,11 @@
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#define CHAR_IS_NOT_HEX(__P)        ((__P) < '0'                                \
-                                    || ((__P) > '9' && (__P) < 'A')             \
-                                    || ((__P) > 'F' && (__P) < 'a')             \
-                                    || (__P) > 'f')
+#define CHAR_IS_HEX(__C)            (  ((__C) >= '0' && (__C) <= '9')       \
+                                    || ((__C) >= 'A' && (__C) <= 'F')       \
+                                    || ((__C) >= 'a' && (__C) <= 'f') )
 
-#define CHAR_IS_NOT_INT(__CHAR)     ((__CHAR) < '0' || (__CHAR) > '9')
+#define CHAR_IS_INT(__CHAR)         ((__CHAR) >= '0' && (__CHAR) <= '9')
 
 #define CHAR_TO_INT(__CHAR)         ((__CHAR) - '0')
 #define CHAR_IS_SPACE(__CHAR)       (' ' == (__CHAR))
@@ -135,7 +134,7 @@ uint32_t hex_str2uint(const uint8_t *str)
         return 0;
     }
 
-    for (; !CHAR_IS_NOT_HEX(*str); str++) {
+    for (; CHAR_IS_HEX(*str); str++) {
         val <<= 4;
         val += (*str > '9')? ((*str < 'a')? (10 + (*str - 'A')) : (10 + (*str - 'a'))) : (*str - '0');
     }
@@ -156,7 +155,7 @@ int32_t int_str2int(const uint8_t *str)
         sign = 1;
     }
 
-    for (; !CHAR_IS_NOT_INT(*str); str++) {
+    for (; CHAR_IS_INT(*str); str++) {
         val *= 10;
         val += CHAR_TO_INT(*str);
     }
@@ -190,7 +189,7 @@ float dec_str2float(const uint8_t *decimalString)
     for (; *decimalString != '\0'; ++decimalString) {
         ByteChar = *decimalString;
 
-        if (CHAR_IS_NOT_INT(ByteChar)) { 
+        if (!CHAR_IS_INT(ByteChar)) {
             if (ByteChar == '.') { 
                 IsDecimal = true;
                 ++decimalString;
@@ -205,7 +204,7 @@ float dec_str2float(const uint8_t *decimalString)
         for (; *decimalString != '\0'; ++decimalString) {
             ByteChar = *decimalString;
 
-            if (CHAR_IS_NOT_INT(ByteChar)) {
+            if (!CHAR_IS_INT(ByteChar)) {
                 break;
             } else {
                 Decimal += CHAR_TO_INT(ByteChar) * DecPower; 
@@ -217,11 +216,22 @@ float dec_str2float(const uint8_t *decimalString)
     return (IsNegative? -(Integer + Decimal) : (Integer + Decimal)); 
 } 
 
-size_t string_length(const uint8_t *s)
+uint32_t string_length(const uint8_t *s)
 {
-    size_t len = 0;
+    uint32_t len = 0;
 
     for (; *s != '\0'; s++) {
+        len++;
+    }
+
+    return len;
+}
+
+uint32_t string_lengthn(const uint8_t *s, uint32_t n)
+{
+    uint32_t len = 0;
+
+    for (; *s != '\0' && n != 0u; s++, n--) {
         len++;
     }
 
@@ -249,14 +259,18 @@ bool string_cmp(const uint8_t *s1, const uint8_t *s2)
 
 bool string_cmpn(const uint8_t *s1, const uint8_t *s2, uint32_t n)
 {
-    if ((NULL == s1) || (NULL == s2) || (0 == n)) {
+    if ((*s1 == '\0') && (*s2 == '\0')) {
         return false;
     }
-
-    for (; n; --n) {
-        if (*s1++ != *s2++) {
-            return true;
+    
+    if (*s1 && *s2) {
+        for (; *s1 && *s2 && n; n--) {
+            if (*s1++ != *s2++) {
+                return true;
+            }
         }
+    } else {
+        return true;
     }
 
     return false;
@@ -293,13 +307,14 @@ bool string_copyn(uint8_t *d, const uint8_t *s, uint32_t n)
 
     return true;
 }
+
 //! find s2 in s1.
 uint8_t *string_string(const uint8_t *s1, const uint8_t *s2)
 {
     uint32_t n;
     
     if (*s2 != '\0') {
-        for (; *s1; s1++) {
+        for (; *s1 != '\0'; s1++) {
             for (n = 0; s1[n] == s2[n]; n++) {
                 if ('\0' == s2[n + 1]) {
                     return (uint8_t *)s1;
@@ -409,7 +424,7 @@ uint8_t *itostr(int32_t value, uint8_t *integerString, int32_t radix)
 
 
 #define PRINT(__PFORMAT, __PRINT_OUT, __ARG)                                    \
-    for (; ; ) {                                                                \
+    for (;;) {                                                                  \
         if ('\0' == *__PFORMAT) {                                               \
             break;                                                              \
         } else if ('%' == *__PFORMAT) {                                         \
@@ -447,7 +462,7 @@ uint8_t *itostr(int32_t value, uint8_t *integerString, int32_t radix)
                         break;                                                  \
                     }                                                           \
                                                                                 \
-                    i = string_length(s);                                          \
+                    i = string_length(s);                                       \
                     if (pl < i) {                                               \
                         pl = i;                                                 \
                     }                                                           \
@@ -467,7 +482,7 @@ uint8_t *itostr(int32_t value, uint8_t *integerString, int32_t radix)
                     uint32_t d = __ARG(uint32_t);                               \
                     itostr(d, buf, 10);                                         \
                                                                                 \
-                    i = string_length(buf);                                        \
+                    i = string_length(buf);                                     \
                     if (pl < i) {                                               \
                         pl = i;                                                 \
                     }                                                           \
@@ -488,7 +503,7 @@ uint8_t *itostr(int32_t value, uint8_t *integerString, int32_t radix)
                     int32_t n = __ARG(int32_t);                                 \
                     itostr(n, buf, -10);                                        \
                                                                                 \
-                    i = string_length(buf);                                        \
+                    i = string_length(buf);                                     \
                     if (n < 0) {                                                \
                         i += 1;                                                 \
                     }                                                           \
@@ -526,7 +541,7 @@ uint8_t *itostr(int32_t value, uint8_t *integerString, int32_t radix)
                     uint32_t d = __ARG(uint32_t);                               \
                     itostr(d, buf, 16);                                         \
                                                                                 \
-                    i = string_length(buf);                                        \
+                    i = string_length(buf);                                     \
                     if (pl < i) {                                               \
                         pl = i;                                                 \
                     }                                                           \
@@ -563,7 +578,7 @@ uint8_t *itostr(int32_t value, uint8_t *integerString, int32_t radix)
                         __PRINT_OUT(' ');                                       \
                     }                                                           \
                                                                                 \
-                    i = string_length(buf);                                        \
+                    i = string_length(buf);                                     \
                     pl = (sizeof(uint32_t) * 2) - i;                            \
                     for (i = 0; i < pl; i++) {                                  \
                         __PRINT_OUT('0');                                       \
@@ -596,11 +611,11 @@ void string_printf(const uint8_t *formatString, uint32_t argument)
 
 #define USER_SPRINTFN_OUT(__C)                                                  \
     do {                                                                        \
-        if (wCnt >= bufferLength) {                                                     \
+        if (wCnt >= bufferLength) {                                             \
             return wCnt;                                                        \
         }                                                                       \
                                                                                 \
-        buffer[wCnt] = __C;                                              \
+        buffer[wCnt] = __C;                                                     \
         wCnt++;                                                                 \
     } while (0)
 

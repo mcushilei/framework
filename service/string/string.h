@@ -25,16 +25,6 @@
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#define CHAR_IS_NOT_HEX(__P)        ((__P) < '0'                                \
-                                    || ((__P) > '9' && (__P) < 'A')             \
-                                    || ((__P) > 'F' && (__P) < 'a')             \
-                                    || (__P) > 'f')
-
-#define CHAR_IS_NOT_INT(__CHAR)     ((__CHAR) < '0' || (__CHAR) > '9')
-#define CHAR_IS_INT(__CHAR)         ((__CHAR) >= '0' && (__CHAR) <= '9')
-
-#define CHAR_TO_INT(__CHAR)         ((__CHAR) - '0')
-#define CHAR_IS_SPACE(__CHAR)       (' ' == (__CHAR))
 
 #ifdef USE_STAND_STRING_LIB
 #   define STRING_PRINTF(__string, __VA0, ...)          \
@@ -54,7 +44,8 @@ extern bool     memory_copy(void *d, const void *s, size_t n);
 extern uint32_t hex_str2uint(const uint8_t *str);
 extern int32_t  int_str2int(const uint8_t *str);
 extern float    dec_str2float(const uint8_t *decimalString);
-extern size_t   string_length(const uint8_t *s);
+extern uint32_t string_length(const uint8_t *s);
+extern uint32_t string_lengthn(const uint8_t *s, uint32_t n);
 extern uint8_t *string_string(const uint8_t *s1, const uint8_t *s2);
 extern bool     string_cmp(const uint8_t *s1, const uint8_t *s2);
 extern bool     string_cmpn(const uint8_t *s1, const uint8_t *s2, uint32_t n);
