@@ -25,36 +25,45 @@
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
+#define CHAR_IS_HEX(__C)            (  ((__C) >= '0' && (__C) <= '9')       \
+                                    || ((__C) >= 'A' && (__C) <= 'F')       \
+                                    || ((__C) >= 'a' && (__C) <= 'f') )
+
+#define CHAR_IS_INT(__CHAR)         ((__CHAR) >= '0' && (__CHAR) <= '9')
+
+#define CHAR_TO_INT(__CHAR)         ((__CHAR) - '0')
+#define CHAR_IS_SPACE(__CHAR)       (' ' == (__CHAR))
+
 
 #ifdef USE_STAND_STRING_LIB
 #   define STRING_PRINTF(__string, __VA0, ...)          \
         printf(__string, __VA0, __VA_ARGS__)
 #else
 #   define STRING_PRINTF(__string, __VA0, ...)          \
-        string_printf(__string, (uint32_t)__VA0)
+        string_printf(__string, (unsigned int)__VA0)
 #endif
 
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool     memory_compare(const void *m1, const void *m2, size_t n);
-extern bool     memory_set(void *m, uint32_t v, size_t n);
-extern bool     memory_copy(void *d, const void *s, size_t n);
-extern uint32_t hex_str2uint(const uint8_t *str);
-extern int32_t  int_str2int(const uint8_t *str);
-extern float    dec_str2float(const uint8_t *decimalString);
-extern uint32_t string_length(const uint8_t *s);
-extern uint32_t string_lengthn(const uint8_t *s, uint32_t n);
-extern uint8_t *string_string(const uint8_t *s1, const uint8_t *s2);
-extern bool     string_cmp(const uint8_t *s1, const uint8_t *s2);
-extern bool     string_cmpn(const uint8_t *s1, const uint8_t *s2, uint32_t n);
-extern bool     string_copy(uint8_t *d, const uint8_t *s);
-extern bool     string_copyn(uint8_t *d, const uint8_t *s, uint32_t n);
-extern uint8_t *strsep(uint8_t **strngRef, const uint8_t *delim);
-extern uint8_t *itostr(int32_t value, uint8_t *integerString, int32_t radix);
-extern void     string_printf(const uint8_t *formatString, uint32_t argument);
-extern uint32_t string_snprintf(uint8_t *buffer, uint32_t bufferLength, const uint8_t *formatString, uint32_t argument);
+extern bool         memory_is_same(const void *m1, const void *m2, size_t n);
+extern bool         memory_copy(void *d, const void *s, size_t n);
+extern bool         memory_set(void *m, unsigned int v, size_t n);
+extern unsigned int hex_str2uint(const char *str);
+extern int          int_str2int(const char *str);
+extern float        dec_str2float(const char *decimalString);
+extern void         string_to_lowercase(char *s);
+extern void         string_to_uppercase(char *s);
+extern unsigned int string_length(const char *s);
+extern bool         string_is_same(const char *s1, const char *s2);
+extern bool         string_is_same_by_n(const char *s1, const char *s2, unsigned int n);
+extern unsigned int string_copy(char *d, const char *s, unsigned int n);
+extern char        *string_find_string(const char *s1, const char *s2);
+extern char        *strsep(char **strngRef, const char *delim);
+extern uint32_t     itostr(int32_t value, char *integerString, int32_t radix);
+extern void         string_printf(const char *formatString, unsigned int argument);
+extern unsigned int string_printf_to_buffer(char *buffer, unsigned int bufferLength, const char *formatString, unsigned int argument);
 
 #endif
 /* EOF */
