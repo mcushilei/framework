@@ -18,33 +18,14 @@
 //! \note do not move this pre-processor statement to other places
 #define __CALENDAR_C__
 
+
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
+#include ".\calendar_public.h"
 
 /*============================ MACROS ========================================*/
-#define SECONDS_OF_MINUTE       (60u)
-#define SECONDS_OF_HOUR         (60u * 60u)
-#define SECONDS_OF_DAY          (24u * 60u * 60u)
-
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef struct {
-    uint32_t    Year;
-    uint8_t     Month;
-    uint8_t     Day;
-} date_t;
-
-typedef struct {
-    uint8_t     Hour;
-    uint8_t     Minute;
-    uint8_t     Second;
-} time24_t;
-
-typedef struct {
-    date_t      Date;
-    time24_t    Time;
-} date_time_t;
-
 /*============================ PROTOTYPES ====================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/

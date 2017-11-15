@@ -22,14 +22,16 @@
 #define __FSM_APP_CFG_H__
 
 /*============================ INCLUDES ======================================*/
-#include "..\string\string.h"
-
 /*============================ MACROS ========================================*/
+#ifndef __USER_FSM_CFG__
+
 #define SAFE_TASK_THREAD_SYNC   ENABLED
-#define FSM_MAX_TASKS           (8u)
+#define FSM_MAX_TASKS           (12u)
 #define FSM_MAX_FLAGS           (4u)
 #define FSM_MAX_MUTEXES         (4u)
 #define FSM_MAX_SEMS            (4u)
+
+#endif
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define FSM_SAFE_ATOM_CODE(...) SAFE_ATOM_CODE(__VA_ARGS__)

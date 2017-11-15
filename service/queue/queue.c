@@ -21,22 +21,12 @@
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
+#include ".\queue_public.h"
 #include "..\string\string.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-DEF_STRUCTURE(queue_t)
-    void               *Buffer;
-    __queue_uint_t      Size;
-    __queue_uint_t      ItemSize;
-    __queue_uint_t      Head;
-    __queue_uint_t      Tail;
-    __queue_uint_t      Length;
-    __queue_uint_t      Peek;
-    __queue_uint_t      PeekLength;
-END_DEF_STRUCTURE(queue_t)
-
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/

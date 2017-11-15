@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2015-2017 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -21,21 +21,13 @@
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
+#include ".\list_public.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-
-DEF_STRUCTURE(list_node_t)
-    list_node_t       *Next;
-    list_node_t       *Prev;
-END_DEF_STRUCTURE(list_node_t)
-
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern void list_init_head  (list_node_t *head);
-extern void list_add        (list_node_t *node, list_node_t *head);
-extern void list_del        (list_node_t *entry);
 
 #endif
 #endif

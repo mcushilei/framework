@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015-2017 by Dreistein<mcu_shilei@hotmail.com>                *
+ *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -15,20 +15,38 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-#ifndef __POOL_C__
-#ifndef __POOL_H__
-#define __POOL_H__
+
+
+#ifndef __FIFO_PUBLIC_H__
+#define __FIFO_PUBLIC_H__
+
+
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include ".\pool_public.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
+typedef struct {
+    void               *Buffer;
+    __fifo_uint_t       Size;           //!< buffer size.
+    __fifo_uint_t       ItemSize;       //!< item size.
+    __fifo_uint_t       Out;            //!< point to space filled.
+    __fifo_uint_t       In;             //!< point to space empty.
+} fifo_t;
+
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
+extern bool fifo_init       (void *obj, void *buffer, size_t size, size_t itemSize);
+extern bool fifo_in         (void *obj, const void *buffer);
+extern bool fifo_out        (void *obj, void *buffer);
 
-#endif      //!< #ifndef __POOL_H__
-#endif      //!< #ifndef __POOL_C__
+extern bool fifo8_init      (void *obj, uint8_t *buffer, size_t size);
+extern bool fifo8_in        (void *obj, const uint8_t *buffer);
+extern bool fifo8_out       (void *obj, uint8_t *buffer);
+//extern bool fifo8_in_burst  (void *obj, const uint8_t *buffer, size_t Size);
+//extern bool fifo8_out_burst (void *obj, uint8_t *buffer, size_t Size);
+
+#endif  //! #ifndef __FIFO_PUBLIC_H__
 /* EOF */

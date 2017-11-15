@@ -18,21 +18,15 @@
 //! \note do not move this pre-processor statement to other places
 #define __FIFO_C__
 
+
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
+#include ".\fifo_public.h"
 #include "..\string\string.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef struct {
-    void               *Buffer;
-    __fifo_uint_t       Size;           //!< buffer size.
-    __fifo_uint_t       ItemSize;       //!< item size.
-    __fifo_uint_t       Out;            //!< point to space filled.
-    __fifo_uint_t       In;             //!< point to space empty.
-} fifo_t;
-
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/

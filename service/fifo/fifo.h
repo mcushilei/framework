@@ -21,6 +21,7 @@
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
+#include ".\fifo_public.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
@@ -31,25 +32,8 @@
 
 
 /*============================ TYPES =========================================*/
-typedef struct {
-    void               *Buffer;
-    __fifo_uint_t       Size;           //!< buffer size.
-    __fifo_uint_t       ItemSize;       //!< item size.
-    __fifo_uint_t       Out;            //!< point to space filled.
-    __fifo_uint_t       In;             //!< point to space empty.
-} fifo_t;
-
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool fifo_init       (void *obj, void *buffer, size_t size, size_t itemSize);
-extern bool fifo_in         (void *obj, const void *buffer);
-extern bool fifo_out        (void *obj, void *buffer);
-
-extern bool fifo8_init      (void *obj, uint8_t *buffer, size_t size);
-extern bool fifo8_in        (void *obj, const uint8_t *buffer);
-extern bool fifo8_out       (void *obj, uint8_t *buffer);
-//extern bool fifo8_in_burst  (void *obj, const uint8_t *buffer, size_t Size);
-//extern bool fifo8_out_burst (void *obj, uint8_t *buffer, size_t Size);
 
 #endif
 #endif
