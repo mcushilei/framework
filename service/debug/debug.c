@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2015-2017 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -22,10 +22,9 @@
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 
-#ifdef __DEBUG__
 
 #if DEBUG_FOMART_STRING == ENABLED
-#include <stdio.h>
+#   include <stdio.h>
 #endif
 
 /*============================ MACROS ========================================*/
@@ -35,28 +34,32 @@
     DEBUG_OUTPUT_CHAR('\n');                         \
 }
 
-#define DEBUG_PRINT_LOCATION(__FILE, __LINE) {       \
-    debug_print_string(__FILE);                      \
-    DEBUG_OUTPUT_CHAR(':');                          \
-    debug_print_number_unsigned(__LINE);             \
-    DEBUG_OUTPUT_CHAR('>');                          \
-}
+#if DEBUG_DISALLOW_FILE_INFO == ENABLED
+#   define DEBUG_PRINT_LOCATION(__FILE, __LINE)
+#else 
+#   define DEBUG_PRINT_LOCATION(__FILE, __LINE) {   \
+        debug_print_string(__FILE);                 \
+        DEBUG_OUTPUT_CHAR(':');                     \
+        debug_print_number_unsigned(__LINE);        \
+        DEBUG_OUTPUT_CHAR('>');                     \
+    }
+#endif
 
 /*============================ TYPES =========================================*/
 //-------------------------------------------------------
 // Internal Structs Needed
 //-------------------------------------------------------
-typedef enum {
+enum {
     DEBUG_DISPLAY_STYLE_INT      = 0,
     DEBUG_DISPLAY_STYLE_UINT,
     DEBUG_DISPLAY_STYLE_HEX,
     DEBUG_DISPLAY_STYLE_POINTER,
-} em_DebugDisplayStyle_t;
+};
 
 /*============================ PROTOTYPES ====================================*/
 static void debug_print_number_signed(const _SINT number);
 static void debug_print_number_unsigned(const _UINT number);
-static void debug_print_number_hex(const _UINT number, const _UINT nibbles_to_print);
+static void debug_print_number_hex(const _UINT number, const _UINT lengthToPrint);
 static void debug_print_mask(const _UINT mask, const _UINT number);
 
 /*============================ LOCAL VARIABLES ===============================*/
@@ -67,7 +70,7 @@ static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrExpected[]  = "Expected ";
 static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrWas[]       = " Was ";
 static DEBUG_ROM_VAR_TYPE const _CHAR DebugStrNullPointer[]   = "Pointer was NULL.";
 
-static volatile _CHAR s_chExitTrap = 0; 
+static volatile _CHAR exitTrap = 0; 
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
@@ -100,22 +103,16 @@ void debug_print_string(const _CHAR *string)
 
 //-----------------------------------------------
 //! basically do an itoa using as little ram as possible
-static void debug_print_number_signed(const _SINT number_to_print)
+static void debug_print_number_unsigned(const _UINT number)
 {
-    _SINT divisor = 1;
-    _SINT next_divisor;
-    _SINT number = number_to_print;
-
-    if (number < 0) {
-        DEBUG_OUTPUT_CHAR('-');
-        number = -number;
-    }
+    _UINT divisor = 1;
+    _UINT nextDivisor;
 
     // figure out initial divisor
     while (number / divisor > 9) {
-        next_divisor = divisor * 10;
-        if (next_divisor > divisor) {
-            divisor = next_divisor;
+        nextDivisor = divisor * 10;
+        if (nextDivisor > divisor) {
+            divisor = nextDivisor;
         } else {
             break;
         }
@@ -130,50 +127,38 @@ static void debug_print_number_signed(const _SINT number_to_print)
 
 //-----------------------------------------------
 //! basically do an itoa using as little ram as possible
-static void debug_print_number_unsigned(const _UINT number)
+static void debug_print_number_signed(const _SINT number)
 {
-    _UINT divisor = 1;
-    _UINT next_divisor;
-
-    // figure out initial divisor
-    while (number / divisor > 9) {
-        next_divisor = divisor * 10;
-        if (next_divisor > divisor) {
-            divisor = next_divisor;
-        } else {
-            break;
-        }
+    if (number < 0) {
+        DEBUG_OUTPUT_CHAR('-');
+        debug_print_number_unsigned((_UINT)-number);
+    } else {
+        debug_print_number_unsigned((_UINT)number);
     }
-
-    // now mod and print, then divide divisor
-    do {
-        DEBUG_OUTPUT_CHAR('0' + (number / divisor % 10));
-        divisor /= 10;
-    } while (divisor > 0);
 }
 
 //-----------------------------------------------
-static void debug_print_number_hex(const _UINT number, const _UINT nibbles_to_print)
+static void debug_print_number_hex(const _UINT number, const _UINT lengthToPrint)
 {
     _UINT nibble;
-    _UINT nibbles = nibbles_to_print;
+    _UINT l = lengthToPrint;
 
-    if (nibbles > (sizeof(_UINT) << 1)) {
-        nibbles = sizeof(_UINT) << 1;
+    if (l > (sizeof(_UINT) * 2u)) {
+        l = sizeof(_UINT) * 2u;
     }
 
-    for (; nibbles; --nibbles) {
-        nibble = (number >> ((nibbles - 1) << 2)) & 0x0Fu;
+    for (; l; --l) {
+        nibble = (number >> ((l - 1u) * 4u)) & 0x0Fu;
         if (nibble <= 9) {
             DEBUG_OUTPUT_CHAR('0' + nibble);
         } else {
-            DEBUG_OUTPUT_CHAR('A' - 10 + nibble);
+            DEBUG_OUTPUT_CHAR('A' - 10u + nibble);
         }
     }
 }
 
 //-----------------------------------------------
-static void debug_print_number_by_style(const _SINT number, const em_DebugDisplayStyle_t style)
+static void debug_print_number_by_style(const _SINT number, const unsigned int style)
 {
     switch (style) {
         case DEBUG_DISPLAY_STYLE_INT:
@@ -187,7 +172,7 @@ static void debug_print_number_by_style(const _SINT number, const em_DebugDispla
         case DEBUG_DISPLAY_STYLE_HEX:
         case DEBUG_DISPLAY_STYLE_POINTER:
         default:
-            debug_print_number_hex((_UINT)number, 2 * sizeof(_UINT));
+            debug_print_number_hex((_UINT)number, 2u * sizeof(_UINT));
             break;
     }
 }
@@ -259,7 +244,7 @@ void debug_print_equal_bits(
 void debug_print_equal_number(
     const _SINT expected, 
     const _SINT actual, 
-    const em_DebugDisplayStyle_t style)
+    const unsigned int style)
 {
     debug_print_string(DebugStrExpected);
     switch (style) {
@@ -274,7 +259,7 @@ void debug_print_equal_number(
         case DEBUG_DISPLAY_STYLE_HEX:
         case DEBUG_DISPLAY_STYLE_POINTER:
         default:
-            debug_print_number_hex(expected, 2 * sizeof(_UINT));
+            debug_print_number_hex(expected, 2u * sizeof(_UINT));
             break;
     }
 
@@ -291,7 +276,7 @@ void debug_print_equal_number(
         case DEBUG_DISPLAY_STYLE_HEX:
         case DEBUG_DISPLAY_STYLE_POINTER:
         default:
-            debug_print_number_hex(actual, 2 * sizeof(_UINT));
+            debug_print_number_hex(actual, 2u * sizeof(_UINT));
             break;
     }
 }
@@ -315,13 +300,12 @@ void debug_msg_output(const _CHAR *file, const _UINT line)
 
 void debug_trap(void)
 {
-    while (!s_chExitTrap);
+    while (!exitTrap);
 }
 
 void debug_exit_trap(void)
 {
-    s_chExitTrap = 1;
+    exitTrap = 1;
 }
 
-#endif      /* #ifdef __DEBUG__ */
 /* EOF */

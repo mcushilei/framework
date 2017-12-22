@@ -63,7 +63,7 @@
 //-------------------------------------------------------
 // Char Support
 //-------------------------------------------------------
-typedef uint8_t _CHAR;
+typedef char _CHAR;
 
 //-------------------------------------------------------
 // Int Support
@@ -82,7 +82,7 @@ typedef uint8_t _CHAR;
     typedef uint8_t _UINT;
     typedef int8_t _SINT;
 #else
-    #error "Invalid DEBUG_INT_WIDTH specified! (64, 16, 32 or 8 are supported)"
+    #error "Invalid DEBUG_INT_WIDTH specified! (64, 32, 16 or 8 are supported)"
 #endif
 
 //-------------------------------------------------------
@@ -93,9 +93,9 @@ typedef uint8_t _CHAR;
 #elif (DEBUG_POINTER_WIDTH == 32)
     typedef uint32_t _UP;
 #elif (DEBUG_POINTER_WIDTH == 16)
-    typedef uint8_t _UP;
+    typedef uint16_t _UP;
 #else
-    #error "Invalid DEBUG_POINTER_WIDTH specified! (64, 16, 32 or 64 are supported)"
+    #error "Invalid DEBUG_POINTER_WIDTH specified! (64, 32 or 16 are supported)"
 #endif
 
 //-------------------------------------------------------
@@ -107,7 +107,7 @@ typedef uint8_t _CHAR;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern uint8_t DEBUG_OUTPUT_CHAR(uint8_t);
+extern void DEBUG_OUTPUT_CHAR(_CHAR);
 
 #endif
 /* EOF */

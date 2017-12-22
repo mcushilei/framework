@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2015-2017 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -24,9 +24,9 @@
 #include ".\app_cfg.h"
 
 #if DEBUG_FOMART_STRING == ENABLED
-#include <stdio.h>
+#   include <stdio.h>
 #else
-#include "..\string\string.h"
+#   include "..\string\string.h"
 #endif
 
 /*============================ MACROS ========================================*/
@@ -57,7 +57,7 @@
 #define DEBUG_ANY           DEBUG_ON
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#if (((DEBUG_MSG_ENABLE == ENABLED) || (DEBUG_ASSERT_ENABLE != DISABLED)) && defined(__DEBUG__))
+#if ((DEBUG_MSG_ENABLE == ENABLED) || (DEBUG_ASSERT_ENABLE == ENABLED)) && DEBUG_DISALLOW_FILE_INFO == DISABLED
 #   define DEBUG_DEFINE_THIS_FILE(string)       \
         static DEBUG_ROM_VAR_TYPE const _CHAR __ThisFileName[] = string
 #else
@@ -76,38 +76,59 @@
 #   define __DEBUG_PRINT(string, ...)           string_printf("%s", (uint32_t)string)
 #endif
 
-#define __DEBUG_ASSERT(condition, line, ...)    do {\
-        if (!(condition)) {                     \
-            debug_failure_captured(__ThisFileName, line);\
-            __VA_ARGS__                         \
-        }                                       \
+#if DEBUG_DISALLOW_FILE_INFO == ENABLED
+#   define __DEBUG_ASSERT(condition, line, ...) do {\
+        if (!(condition)) {                         \
+            debug_failure_captured((void *)0, 0);   \
+            __VA_ARGS__                             \
+        }                                           \
     } while (0);
 
-#define __DEBUG_MSG(ctrl, line, ...)            do {\
-        if (( (ctrl) & (DEBUG_ON)) &&           \
-            ( (ctrl) & (DEBUG_TYPES_ON)) &&     \
+#   define __DEBUG_MSG(ctrl, line, ...)         do {\
+        if (( (ctrl) & (DEBUG_ON)) &&               \
+            ( (ctrl) & (DEBUG_TYPES_ON)) &&         \
             (((ctrl) & (DEBUG_LEVEL_MASK)) >= DEBUG_MIN_LEVEL)) {\
-                debug_msg_output(__ThisFileName, line);\
-                __VA_ARGS__                     \
-                if ((ctrl) & DEBUG_HALT) {      \
-                    debug_trap();               \
-                }                               \
-        }                                       \
+                debug_msg_output((void *)0, 0);     \
+                __VA_ARGS__                         \
+                if ((ctrl) & DEBUG_HALT) {          \
+                    debug_trap();                   \
+                }                                   \
+        }                                           \
     } while(0);
+#else
+#   define __DEBUG_ASSERT(condition, line, ...) do {    \
+        if (!(condition)) {                             \
+            debug_failure_captured(__ThisFileName, line);\
+            __VA_ARGS__                                 \
+        }                                               \
+    } while (0);
 
-#if (((DEBUG_MSG_ENABLE != DISABLED) || (DEBUG_ASSERT_ENABLE != DISABLED)) && defined(__DEBUG__))
+#   define __DEBUG_MSG(ctrl, line, ...)         do {    \
+        if (( (ctrl) & (DEBUG_ON)) &&                   \
+            ( (ctrl) & (DEBUG_TYPES_ON)) &&             \
+            (((ctrl) & (DEBUG_LEVEL_MASK)) >= DEBUG_MIN_LEVEL)) {\
+                debug_msg_output(__ThisFileName, line); \
+                __VA_ARGS__                             \
+                if ((ctrl) & DEBUG_HALT) {              \
+                    debug_trap();                       \
+                }                                       \
+        }                                               \
+    } while(0);
+#endif
+
+#if defined(__DEBUG__)
 #   define DEBUG_PRINT(...)                 __DEBUG_PRINT(__VA_ARGS__)
 #else
 #   define DEBUG_PRINT(...)
 #endif
 
-#if ((DEBUG_MSG_ENABLE != DISABLED) && defined(__DEBUG__))
+#if DEBUG_MSG_ENABLE == ENABLED
 #   define DEBUG_MSG(ctrl, ...)             __DEBUG_MSG(ctrl, __LINE__, __VA_ARGS__)
 #else
 #   define DEBUG_MSG(ctrl, ...)
 #endif
             
-#if ((DEBUG_ASSERT_ENABLE != DISABLED) && defined(__DEBUG__))
+#if DEBUG_ASSERT_ENABLE == ENABLED
 #   define DEBUG_ASSERT(condition, ...)     __DEBUG_ASSERT(condition, __LINE__, __VA_ARGS__)
 
 #   define DEBUG_ASSERT_NOT_NULL(pointer, ...)                      \
@@ -169,17 +190,16 @@
 //-------------------------------------------------------
 // Internal Structs Needed
 //-------------------------------------------------------
-typedef enum {
+enum {
     DEBUG_DISPLAY_STYLE_INT      = 0,
     DEBUG_DISPLAY_STYLE_UINT,
     DEBUG_DISPLAY_STYLE_HEX,
     DEBUG_DISPLAY_STYLE_POINTER,
-} em_DebugDisplayStyle_t;
+};
 
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-#ifdef __DEBUG__
 //-------------------------------------------------------
 // Debug Fuctions
 //-------------------------------------------------------
@@ -190,14 +210,13 @@ typedef enum {
 extern void debug_print_string      (const _CHAR *string);
 extern void debug_failure_captured  (const _CHAR *file, const _UINT line);
 extern void debug_msg_output        (const _CHAR *file, const _UINT line);
-extern void debug_print_equal_number(const _SINT expected, const _SINT actual, const em_DebugDisplayStyle_t style);
+extern void debug_print_equal_number(const _SINT expected, const _SINT actual, const unsigned int style);
 extern void debug_print_equal_bits  (const _UINT mask, const _UINT expected, const _UINT actual);
 extern void debug_print_expected_actual_string(const _CHAR *expected, const _CHAR *actual);
 extern void debug_print_null_point  (void);
 extern int  debug_string_compare    (const _CHAR *expected, const _CHAR *actual);
 extern void debug_trap              (void);
 extern void debug_exit_trap         (void);
-#endif
 
 #endif      //!< #ifndef __SERVICE_DEBUG_H__
 #endif      //!< #ifndef __SERVICE_DEBUG_C__
