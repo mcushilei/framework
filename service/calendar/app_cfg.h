@@ -18,8 +18,8 @@
 //! \note do not move this pre-processor statement to other places
 #include "..\app_cfg.h"
 
-#ifndef __TEMPLATE_APP_CFG_H__
-#define __TEMPLATE_APP_CFG_H__
+#ifndef __CALENDAR_APP_CFG_H__
+#define __CALENDAR_APP_CFG_H__
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
@@ -28,5 +28,5 @@
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 
-#endif  //! #ifndef __TEMPLATE_APP_CFG_H__
+#endif  //! #ifndef __CALENDAR_APP_CFG_H__
 /* EOF */
