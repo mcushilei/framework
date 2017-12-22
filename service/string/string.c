@@ -18,6 +18,7 @@
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
+#include <string.h>
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
@@ -234,6 +235,10 @@ float dec_str2float(const char *str)
 
 void string_to_uppercase(char *s)
 {
+    if (s == NULL) {
+        return;
+    }
+    
     for (; *s != '\0'; s++) {
         if (CAHR_IS_LOWERCASE(*s)) {
             *s -= 'a' - 'A';
@@ -243,6 +248,10 @@ void string_to_uppercase(char *s)
 
 void string_to_lowercase(char *s)
 {
+    if (s == NULL) {
+        return;
+    }
+    
     for (; *s != '\0'; s++) {
         if (CAHR_IS_UPPERCASE(*s)) {
             *s += 'a' - 'A';
@@ -441,14 +450,14 @@ int32_t itostr(int32_t value, char *integerString, int32_t radix)
             }
         } else {                    // hex
             for (i = 0; i < 8u; i++) {
-                tmp = (wValue >> (7 - i)) & 0x0Fu;
+                tmp = (wValue >> ((7 - i) * 4)) & 0x0Fu;
                 if (tmp != 0u) {
                     break;
                 }
             }
             l = 8 - i;
             for (; i < 8u; i++) {
-                tmp = (wValue >> (7 - i)) & 0x0Fu;
+                tmp = (wValue >> ((7 - i) * 4)) & 0x0Fu;
                 *integerString = c[tmp];
                 integerString++;
             }
