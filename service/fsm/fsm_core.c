@@ -58,7 +58,7 @@ extern void         fsm_semaphore_init         (void);
 /*============================ LOCAL VARIABLES ===============================*/
 static fsm_tcb_t       *fsmTCBFreeList;                 //! TCB
 static fsm_tcb_t        fsmTCBTbl[FSM_MAX_TASKS];       //! TCB pool
-volatile uint8_t        fsmIntNesting;
+uint8_t                 fsmIntNesting;
 scheduler_t             fsmScheduler;
 
 /*============================ GLOBAL VARIABLES ==============================*/

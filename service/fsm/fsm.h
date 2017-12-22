@@ -164,7 +164,7 @@ typedef struct {
 } scheduler_t;
 
 /*============================ GLOBAL VARIABLES ==============================*/
-extern volatile uint8_t     fsmIntNesting;
+extern uint8_t              fsmIntNesting;
 extern scheduler_t          fsmScheduler;
 
 /*============================ PROTOTYPES ====================================*/
