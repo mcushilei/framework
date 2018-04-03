@@ -595,6 +595,10 @@ bool spi_sd_write_blocks(uint32_t block, const uint8_t *buf, uint32_t cnt)
     uint32_t wR1 = 0;
     uint8_t recv;
     
+    if (cnt == 0u) {
+        return true;
+    }
+    
     //! Convert sector-based address to byte-based address for non SDHC.
     if (SD_V2_0_HC_CARD != s_tCardProperties.chCardType) {
         block <<= 9;
@@ -606,7 +610,7 @@ bool spi_sd_write_blocks(uint32_t block, const uint8_t *buf, uint32_t cnt)
     if (cnt > 1) { /* write multiple block */
         wR1 = spi_sd_send_cmd(SD_CMD_WRITE_MULT_BLOCK, block, NULL, 0);
         if (0 == wR1) {
-            do {
+            for (; cnt != 0u; cnt--) {
                 if (!spi_sd_write_data(buf, 0xFC, SD_FLASH_BLOCK_SIZE)) {
                     break;
                 }
@@ -624,10 +628,10 @@ bool spi_sd_write_blocks(uint32_t block, const uint8_t *buf, uint32_t cnt)
                 }
 
                 buf += SD_FLASH_BLOCK_SIZE;
-            } while (--cnt);
+            }
 
             /* Stop transmission */
-            if (!cnt) {
+            if (cnt == 0u) {
                 spi_sd_send_cmd(SD_CMD_STOP_TRANSMISSION, 0, NULL, 0);
             } else {
                 sd_spi_write_byte(0xFD);
@@ -644,7 +648,7 @@ bool spi_sd_write_blocks(uint32_t block, const uint8_t *buf, uint32_t cnt)
             if (spi_sd_write_data(buf, 0xFE, SD_FLASH_BLOCK_SIZE)) {
                 
                 /* Wait for wirte complete. */
-                SD_TIME_SET(4000);
+                SD_TIME_SET(8000);
                 do {
                     recv = sd_spi_read_byte();
                     if (recv == 0xFF) {
@@ -653,14 +657,13 @@ bool spi_sd_write_blocks(uint32_t block, const uint8_t *buf, uint32_t cnt)
                 } while (!SD_TIME_IS_OVERFLOW());
                 if (recv == 0xFF) {
                     bRetVal = true;
-                } else {
-                    bRetVal = false;
                 }
             }
         }
     }
 
     sd_spi_cs_set();
+    
     return bRetVal;
 }
 
@@ -715,6 +718,7 @@ bool spi_sd_erase_blocks(uint32_t block, uint32_t cnt)
     } while (0);
     
     sd_spi_cs_set();
+    
     return bRetVal;
 }
 
