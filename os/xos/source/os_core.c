@@ -441,11 +441,11 @@ void osTimeTick(void)
             
             if (pnode->OSWaitNodeDly != 0u) {
                 pnode->OSWaitNodeDly--;
-                if (pnode->OSWaitNodeDly == 0u) {                   //!< If timeout
-                    pnode->OSWaitNodeRes = OS_STAT_PEND_TO;         //!< Indicate PEND timeout.
-                    OS_WaitNodeRemove(ptcb);
-                    OS_SchedulerReadyTask(ptcb);
-                }
+            }
+            if (pnode->OSWaitNodeDly == 0u) {                   //!< If timeout
+                pnode->OSWaitNodeRes = OS_STAT_PEND_TO;         //!< Indicate PEND timeout.
+                OS_WaitNodeRemove(ptcb);
+                OS_SchedulerReadyTask(ptcb);
             }
         }
         OSExitCriticalSection(cpu_sr);
@@ -457,12 +457,12 @@ void osTimeTick(void)
         
         if (pnode->OSWaitNodeDly != 0u) {
             pnode->OSWaitNodeDly--;
-            if (pnode->OSWaitNodeDly == 0u) {                       //!< If timeout
-                OS_WaitNodeRemove(ptcb);
-                OSEnterCriticalSection(cpu_sr);
-                OS_SchedulerReadyTask(ptcb);
-                OSExitCriticalSection(cpu_sr);
-            }
+        }
+        if (pnode->OSWaitNodeDly == 0u) {                       //!< If timeout
+            OS_WaitNodeRemove(ptcb);
+            OSEnterCriticalSection(cpu_sr);
+            OS_SchedulerReadyTask(ptcb);
+            OSExitCriticalSection(cpu_sr);
         }
     }
 }
