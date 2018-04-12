@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2018 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -14,26 +14,38 @@
  *  You should have received a copy of the GNU Lesser General Public License  *
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
-/*  example:
- *  Frame: A5 5A | 02 - 21 22 | XX XX
- */
 
-#ifndef __COMMUNICATION_FRAME_C__
-#ifndef __COMMUNICATION_FRAME_H__
-#define __COMMUNICATION_FRAME_H__
+#ifndef  __OS_CORTEX_M0_PORTS_H__
+#define  __OS_CORTEX_M0_PORTS_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
+#include ".\os_cpu_cfg.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
+
+#if     OS_CRITICAL_METHOD == 3
+    #define OSEnterCriticalSection(__INT)   __INT = OS_CPU_ATOM_CODE_BEGIN()
+    #define OSExitCriticalSection(__INT)    OS_CPU_ATOM_CODE_END(__INT)
+#elif   OS_CRITICAL_METHOD == 2
+    #define OSEnterCriticalSection(__INT)   os_cpu_enter_critical_section()
+    #define OSExitCriticalSection(__INT)    os_cpu_exit_critical_section()
+#else
+    #error "This CPU does not support this method!"
+#endif
+
+
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool frame_ini(void);
-extern fsm_rt_t frame_rcv_fsm(uint8_t *pchDate, uint16_t *phwLength);
-extern fsm_rt_t frame_snd_fsm(const uint8_t *pchData, uint16_t hwLength);
+#if     OS_CRITICAL_METHOD == 3
+extern uint32_t OS_CPU_ATOM_CODE_BEGIN(void);
+extern void     OS_CPU_ATOM_CODE_END(uint32_t);
+#elif   OS_CRITICAL_METHOD == 2
+extern void os_cpu_exit_critical_section(void);
+extern void os_cpu_enter_critical_section(void);
+#endif
 
-#endif  //! #ifndef __COMMUNICATION_FRAME_H__
-#endif  //! #ifndef __COMMUNICATION_FRAME_C__
-/* EOF */
+
+#endif

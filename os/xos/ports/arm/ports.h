@@ -23,7 +23,9 @@
 #include ".\app_cfg.h"
 
 
-#if     defined(__CORTEX_M3__)
+#if     defined(__CORTEX_M0P__)
+    #include ".\cortex_m0plus\ports.h"
+#elif   defined(__CORTEX_M3__)
     #include ".\cortex_m3\ports.h"
 #elif   defined(__CORTEX_M4__)
     #include ".\cortex_m4\ports.h"
