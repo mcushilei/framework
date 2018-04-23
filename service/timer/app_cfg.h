@@ -23,7 +23,7 @@
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
-#define SOFTTIMER_MAX_TIMERS    (32u)
+#define TIMER_TICK_CYCLE    (10u)       //! in ms
 
 #if     defined(__OS_WINDOWS__)
 #define __SOFTTIMER_SAFE_ATOME_CODE(...) {\

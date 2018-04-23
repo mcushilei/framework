@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2016 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2018 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -15,13 +15,15 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
+//! Do not move this pre-processor statement to other places
+#ifndef __TIMER_PUBLIC_H__
+#define __TIMER_PUBLIC_H__
 
-#ifndef __SOFTTIMER_C__
-#ifndef __SOFTTIMER_H__
-#define __SOFTTIMER_H__
+
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
+#include "..\list\list.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
@@ -29,26 +31,27 @@
 typedef void timer_routine_t(void);
 
 typedef struct {
-    uint8_t         Flag;
-    uint8_t         Ctrl;
-    uint32_t        Count;
-    uint32_t        Reload;
-    timer_routine_t *pRoutine;
-} softtimer_t;
+	uint8_t         Flag;
+	uint8_t         Ctrl;
+	uint32_t        Count;
+	uint32_t        Period;
+	timer_routine_t *pRoutine;
+	list_node_t     ListNode;
+} timer_t;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-bool softtimer_init(void);
-void softtimer_config(
-                    uint8_t     timer,
-                    uint32_t    initValue,
-                    uint32_t    reloadValue,
-                    timer_routine_t *pRoutine);
-void softtimer_tick(void);
-void softtimer_start(uint8_t Timer, uint32_t Value);
-void softtimer_stop(uint8_t Timer);
-bool softtimer_is_timeout(uint8_t Timer);
+extern bool timer_init(void);
+extern bool timer_config(
+	timer_t        *timer,
+	uint32_t		initValue,
+	uint32_t		reloadValue,
+	timer_routine_t *pRoutine);
+extern void timer_tick(void);
+extern void timer_start(timer_t *timer, uint32_t value);
+extern void timer_stop(timer_t *timer);
+extern bool timer_is_timeout(timer_t *timer);
+extern bool timer_is_running(timer_t *timer);
 
-#endif  //! #ifndef __SOFTTIMER_H__
-#endif  //! #ifndef __SOFTTIMER_C__
+#endif  //!< #ifndef __TIMER_PUBLIC_H__
 /* EOF */
