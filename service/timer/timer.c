@@ -29,7 +29,6 @@
 /*============================ TYPES =========================================*/
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
-static volatile bool        isLocked;
 static volatile uint32_t    scanHand;
 static volatile uint32_t    scanHandOld;
 static list_node_t          timerList;            //! those two list should be sorted by increase. 
@@ -40,7 +39,6 @@ static list_node_t          timerRunoverList;
 
 bool timer_init(void)
 {
-    isLocked = false;
     scanHandOld = scanHand;
     list_init_head(&timerList);
     list_init_head(&timerRunoverList);
@@ -119,47 +117,50 @@ void timer_tick(void)
     //! increase scanHand
     ++scanHand;
 
-    //! if locked.
-    if (isLocked) {
-        return;
-    }
-
     //! to see if we have run over.
     if (scanHandOld > scanHand) { //! yes.
         //! all timer in timerList has timeout.
         if (timerList.Next != &timerList) {    //! see if timerList is empyt.
-            for (list_node_t *pNode = timerList.Next; pNode != &timerList; ) {    //! to see if there is any timer overflow.
-                timer_t *pTimer = CONTAINER_OF(pNode, timer_t, ListNode);
-                pNode = pNode->Next;
-                list_del(&pTimer->ListNode);
-                timer_timeout_processs(pTimer);
-            }
+            __TIMER_SAFE_ATOME_CODE(
+                for (list_node_t *pNode = timerList.Next; pNode != &timerList; ) {
+                    timer_t *pTimer = CONTAINER_OF(pNode, timer_t, ListNode);
+                    pNode = pNode->Next;
+                    list_del(&pTimer->ListNode);
+                    timer_timeout_processs(pTimer);
+                }
+            )
         }
 
         //! move timerRunoverList to timerList.
         if (timerRunoverList.Next != &timerRunoverList) {    //! see if timerRunoverList is empty.
-            list_node_t *pHead = timerRunoverList.Next;
-            list_node_t *pTail = timerRunoverList.Prev;
-            timerRunoverList.Next = &timerRunoverList;
-            timerRunoverList.Prev = &timerRunoverList;
-            timerList.Next = pHead;
-            timerList.Prev = pTail;
-            pHead->Prev = &timerList;
-            pTail->Next = &timerList;
+            __TIMER_SAFE_ATOME_CODE(
+                list_node_t *pHead = timerRunoverList.Next;
+                list_node_t *pTail = timerRunoverList.Prev;
+                timerRunoverList.Next = &timerRunoverList;
+                timerRunoverList.Prev = &timerRunoverList;
+                timerList.Next = pHead;
+                timerList.Prev = pTail;
+                pHead->Prev = &timerList;
+                pTail->Next = &timerList;
+            )
         }
     }
 
+    //! to see if there is any timer overflow in timerList.
     if (timerList.Next != &timerList) {    //! see if timerList is empyt.
-        for (list_node_t *pNode = timerList.Next; pNode != &timerList; ) {    //! to see if there is any timer overflow.
-            timer_t *pTimer = CONTAINER_OF(pNode, timer_t, ListNode);
-            if (pTimer->Count > scanHand) {
-                break;            //! the list has been sorted, so we just break.
-            } else {
-                pNode = pNode->Next;
-                list_del(&pTimer->ListNode);
-                timer_timeout_processs(pTimer);
+        __TIMER_SAFE_ATOME_CODE(
+            for (list_node_t *pNode = timerList.Next; pNode != &timerList; ) {
+                timer_t *pTimer = CONTAINER_OF(pNode, timer_t, ListNode);
+                //! to see if it has overflow.
+                if (pTimer->Count > scanHand) { //!< no.
+                    break;            //!< The list has been sorted, so we just break.
+                } else {                        //!< yes
+                    pNode = pNode->Next;
+                    list_del(&pTimer->ListNode);
+                    timer_timeout_processs(pTimer);
+                }
             }
-        }
+        )
     }
 
     scanHandOld = scanHand;
@@ -180,9 +181,9 @@ bool timer_config(
     list_init_head(&timer->ListNode);
     if (timer->Count != 0u) {
         timer->Count += scanHand;
-        isLocked = true;
-        timer_list_insert(timer);
-        isLocked = false;
+        __TIMER_SAFE_ATOME_CODE(
+            timer_list_insert(timer);
+        )
     }
 
     return true;
@@ -191,28 +192,24 @@ bool timer_config(
 //! NO reentrible
 void timer_start(timer_t *timer, uint32_t value)
 {
-    isLocked = true;
-
-    //! remove it from any list.
-    timer_list_remove(timer);
-    //! update it and then add it to list again.
-    if (value != 0u) {
-        timer->Count = (value + TIMER_TICK_CYCLE - 1u) / TIMER_TICK_CYCLE + scanHand;
-        timer_list_insert(timer);
-    }
-
-    isLocked = false;
+    __TIMER_SAFE_ATOME_CODE(
+        //! remove it from any list.
+        timer_list_remove(timer);
+        //! update it and then add it to list again.
+        if (value != 0u) {
+            timer->Count = (value + TIMER_TICK_CYCLE - 1u) / TIMER_TICK_CYCLE + scanHand;
+            timer_list_insert(timer);
+        }
+    )
 }
 
 //! NO reentrible
 void timer_stop(timer_t *timer)
 {
-    isLocked = true;
-
-    //! remove it from any list.
-    timer_list_remove(timer);
-
-    isLocked = false;
+    __TIMER_SAFE_ATOME_CODE(
+        //! remove it from any list.
+        timer_list_remove(timer);
+    )
 }
 
 bool timer_is_timeout(timer_t *timer)

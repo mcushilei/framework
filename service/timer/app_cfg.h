@@ -25,15 +25,8 @@
 /*============================ MACROS ========================================*/
 #define TIMER_TICK_CYCLE    (10u)       //! in ms
 
-#if     defined(__OS_WINDOWS__)
-#define __SOFTTIMER_SAFE_ATOME_CODE(...) {\
-            OS_CRITICAL_SECTION_DEFINE(cpu_sr);\
-            OS_CRITICAL_SECTION_BEGIN(cpu_sr);\
-            __VA_ARGS__\
-            OS_CRITICAL_SECTION_END(cpu_sr);\
-        }
-#elif   defined(__OS_RTOS__)
-#define __SOFTTIMER_SAFE_ATOME_CODE(...) {\
+#if     defined(__OS_WINDOWS__) || defined(__OS_RTOS__)
+#define __TIMER_SAFE_ATOME_CODE(...) {\
             OS_CRITICAL_SECTION_DEFINE(cpu_sr);\
             OS_CRITICAL_SECTION_BEGIN(cpu_sr);\
             __VA_ARGS__\
