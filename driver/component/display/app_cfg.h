@@ -32,5 +32,5 @@
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 
-#endif  //! #ifndef __TEMPLATE_APP_CFG_H__
+#endif  //! #ifndef __COMPONENT_DISPLAY_APP_CFG_H__
 /* EOF */

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2016 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2016-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -20,20 +20,11 @@
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
+#include ".\event_fsm_public.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef uint8_t (efsm_state_t)(void *pEvent);
-typedef efsm_state_t *efsm_stack_t;
-
-typedef struct {
-    efsm_stack_t   *Stack;
-    uint8_t         StackSize;
-    uint8_t         TopLevel;           //!< stack point.
-    uint8_t         CurrentLevel;       //!< current level point, it's alwayse less or equal to TopLevel.
-} efsm_t;
-
 /*============================ PROTOTYPES ====================================*/
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
@@ -45,9 +36,10 @@ bool efsm_init     (efsm_t         *EFSM,
 {
     EFSM->Stack         = pStack;
     EFSM->StackSize     = stackSize;
-    EFSM->TopLevel      = 0;
+    EFSM->StackLevel    = 0;
     EFSM->CurrentLevel  = 0;
     EFSM->Stack[0]      = pInitState;
+    EFSM->Status        = EFSM_STATUS_STOPPED;
 
     return true;
 }
@@ -62,10 +54,10 @@ static bool efsm_current_level_decrease(efsm_t *EFSM)
     }
 }
 
-//!< reset current-TopLevel to TopLevel.
+//!< reset current-StackLevel to StackLevel.
 static void efsm_reset_current_level(efsm_t *EFSM)
 {
-    EFSM->CurrentLevel = EFSM->TopLevel;
+    EFSM->CurrentLevel = EFSM->StackLevel;
 }
 
 static efsm_state_t *efsm_get_current_state(efsm_t *EFSM)
@@ -73,65 +65,67 @@ static efsm_state_t *efsm_get_current_state(efsm_t *EFSM)
     return EFSM->Stack[EFSM->CurrentLevel];
 }
 
-bool efsm_level_to_current(efsm_t *EFSM)
-{
-    EFSM->TopLevel = EFSM->CurrentLevel;
-    
-    return true;
-}
-
-//! transfer to specified state within current level.
-bool efsm_current_level_to_state(efsm_t *EFSM, efsm_state_t *pState)
-{
-    EFSM->Stack[EFSM->CurrentLevel] = pState;       //!< transfer to State.
-
-    return true;
-}
-
-//! transfer to specified state with level decrease.
-//! This function is identically call efsm_transfer_to_current_level and
-//! then call efsm_current_level_transfer_to.
-bool efsm_to_state(efsm_t *EFSM, efsm_state_t *pState)
-{
-    EFSM->TopLevel = EFSM->CurrentLevel;            //!< POP stack to current level.
-    EFSM->Stack[EFSM->TopLevel] = pState;           //!< transfer to State.
-    
-    return true;
-}
-
-//! transfer to specified state that locate in a upper level.
+//! to add layer to current layer. this will destroy all layers over current layer at first and then add the new one.
 bool efsm_to_upper(efsm_t *EFSM, efsm_state_t *pState)
 {
     if ((EFSM->CurrentLevel + 1u) >= EFSM->StackSize) { //!< avoid overflow.
         return false;                                   //!< this should be fatal error!
     }
 
+    if (pState == NULL) {
+        return false;
+    }
+
+    EFSM->Status = EFSM_STATUS_ADD_LAYER;
     EFSM->CurrentLevel++;
-    EFSM->TopLevel = EFSM->CurrentLevel;                //!< POP stack to current level.
-    EFSM->Stack[EFSM->TopLevel] = pState;               //!< transfer to State.
+    EFSM->StackLevel = EFSM->CurrentLevel;      //!< reset to current layer.
+    EFSM->Stack[EFSM->CurrentLevel] = pState;   //!< transfer to State.
+
+    return true;
+}
+
+//! to destroy all layers over current layer.
+bool efsm_to_current(efsm_t *EFSM)
+{
+    EFSM->StackLevel = EFSM->CurrentLevel;
     
     return true;
 }
 
-//! transfer to specified state that locate in a lower level.
-bool efsm_to_lower(efsm_t *EFSM, efsm_state_t *pState)
+//! to reduce current layer. note this will destroy current layer and all those over it if exist.
+bool efsm_to_lower(efsm_t *EFSM)
 {
     if (EFSM->CurrentLevel == 0u) {             //!< avoid overflow.
-        return false;                           //!< this should be fatal error!
+        return false;
     }
     
     //! POP stack.
     EFSM->CurrentLevel--;
-    EFSM->TopLevel = EFSM->CurrentLevel;        //!< POP stack to current level.
-    if (pState != NULL) {
-        EFSM->Stack[EFSM->TopLevel] = pState;   //!< transfer to specified state.
-    } else {
-                                                //!< no state transfer.
-    }
+    EFSM->StackLevel = EFSM->CurrentLevel;      //!< POP stack to current level.
     
     return true;
 }
 
+//! to take a state transfer on current layer. note this will have NO effect on level of layer.
+bool efsm_current_layer_to_state(efsm_t *EFSM, efsm_state_t *pState)
+{
+    EFSM->Status = EFSM_STATUS_TRANSFER_STATE;
+    EFSM->Stack[EFSM->CurrentLevel] = pState;       //!< transfer to State.
+
+    return true;
+}
+
+//! to take a state transfer on current layer. note this will DESTROY ALL layers over current layer.
+bool efsm_to_state(efsm_t *EFSM, efsm_state_t *pState)
+{
+    if (EFSM->StackLevel == EFSM->CurrentLevel) {
+        EFSM->Status = EFSM_STATUS_TRANSFER_STATE;
+    }
+    EFSM->StackLevel = EFSM->CurrentLevel;          //!< delete all layers above current layer.
+    EFSM->Stack[EFSM->CurrentLevel] = pState;       //!< transfer to state.
+
+    return true;
+}
 
 /*! \brief dispatch an event to an fsm.
  *  \param EFSM                 point to an event fsm.
@@ -140,17 +134,35 @@ bool efsm_to_lower(efsm_t *EFSM, efsm_state_t *pState)
  *  \retval FSM_RT_ONGOING      state has not been run complete.
  *  \retval FSM_RT_ERR          failed to get current state, might stack uninitialzed or voerflow.
  */
-uint8_t efsm_dispatch_event(efsm_t *EFSM, void *pEvent)
+uint8_t efsm_dispatch_event(efsm_t *EFSM, event_code_t event, void *arg)
 {
     efsm_state_t *pState;
     uint8_t res;
     
-__RUN_HANDLE:
     pState = efsm_get_current_state(EFSM);
     if (pState == NULL) {
         return FSM_RT_ERR;
     }
-    res = (*pState)(pEvent);
+    switch (EFSM->Status) {
+        case EFSM_STATUS_STOPPED:
+        case EFSM_STATUS_TRANSFER_STATE:
+        case EFSM_STATUS_ADD_LAYER:
+            (*pState)(EFSM_EVENT_ENTRY_STATE, NULL);
+            break;
+
+        default:
+            break;
+    }
+    EFSM->Status = EFSM_STATUS_RUNNING;
+    res = (*pState)(event, arg);        //!< run this handler.
+    switch (EFSM->Status) {
+        case EFSM_STATUS_TRANSFER_STATE:
+            (*pState)(EFSM_EVENT_EXIT_STATE, NULL);
+            break;
+
+        default:
+            break;
+    }
     switch (res) {
         case FSM_RT_UNHANDLE:
             //! Try to handle this event at lower level if current state does not handle it.
@@ -158,7 +170,7 @@ __RUN_HANDLE:
                 efsm_reset_current_level(EFSM);
                 return FSM_RT_CPL;
             }
-            goto __RUN_HANDLE;
+            return FSM_RT_ONGOING;
 
         case FSM_RT_ONGOING:
             return FSM_RT_ONGOING;

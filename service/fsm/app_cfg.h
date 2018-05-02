@@ -31,11 +31,11 @@
 #define FSM_MAX_MUTEXES         (4u)
 #define FSM_MAX_SEMS            (4u)
 
+#define FSM_SAFE_ATOM_CODE(...) __VA_ARGS__
+
 #endif
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#define FSM_SAFE_ATOM_CODE(...) SAFE_ATOM_CODE(__VA_ARGS__)
-
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/

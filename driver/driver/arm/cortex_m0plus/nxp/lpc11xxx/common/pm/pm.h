@@ -55,8 +55,8 @@ extern uint32_t power_status_get(uint32_t parts);
 extern bool     power_status_resume(uint32_t parts , uint32_t status);
 
 //! Before call: PLL should NOT be in use AND should be power down.
-//! After  call: If there is any error(return false), PLL is power down;
-//!              else, PLL is work well.
+//! After  call: If there is any error(return false), PLL has been powered down;
+//!              In other case, PLL is work well.
 extern bool     pll_init(uint32_t Source, uint32_t Freq);
 extern bool     pll_enable(void);
 extern bool     pll_disable(void);

@@ -30,7 +30,7 @@
 #include "..\common\flash\flash.h"
 #include "..\common\i2c\i2c.h"
 #include "..\common\rtc\rtc.h"
-#include "..\common\timer\timer.h"
+#include "..\common\counter\counter.h"
 #include "..\common\adc\adc.h"
 
 /*============================ MACROS ========================================*/

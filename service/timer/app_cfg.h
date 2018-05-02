@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2016 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2016-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -18,22 +18,22 @@
 //! \note do not move this pre-processor statement to other places
 #include "..\app_cfg.h"
 
-#ifndef __SOFTTIMER_APP_CFG_H__
-#define __SOFTTIMER_APP_CFG_H__
+#ifndef __SERVICE_TIMER_APP_CFG_H__
+#define __SERVICE_TIMER_APP_CFG_H__
 
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
 #define TIMER_TICK_CYCLE    (10u)       //! in ms
 
 #if     defined(__OS_WINDOWS__) || defined(__OS_RTOS__)
-#define __TIMER_SAFE_ATOME_CODE(...) {\
+#define __TIMER_SAFE_ATOM_CODE(...)     {\
             OS_CRITICAL_SECTION_DEFINE(cpu_sr);\
             OS_CRITICAL_SECTION_BEGIN(cpu_sr);\
             __VA_ARGS__\
             OS_CRITICAL_SECTION_END(cpu_sr);\
         }
 #else
-#define __SOFTTIMER_SAFE_ATOME_CODE(...)    SAFE_ATOM_CODE(__VA_ARGS__)
+#define __TIMER_SAFE_ATOM_CODE(...)     SAFE_ATOM_CODE(__VA_ARGS__)
 #endif
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
@@ -41,5 +41,5 @@
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 
-#endif  //! #ifndef __SOFTTIMER_APP_CFG_H__
+#endif  //! #ifndef __SERVICE_TIMER_APP_CFG_H__
 /* EOF */

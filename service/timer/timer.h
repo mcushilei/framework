@@ -16,9 +16,9 @@
 *******************************************************************************/
 
 
-#ifndef __SOFTTIMER_C__
-#ifndef __SOFTTIMER_H__
-#define __SOFTTIMER_H__
+#ifndef __SERVICE_TIMER_C__
+#ifndef __SERVICE_TIMER_H__
+#define __SERVICE_TIMER_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
@@ -30,6 +30,6 @@
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 
-#endif  //! #ifndef __SOFTTIMER_H__
-#endif  //! #ifndef __SOFTTIMER_C__
+#endif  //! #ifndef __SERVICE_TIMER_H__
+#endif  //! #ifndef __SERVICE_TIMER_C__
 /* EOF */

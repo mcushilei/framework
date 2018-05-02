@@ -110,14 +110,14 @@
     } __NAME;
 
 //! \brief Macro to reseverd register.
-#define __REG8_RSVD(__N, __A)       const uint8_t   :8;
-#define REG8_RSVD(__N)              MREPEAT(__N, __REG8_RSVD, 0)
+#define __8BIT_RSVD(__N, __A)       const uint8_t   :8;
+#define REG8_RSVD(__N)              MREPEAT(__N, __8BIT_RSVD, 0)
 
-#define __REG16_RSVD(__N, __A)      const uint16_t  :16;
-#define REG16_RSVD(__N)             MREPEAT(__N, __REG16_RSVD, 0)
+#define __16BIT_RSVD(__N, __A)      const uint16_t  :16;
+#define REG16_RSVD(__N)             MREPEAT(__N, __16BIT_RSVD, 0)
 
-#define __REG32_RSVD(__N, __A)      const uint32_t  :32;
-#define REG32_RSVD(__N)             MREPEAT(__N, __REG32_RSVD, 0)
+#define __32BIT_RSVD(__N, __A)      const uint32_t  :32;
+#define REG32_RSVD(__N)             MREPEAT(__N, __32BIT_RSVD, 0)
 
 /*============================ TYPES =========================================*/
 #define __REG_TYPE__

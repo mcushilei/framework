@@ -1,5 +1,5 @@
 /*******************************************************************************
-*  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+*  Copyright(C)2015-2018 by Dreistein<mcu_shilei@hotmail.com>                *
 *                                                                            *
 *  This program is free software; you can redistribute it and/or modify it   *
 *  under the terms of the GNU Lesser General Public License as published     *
@@ -29,47 +29,95 @@
 /*============================ TYPES =========================================*/
 typedef union {
     uint16_t    Value;
+
     uint8_t     Bytes[2];
+    struct {
+#if defined(__BIG_ENDIAN__)
+        uint8_t Byte1;
+        uint8_t Byte0;
+#else
+        uint8_t Byte0;
+        uint8_t Byte1;
+#endif
+    };
 
     struct {
-    #if defined(__BIG_ENDIAN__)
-        uint8_t Byte1;
-        uint8_t Byte0;
-    #else
-        uint8_t Byte0;
-        uint8_t Byte1;
-    #endif
-    };
+#if defined(__BIG_ENDIAN__)
+        uint8_t B1;
+        uint8_t B0;
+#else
+        uint8_t B0;
+        uint8_t B1;
+#endif
+    } L2M;
+
+    struct {
+#if defined(__BIG_ENDIAN__)
+        uint8_t B0;
+        uint8_t B1;
+#else
+        uint8_t B1;
+        uint8_t B0;
+#endif
+    } M2L;
 } hword_t;
 
 typedef union {
     uint32_t    Value;
+
     uint16_t    HWords[2];
+    struct {
+#if defined(__BIG_ENDIAN__)
+        uint16_t HWord1;
+        uint16_t HWord0;
+#else
+        uint16_t HWord0;
+        uint16_t HWord1;
+#endif
+    };
+
     uint8_t     Bytes[4];
-
     struct {
-    #if defined(__BIG_ENDIAN__)
-        uint16_t HWord1;
-        uint16_t HWord0;
-    #else
-        uint16_t HWord0;
-        uint16_t HWord1;
-    #endif
-    };
-
-    struct {
-    #if defined(__BIG_ENDIAN__)
+#if defined(__BIG_ENDIAN__)
         uint8_t Byte3;
         uint8_t Byte2;
         uint8_t Byte1;
         uint8_t Byte0;
-    #else
+#else
         uint8_t Byte0;
         uint8_t Byte1;
         uint8_t Byte2;
         uint8_t Byte3;
-    #endif
+#endif
     };
+
+    struct {
+#if defined(__BIG_ENDIAN__)
+        uint8_t B3;
+        uint8_t B2;
+        uint8_t B1;
+        uint8_t B0;
+#else
+        uint8_t B0;
+        uint8_t B1;
+        uint8_t B2;
+        uint8_t B3;
+#endif
+    } L2M;
+
+    struct {
+#if defined(__BIG_ENDIAN__)
+        uint8_t B0;
+        uint8_t B1;
+        uint8_t B2;
+        uint8_t B3;
+#else
+        uint8_t B3;
+        uint8_t B2;
+        uint8_t B1;
+        uint8_t B0;
+#endif
+    } M2L;
 } word_t;
 
 /*============================ GLOBAL VARIABLES ==============================*/

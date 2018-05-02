@@ -16,7 +16,7 @@
 *******************************************************************************/
 
 //! \note do not move this pre-processor statement to other places
-#define __SOFTTIMER_C__
+#define __SERVICE_TIMER_C__
 
 //! \brief normal precision timer that count in millisecond.
 
@@ -65,38 +65,26 @@ static void timer_list_insert(timer_t *timer)
     }
 
     //! is this list empty?
-    if (pList->Next == pList) {    //! yes.
+    if (pList->Next == pList) {     //! yes.
         list_add(&timer->ListNode, pList);
-    } else {                    //! no.
+    } else {                        //! no.
         timer_t *pTimer;
         list_node_t *pNode;
-        pNode = pList->Next;
-        do {
+
+        for (pNode = pList->Next; pNode != pList; pNode = pNode->Next) {
             pTimer = CONTAINER_OF(pNode, timer_t, ListNode);
-            if (timer->Count > pTimer->Count) {
-                if (pNode->Next == pList) {
-                    break;
-                } else {
-                    pNode = pNode->Next;
-                }
-            } else {
-                pNode = pNode->Prev;
+            if (timer->Count < pTimer->Count) {
                 break;
             }
-        } while (1);
-        list_add(&timer->ListNode, pNode);
+        }
+        list_add(&timer->ListNode, pNode->Prev);
     }
 }
 
 static void timer_list_remove(timer_t *timer)
 {
-    //! If this timer in any list?
-    if (timer->ListNode.Next != &timer->ListNode) { //! yes
-        //! remove it.
-        list_del(&timer->ListNode);
-    } else {                                        //! no.
-        //! nothing to do.
-    }
+    //! remove it.
+    list_del(&timer->ListNode);
 }
 
 static void timer_timeout_processs(timer_t *timer)
@@ -117,23 +105,21 @@ void timer_tick(void)
     //! increase scanHand
     ++scanHand;
 
-    //! to see if we have run over.
-    if (scanHandOld > scanHand) { //! yes.
-        //! all timer in timerList has timeout.
-        if (timerList.Next != &timerList) {    //! see if timerList is empyt.
-            __TIMER_SAFE_ATOME_CODE(
+    __TIMER_SAFE_ATOM_CODE(
+        //! to see if we have run over.
+        if (scanHandOld > scanHand) { //! yes.
+            //! all timer in timerList has timeout.
+            if (timerList.Next != &timerList) {    //! see if timerList is empyt.
                 for (list_node_t *pNode = timerList.Next; pNode != &timerList; ) {
                     timer_t *pTimer = CONTAINER_OF(pNode, timer_t, ListNode);
                     pNode = pNode->Next;
                     list_del(&pTimer->ListNode);
                     timer_timeout_processs(pTimer);
                 }
-            )
-        }
+            }
 
-        //! move timerRunoverList to timerList.
-        if (timerRunoverList.Next != &timerRunoverList) {    //! see if timerRunoverList is empty.
-            __TIMER_SAFE_ATOME_CODE(
+            //! move timerRunoverList to timerList.
+            if (timerRunoverList.Next != &timerRunoverList) {    //! see if timerRunoverList is empty.
                 list_node_t *pHead = timerRunoverList.Next;
                 list_node_t *pTail = timerRunoverList.Prev;
                 timerRunoverList.Next = &timerRunoverList;
@@ -142,13 +128,11 @@ void timer_tick(void)
                 timerList.Prev = pTail;
                 pHead->Prev = &timerList;
                 pTail->Next = &timerList;
-            )
+            }
         }
-    }
 
-    //! to see if there is any timer overflow in timerList.
-    if (timerList.Next != &timerList) {    //! see if timerList is empyt.
-        __TIMER_SAFE_ATOME_CODE(
+        //! to see if there is any timer overflow in timerList.
+        if (timerList.Next != &timerList) {    //! see if timerList is empyt.
             for (list_node_t *pNode = timerList.Next; pNode != &timerList; ) {
                 timer_t *pTimer = CONTAINER_OF(pNode, timer_t, ListNode);
                 //! to see if it has overflow.
@@ -160,8 +144,8 @@ void timer_tick(void)
                     timer_timeout_processs(pTimer);
                 }
             }
-        )
-    }
+        }
+    )
 
     scanHandOld = scanHand;
 }
@@ -181,7 +165,7 @@ bool timer_config(
     list_init_head(&timer->ListNode);
     if (timer->Count != 0u) {
         timer->Count += scanHand;
-        __TIMER_SAFE_ATOME_CODE(
+        __TIMER_SAFE_ATOM_CODE(
             timer_list_insert(timer);
         )
     }
@@ -192,7 +176,7 @@ bool timer_config(
 //! NO reentrible
 void timer_start(timer_t *timer, uint32_t value)
 {
-    __TIMER_SAFE_ATOME_CODE(
+    __TIMER_SAFE_ATOM_CODE(
         //! remove it from any list.
         timer_list_remove(timer);
         //! update it and then add it to list again.
@@ -206,7 +190,7 @@ void timer_start(timer_t *timer, uint32_t value)
 //! NO reentrible
 void timer_stop(timer_t *timer)
 {
-    __TIMER_SAFE_ATOME_CODE(
+    __TIMER_SAFE_ATOM_CODE(
         //! remove it from any list.
         timer_list_remove(timer);
     )

@@ -29,7 +29,7 @@
 #include ".\fifo\fifo.h"
 #include ".\pool\pool.h"
 #include ".\list\list.h"
-#include ".\softtimer\softtimer.h"
+#include ".\timer\timer.h"
 #include ".\event_fsm\event_fsm.h"
 #include ".\fsm\fsm.h"
 #include ".\dsp\dsp.h"

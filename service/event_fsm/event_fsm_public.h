@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2018 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2016-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -14,44 +14,61 @@
  *  You should have received a copy of the GNU Lesser General Public License  *
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
+/**
+ * all the action excuated on transfer should be implemented explicitly by user.
+**/
 
-//! Do not move this pre-processor statement to other places
-#ifndef __SERVICE_TIMER_PUBLIC_H__
-#define __SERVICE_TIMER_PUBLIC_H__
-
-
+#ifndef __EVENT_FSM_PUBLIC_H__
+#define __EVENT_FSM_PUBLIC_H__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include "..\list\list.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
-typedef void timer_routine_t(void);
+#ifndef __EFSM_USER_CONFIG__
+typedef uint8_t  event_code_t;
+#endif
+
+typedef uint8_t efsm_state_t(event_code_t event, void *arg);
+typedef efsm_state_t *efsm_stack_t;
 
 typedef struct {
-	uint8_t         Flag;
-	uint8_t         Ctrl;
-	uint32_t        Count;
-	uint32_t        Period;
-	timer_routine_t *pRoutine;
-	list_node_t     ListNode;
-} timer_t;
+    efsm_stack_t   *Stack;          //!< stack of layer.
+    uint8_t         StackSize;
+    uint8_t         StackLevel;     //!< stack level.
+    uint8_t         CurrentLevel;   //!< current level.
+    uint8_t         Status;
+} efsm_t;
+
+enum {
+    EFSM_STATUS_STOPPED = 0,
+    EFSM_STATUS_RUNNING,
+    EFSM_STATUS_TRANSFER_STATE,
+    EFSM_STATUS_ADD_LAYER,
+};
+
+enum {
+    EFSM_EVENT_ENTRY_STATE = 0,
+    EFSM_EVENT_EXIT_STATE,
+    EFSM_EVENT_USER_DEFINED,
+};
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
-extern bool timer_init(void);
-extern bool timer_config(
-	timer_t        *timer,
-	uint32_t		initValue,
-	uint32_t		reloadValue,
-	timer_routine_t *pRoutine);
-extern void timer_tick(void);
-extern void timer_start(timer_t *timer, uint32_t value);
-extern void timer_stop(timer_t *timer);
-extern bool timer_is_timeout(timer_t *timer);
-extern bool timer_is_running(timer_t *timer);
+extern bool     efsm_init  (efsm_t         *EFSM,
+                            efsm_stack_t   *Stack,
+                            uint8_t         StackSize,
+                            efsm_state_t   *InitState);
+extern uint8_t  efsm_dispatch_event (efsm_t *EFSM, event_code_t event, void *arg);
 
-#endif  //!< #ifndef __TIMER_PUBLIC_H__
+extern bool efsm_to_state       (efsm_t *EFSM, efsm_state_t *State);
+extern bool efsm_to_upper       (efsm_t *EFSM, efsm_state_t *State);
+extern bool efsm_to_current     (efsm_t *EFSM);
+extern bool efsm_to_lower       (efsm_t *EFSM);
+extern bool efsm_current_layer_to_state(efsm_t *EFSM, efsm_state_t *State);
+
+
+#endif  //! #ifndef __EVENT_FSM_PUBLIC_H__
 /* EOF */
