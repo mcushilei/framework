@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -89,17 +89,11 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL initValue, BOOL manualReset)
     //! set object type.
     //! initial flag's property.
     //! initial flag's wait list.
-    pflag->OSObjType      = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_FLAG)
+    pflag->OSFlagObjHeader.OSObjType      = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_FLAG)
                           | OS_OBJ_TYPE_WAITABLE_MSK
                           | OS_OBJ_PRIO_TYPE_SET(OS_OBJ_PRIO_TYPE_LIST);
     pflag->OSFlagFlags    = flags;
     os_list_init_head(&pflag->OSFlagWaitList);
-    os_list_init_head(&pflag->OSFlagObjList);
-    
-    //! reg waitable object.
-    OSEnterCriticalSection(cpu_sr);
-    OS_RegWaitableObj((OS_WAITABLE_OBJ *)pflag);
-    OSExitCriticalSection(cpu_sr);
     
     *pFlagHandle = pflag;
     
@@ -123,7 +117,7 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL initValue, BOOL manualReset)
  *! \Returns     OS_ERR_NONE            The flag was deleted successfully.
  *!              OS_ERR_USE_IN_ISR      If you attempted to delete the flag from an ISR.
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
- *!              OS_ERR_OBJ_TYPE      If you didn't pass a flag object.
+ *!              OS_ERR_OBJ_TYPE        If you didn't pass a flag object.
  *!              OS_ERR_INVALID_OPT     An invalid option was specified.
  *!              OS_ERR_TASK_WAITING    One or more tasks were waiting on the flag.
  *!
@@ -159,7 +153,7 @@ OS_ERR osFlagDelete(OS_HANDLE *pFlagHandle, UINT8 opt)
         return OS_ERR_INVALID_HANDLE;
     }
     pflag = (OS_FLAG *)*pFlagHandle;
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
+    if (OS_OBJ_TYPE_GET(pflag->OSFlagObjHeader.OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -185,12 +179,11 @@ OS_ERR osFlagDelete(OS_HANDLE *pFlagHandle, UINT8 opt)
              OSExitCriticalSection(cpu_sr);
              return OS_ERR_INVALID_OPT;
     }
-    OS_DeregWaitableObj((OS_WAITABLE_OBJ *)pflag);
     
     while (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) {  //!< Ready ALL tasks task pend for this flag.
         OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pflag, OS_STAT_PEND_ABORT);
     }
-    pflag->OSObjType      = OS_OBJ_TYPE_UNUSED;
+    pflag->OSFlagObjHeader.OSObjType      = OS_OBJ_TYPE_UNUSED;
     pflag->OSFlagFlags    = 0u;
     OS_ObjPoolFree(&osFlagFreeList, pflag);
     OSExitCriticalSection(cpu_sr);
@@ -247,7 +240,7 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
     if (osLockNesting > 0u) {           //!< Can't PEND when locked
         return OS_ERR_PEND_LOCKED;
     }
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
+    if (OS_OBJ_TYPE_GET(pflag->OSFlagObjHeader.OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -318,7 +311,7 @@ OS_ERR osFlagSet(OS_HANDLE hFlag)
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
+    if (OS_OBJ_TYPE_GET(pflag->OSFlagObjHeader.OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -362,7 +355,7 @@ OS_ERR osFlagReset(OS_HANDLE hFlag)
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
+    if (OS_OBJ_TYPE_GET(pflag->OSFlagObjHeader.OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -403,7 +396,7 @@ OS_ERR osFlagQuery(OS_HANDLE hFlag, OS_FLAG_INFO *pInfo)
         return OS_ERR_PDATA_NULL;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(pflag->OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
+    if (OS_OBJ_TYPE_GET(pflag->OSFlagObjHeader.OSObjType) != OS_OBJ_TYPE_FLAG) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 

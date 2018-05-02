@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -31,6 +31,9 @@
 static  void    os_init_free_obj_list(void);
 
 static  void    os_init_misc(void);
+
+static void OS_WaitListInsert(OS_TCB *ptcb);
+static void OS_WaitListRemove(OS_TCB *ptcb);
 
 #if OS_STAT_EN > 0u
 static  void    os_init_statistics_task(void);
@@ -117,22 +120,25 @@ void osInit(void)
  */
 static void os_init_misc(void)
 {
-    osIntNesting             = 0u;                        //!< Clear the interrupt nesting counter
-    osLockNesting            = 0u;                        //!< Clear the scheduling lock counter
+    osRunning               = FALSE;                  //!< Indicate that multitasking not started
+    
+    osCoreTimerScanHand     = 0u;
+    osCoreTimerScanHandOld  = 0u;
 
-    osRunning                = FALSE;                  //!< Indicate that multitasking not started
+    osIntNesting            = 0u;                        //!< Clear the interrupt nesting counter
+    osLockNesting           = 0u;                        //!< Clear the scheduling lock counter
 
-    osIdleCtr                = 0u;                        //!< Clear the idle counter
+    osIdleCtr               = 0u;                        //!< Clear the idle counter
 
 #if OS_STAT_EN > 0u
-    osCtxSwCtr               = 0u;                        //!< Clear the context switch counter
-    osCPUUsage               = 0u;
-    osIdleCtrMax             = 0u;
-    osStatRunning            = FALSE;                  //!< Statistic task is not ready
+    osCtxSwCtr              = 0u;                        //!< Clear the context switch counter
+    osCPUUsage              = 0u;
+    osIdleCtrMax            = 0u;
+    osTaskStatRunning           = FALSE;                  //!< Statistic task is not ready
 #endif
     
-    os_list_init_head(&osSleepList);
-    os_list_init_head(&osWaitableObjList);
+    os_list_init_head(&osWaitList);
+    os_list_init_head(&osWaitRunoverList);
 }
 
 /*!
@@ -379,6 +385,25 @@ void osStart(void)
     }
 }
 
+void OS_WaitNodeInsert(OS_WAITABLE_OBJ *pobj, OS_WAIT_NODE *pnode)
+{
+    OS_LIST_NODE *list;
+
+    
+    if (OS_OBJ_PRIO_TYPE_GET(pobj->OSWaitObjHeader.OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {
+        //! find the node whose priority is lower than current's.
+        for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; list = list->Next) {
+            OS_WAIT_NODE *node = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
+            if (pnode->OSWaitNodeTCB->OSTCBPrio < node->OSWaitNodeTCB->OSTCBPrio) {
+                break;
+            }
+        }
+    } else {
+        list = &pobj->OSWaitObjWaitNodeList;
+    }
+    os_list_add(&pnode->OSWaitNodeList, list->Prev);    //!< add wait node to the end of wait NODE list.
+}
+
 /*!
  *! \Brief       REMOVE TASK FROM EVENT WAIT LIST
  *!
@@ -400,6 +425,50 @@ void OS_WaitNodeRemove(OS_TCB *ptcb)
     ptcb->OSTCBWaitNode = NULL;
 }
 
+static void OS_WaitListInsert(OS_TCB *ptcb)
+{
+    OS_LIST_NODE *pList;
+
+    ptcb->OSTCBDly += osCoreTimerScanHand;
+    
+    //! to see if we have run over.
+    if (osCoreTimerScanHandOld > osCoreTimerScanHand) { //! yes.
+        if (ptcb->OSTCBDly > osCoreTimerScanHand) {
+            pList = &osWaitRunoverList;
+        } else {
+            pList = &osWaitList;
+        }
+    } else {
+        if (ptcb->OSTCBDly > osCoreTimerScanHand) {
+            pList = &osWaitList;
+        } else {
+            pList = &osWaitRunoverList;
+        }
+    }
+
+    //! is this list empty?
+    if (pList->Next == pList) {     //! yes.
+        os_list_add(&ptcb->OSTCBList, pList);
+    } else {                        //! no.
+        OS_TCB          *tcb;
+        OS_LIST_NODE    *list;
+
+        for (list = pList->Next; list != pList; list = list->Next) {
+            tcb = CONTAINER_OF(list, OS_TCB, OSTCBList);
+            if (ptcb->OSTCBDly < tcb->OSTCBDly) {
+                break;
+            }
+        }
+        os_list_add(&ptcb->OSTCBList, list->Prev);
+    }
+}
+
+static void OS_WaitListRemove(OS_TCB *ptcb)
+{
+    os_list_del(&ptcb->OSTCBList);      //!< remove from wait list.
+    ptcb->OSTCBDly = 0u;
+}
+
 /*!
  *! \Brief       PROCESS SYSTEM TICK
  *!
@@ -413,9 +482,8 @@ void OS_WaitNodeRemove(OS_TCB *ptcb)
  */
 void osTimeTick(void)
 {
-    OS_LIST_NODE       *list, *listObj;
+    OS_LIST_NODE       *list;
     OS_TCB             *ptcb;
-    OS_WAITABLE_OBJ    *pobj;
     OS_WAIT_NODE       *pnode;
 #if OS_CRITICAL_METHOD == 3u                               //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
@@ -430,41 +498,63 @@ void osTimeTick(void)
     OSTimeTickHook();
 #endif
     
-    for (listObj = osWaitableObjList.Next; listObj != &osWaitableObjList; listObj = listObj->Next) {
-        pobj = OS_CONTAINER_OF(listObj, OS_WAITABLE_OBJ, OSWaitObjList);
-        
-        OSEnterCriticalSection(cpu_sr);
-        for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; ) {   //!< Go through all task in TCB list.
-            pnode  = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
-            list = list->Next;
-            ptcb = pnode->OSWaitNodeTCB;
-            
-            if (pnode->OSWaitNodeDly != 0u) {
-                pnode->OSWaitNodeDly--;
-            }
-            if (pnode->OSWaitNodeDly == 0u) {                   //!< If timeout
-                pnode->OSWaitNodeRes = OS_STAT_PEND_TO;         //!< Indicate PEND timeout.
-                OS_WaitNodeRemove(ptcb);
+    //! increase osCoreTimerScanHand
+    ++osCoreTimerScanHand;
+
+    OSEnterCriticalSection(cpu_sr);
+    //! to see if we have run over.
+    if (osCoreTimerScanHandOld > osCoreTimerScanHand) { //! yes.
+        //! all ptcb in osWaitList has timeout.
+        if (osWaitList.Next != &osWaitList) {    //! see if osWaitList is empyt.
+            for (list = osWaitList.Next; list != &osWaitList; ) {
+                ptcb = CONTAINER_OF(list, OS_TCB, OSTCBList);
+                list = list->Next;
+                pnode = ptcb->OSTCBWaitNode;
+                if (pnode != NULL) {
+                    pnode->OSWaitNodeRes = OS_STAT_PEND_TO;         //!< Indicate PEND timeout.
+                    OS_WaitNodeRemove(ptcb);
+                }
+                OS_WaitListRemove(ptcb);
                 OS_SchedulerReadyTask(ptcb);
             }
         }
-        OSExitCriticalSection(cpu_sr);
-    }
-    for (list = osSleepList.Next; list != &osSleepList; ) {         //!< Go through all task in sleep TCB list.
-        pnode  = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
-        list = list->Next;
-        ptcb = pnode->OSWaitNodeTCB;
-        
-        if (pnode->OSWaitNodeDly != 0u) {
-            pnode->OSWaitNodeDly--;
-        }
-        if (pnode->OSWaitNodeDly == 0u) {                       //!< If timeout
-            OS_WaitNodeRemove(ptcb);
-            OSEnterCriticalSection(cpu_sr);
-            OS_SchedulerReadyTask(ptcb);
-            OSExitCriticalSection(cpu_sr);
+
+        //! move osWaitRunoverList to osWaitList if there is any node on osWaitRunoverList.
+        if (osWaitRunoverList.Next != &osWaitRunoverList) {    //! see if osWaitRunoverList is empty.
+            OS_LIST_NODE *pHead = osWaitRunoverList.Next;
+            OS_LIST_NODE *pTail = osWaitRunoverList.Prev;
+            osWaitRunoverList.Next = &osWaitRunoverList;
+            osWaitRunoverList.Prev = &osWaitRunoverList;
+            osWaitList.Next = pHead;
+            osWaitList.Prev = pTail;
+            pHead->Prev = &osWaitList;
+            pTail->Next = &osWaitList;
         }
     }
+    
+    //! to see if there is any ptcb overflow in osWaitList.
+    if (osWaitList.Next != &osWaitList) {   //! see if osWaitList is empyt.
+        for (list = osWaitList.Next; list != &osWaitList; ) {
+            ptcb = CONTAINER_OF(list, OS_TCB, OSTCBList);
+            list = list->Next;
+            //! to see if it has overflow.
+            if (ptcb->OSTCBDly > osCoreTimerScanHand) {   //!< no.
+                break;            //!< The list has been sorted, so we just break.
+            } else {                                            //!< yes
+                pnode = ptcb->OSTCBWaitNode;
+                if (pnode != NULL) {
+                    pnode->OSWaitNodeRes = OS_STAT_PEND_TO;         //!< Indicate PEND timeout.
+                    OS_WaitNodeRemove(ptcb);
+                }
+                OS_WaitListRemove(ptcb);
+                OS_SchedulerReadyTask(ptcb);
+            }
+        }
+    }
+    OSExitCriticalSection(cpu_sr);
+
+
+    osCoreTimerScanHandOld = osCoreTimerScanHand;
 }
 
 /*!
@@ -482,7 +572,6 @@ void osTimeTick(void)
  */
 void osTaskSleep(UINT32 ticks)
 {
-    OS_WAIT_NODE    node;
 #if OS_CRITICAL_METHOD == 3u                        //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
 #endif
@@ -499,20 +588,13 @@ void osTaskSleep(UINT32 ticks)
         return;
     }
     
-    //! initial wait node.
-    if (ticks == OS_INFINITE) {
-        ticks = 0u;
-    }
-    node.OSWaitNodeDly = ticks;
-    node.OSWaitNodeTCB = osTCBCur;
-    node.OSWaitNodeECB = NULL;
-    node.OSWaitNodeRes = OS_STAT_PEND_OK;
-    os_list_init_head(&node.OSWaitNodeList);
-    
     OSEnterCriticalSection(cpu_sr);
-    osTCBCur->OSTCBWaitNode = &node;                        //!< Store node in task's TCB
+    osTCBCur->OSTCBWaitNode = NULL;                        //!< Store node in task's TCB
     OS_SchedulerUnreadyTask(osTCBCur);                       //!< remove this task from scheduler's ready list.
-    os_list_add(&node.OSWaitNodeList, osSleepList.Prev);    //!< add task to the end of sleeping task list.
+    if (ticks != OS_INFINITE) {
+        osTCBCur->OSTCBDly = ticks;
+        OS_WaitListInsert(osTCBCur);    //!< add task to the end of sleeping task list.
+    }
     OSExitCriticalSection(cpu_sr);
     OS_SchedulerRunNext();                                   //!< Find next task to run!
 }
@@ -557,7 +639,7 @@ void osStatInit(void)
     osTaskSleep(OS_TICKS_PER_SEC);              //!< Determine MAX. idle counter value for 1 second
     OSEnterCriticalSection(cpu_sr);
     osIdleCtrMax    = osIdleCtr;                //!< Store maximum idle counter count in 1 second
-    osStatRunning   = TRUE;
+    osTaskStatRunning   = TRUE;
     OSExitCriticalSection(cpu_sr);
 }
 #endif
@@ -667,10 +749,8 @@ static void os_task_idle(void *parg)
 static void os_task_statistics(void *parg)
 {
     UINT32              lastIdleCtr;        //!< Val. reached by idle ctr at run time in 1 sec.
-    OS_LIST_NODE       *list, *listObj;
+    OS_LIST_NODE       *list;
     OS_TCB             *ptcb;
-    OS_WAITABLE_OBJ    *pobj;
-    OS_WAIT_NODE       *pnode;
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
     OS_CPU_SR           cpu_sr = 0u;
 #endif
@@ -678,7 +758,7 @@ static void os_task_statistics(void *parg)
 
     parg = parg;                            //!< Prevent compiler warning for not using 'parg'
     
-    while (osStatRunning == FALSE) {        //!< Wait until osIdleCtrMax has been measured.
+    while (osTaskStatRunning == FALSE) {        //!< Wait until osIdleCtrMax has been measured.
         osTaskSleep(OS_TICKS_PER_SEC);
     }
     osIdleCtrMax /= 100u;
@@ -700,18 +780,9 @@ static void os_task_statistics(void *parg)
         
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
         OSEnterCriticalSection(cpu_sr);
-        for (list = osSleepList.Next; list != &osSleepList; list = list->Next) {
-            pnode = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
-            ptcb  = pnode->OSWaitNodeTCB;
+        for (list = osWaitList.Next; list != &osWaitList; list = list->Next) {
+            ptcb = OS_CONTAINER_OF(list, OS_TCB, OSTCBList);
             OS_TaskStkChk(ptcb);
-        }
-        for (listObj = osWaitableObjList.Next; listObj != &osWaitableObjList; listObj = listObj->Next) {
-            pobj = OS_CONTAINER_OF(listObj, OS_WAITABLE_OBJ, OSWaitObjList);
-            for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; list = list->Next) {   //!< Go through all task in TCB list.
-                pnode  = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
-                ptcb = pnode->OSWaitNodeTCB;
-                OS_TaskStkChk(ptcb);
-            }
         }
         OSExitCriticalSection(cpu_sr);
 #endif
@@ -758,7 +829,7 @@ void OS_TCBInit(OS_TCB  *ptcb,
                 UINT32   stkSize,
                 UINT8    opt)
 {
-    ptcb->OSObjType         = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_TCB);
+    ptcb->OSTCBObjHeader.OSObjType = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_TCB);
     
     ptcb->OSTCBOpt          = opt;                      //!< Store task options
     ptcb->OSTCBPrio         = prio;                     //!< Load task priority into TCB
@@ -845,40 +916,6 @@ void OS_TaskStkChk(OS_TCB *ptcb)
 #endif
 
 /*!
- *! \Brief       REGISTER OBJECT TO MANAGER LIST
- *!
- *! \Description This function is called by other OS services to put an object to os's object manager list.
- *!
- *! \Arguments   pobj       is a pointer to the object.
- *!
- *! \Returns     none
- *!
- *! \Notes       1) This function assumes that interrupts are DISABLED.
- *!              2) This function is INTERNAL to OS and your application should not call it.
- */
-void OS_RegWaitableObj(OS_WAITABLE_OBJ *pobj)
-{
-    os_list_add(&pobj->OSWaitObjList, osWaitableObjList.Prev);  //!< and object at the end of list.
-}
-
-/*!
- *! \Brief       DEREGISTER OBJECT TO MANAGER LIST
- *!
- *! \Description This function is called by other OS services to remove an object from os's object manager list.
- *!
- *! \Arguments   pobj       is a pointer to the object.
- *!
- *! \Returns     none
- *!
- *! \Notes       1) This function assumes that interrupts are DISABLED.
- *!              2) This function is INTERNAL to OS and your application should not call it.
- */
-void OS_DeregWaitableObj(OS_WAITABLE_OBJ *pobj)
-{
-    os_list_del(&pobj->OSWaitObjList);                          //!< remove object from list.
-}
-
-/*!
  *! \Brief       MAKE TASK WAIT FOR EVENT TO OCCUR
  *!
  *! \Description This function is called by other OS services to suspend a task because an event has
@@ -901,34 +938,19 @@ void OS_WaitableObjAddTask( OS_WAITABLE_OBJ    *pobj,
                             OS_WAIT_NODE       *pnode,
                             UINT32              ticks)
 {
-    OS_LIST_NODE *list;
-    OS_WAIT_NODE *nextNode;
-
-
     //! initial wait node.
-    if (ticks == OS_INFINITE) {
-        ticks = 0u;
-    }
-    pnode->OSWaitNodeDly = ticks;
     pnode->OSWaitNodeTCB = osTCBCur;
     pnode->OSWaitNodeECB = pobj;
     pnode->OSWaitNodeRes = OS_STAT_PEND_OK;
     os_list_init_head(&pnode->OSWaitNodeList);
-    
     osTCBCur->OSTCBWaitNode = pnode;                    //!< Store node in task's TCB
-    OS_SchedulerUnreadyTask(osTCBCur);                   //!< Unready this task.
-    if (OS_OBJ_PRIO_TYPE_GET(pobj->OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {
-        //! find the node whose priority is lower than current's.
-        for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; list = list->Next) {
-            nextNode = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
-            if (osTCBCur->OSTCBPrio < nextNode->OSWaitNodeTCB->OSTCBPrio) {
-                break;
-            }
-        }
-    } else {
-        list = &pobj->OSWaitObjWaitNodeList;
+    
+    OS_SchedulerUnreadyTask(osTCBCur);
+    OS_WaitNodeInsert(pobj, pnode);
+    if (ticks != OS_INFINITE) {
+        osTCBCur->OSTCBDly = ticks;
+        OS_WaitListInsert(osTCBCur);
     }
-    os_list_add(&pnode->OSWaitNodeList, list->Prev);    //!< add wait node to the end of wait NODE list.
 }
 
 /*!
@@ -961,6 +983,7 @@ OS_TCB *OS_WaitableObjRdyTask(OS_WAITABLE_OBJ *pobj, UINT8 pendRes)
         
     pnode->OSWaitNodeRes = pendRes;
     OS_WaitNodeRemove(ptcb);                //!< Remove this task from event's wait list
+    OS_WaitListRemove(ptcb);
     OS_SchedulerReadyTask(ptcb);             //!< Put task in the ready list
     return ptcb;
 }
@@ -993,7 +1016,7 @@ void OS_ChangeTaskPrio(OS_TCB *ptcb, UINT8 newprio)
     if (pnode != NULL) {                        //!< if task is pending.(so, it is not in ready list.)
         pobj = pnode->OSWaitNodeECB;
         if (pobj != NULL) {                     //!< Is this task pending for any object?...(it may be in sleep.)
-            if (OS_OBJ_PRIO_TYPE_GET(pobj->OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {  //!< ...Yes. Has this object a prio-wait list?
+            if (OS_OBJ_PRIO_TYPE_GET(pobj->OSWaitObjHeader.OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {  //!< ...Yes. Has this object a prio-wait list?
                 OS_LIST_NODE *list;
                 OS_WAIT_NODE *nextNode;
                 
@@ -1020,8 +1043,8 @@ void OS_ChangeTaskPrio(OS_TCB *ptcb, UINT8 newprio)
 
 void OS_BitmapSet(OS_PRIO_BITMAP *pmap, UINT8 prio)
 {
-    UINT8  y;
-    OS_PRIO bitx, bity;
+    UINT8          y;
+    OS_BITMAP_UINT bitx, bity;
     
 #if OS_MAX_PRIO_LEVELS <= 64u                        //!< See if we support up to 64 tasks
     y = (prio >> 3) & 0x07u;
@@ -1038,8 +1061,8 @@ void OS_BitmapSet(OS_PRIO_BITMAP *pmap, UINT8 prio)
 
 void OS_BitmapClr(OS_PRIO_BITMAP *pmap, UINT8 prio)
 {
-    UINT8 y;
-    OS_PRIO bitx, bity;
+    UINT8          y;
+    OS_BITMAP_UINT bitx, bity;
     
 #if OS_MAX_PRIO_LEVELS <= 64u                        //!< See if we support up to 64 tasks
     y = (prio >> 3) & 0x07u;
@@ -1050,9 +1073,9 @@ void OS_BitmapClr(OS_PRIO_BITMAP *pmap, UINT8 prio)
 #endif
     bity = 1u << y;
 
-    pmap->X[y] &= (OS_PRIO)~bitx;
+    pmap->X[y] &= (OS_BITMAP_UINT)~bitx;
     if (pmap->X[y] == 0u) {
-        pmap->Y &= (OS_PRIO)~bity;
+        pmap->Y &= (OS_BITMAP_UINT)~bity;
     }
 }
 
@@ -1060,7 +1083,7 @@ UINT8 OS_BitmapGetHigestPrio(OS_PRIO_BITMAP *pmap)
 {
     UINT8   y;
     UINT8   prio;
-    OS_PRIO valX;
+    OS_BITMAP_UINT valX;
 
 
     //! find the highest priority of ready task.

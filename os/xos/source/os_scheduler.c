@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -129,8 +129,8 @@ void OS_SchedulerUnreadyTask(OS_TCB *ptcb)
     prio = ptcb->OSTCBPrio;
     
     os_list_del(&ptcb->OSTCBList);
-    if (osRdyList[prio].Prev == &osRdyList[prio]) {
-        OS_BitmapClr(&osRdyBitmap, prio);
+    if (osRdyList[prio].Prev == &osRdyList[prio]) { //!< Is this list empty?
+        OS_BitmapClr(&osRdyBitmap, prio);           //!< Yes, clear the flag.
     }
 }
 

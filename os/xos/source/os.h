@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -153,19 +153,19 @@ enum {
 /*!
  *! \Brief  ELEMENTARY TYPE
  */
-typedef UINT8   OS_ERR;
+typedef UINT16                  OS_ERR;
 
 #if OS_MAX_PRIO_LEVELS <= 64u
-typedef UINT8   OS_PRIO;
+typedef UINT8                   OS_BITMAP_UINT;
 #else
-typedef UINT16  OS_PRIO;
+typedef UINT16                  OS_BITMAP_UINT;
 #endif
 
-typedef void    OS_TASK(void *);
+typedef void                    OS_TASK(void *);
 
-typedef void   *OS_HANDLE;
+typedef void                   *OS_HANDLE;
 
-typedef struct list_node        OS_LIST_NODE;
+typedef struct os_list_node     OS_LIST_NODE;
 typedef struct os_mem_pool      OS_MEM_POOL;
 typedef struct os_prio_bitmap   OS_PRIO_BITMAP;
 typedef struct os_waitable_obj  OS_WAITABLE_OBJ;
@@ -176,11 +176,11 @@ typedef struct os_sem           OS_SEM;
 typedef struct os_wait_node     OS_WAIT_NODE;
 
 typedef struct {
-    UINT8               OSObjType;
+    UINT16              OSObjType;
 } OS_OBJ_HEAD;
 
 //! list type
-struct list_node {
+struct os_list_node {
     OS_LIST_NODE       *Prev;
     OS_LIST_NODE       *Next;
 };
@@ -190,27 +190,28 @@ struct os_mem_pool {
     OS_LIST_NODE        OSMemList;
 };
 
-//!< Object wait list node.
+//!< Ready bitmap
+struct os_prio_bitmap {
+    OS_BITMAP_UINT      Y;
+    OS_BITMAP_UINT      X[OS_BITMAP_TBL_SIZE];
+};
+
+//!< wait-node object.
 struct os_wait_node {
-    OS_TCB             *OSWaitNodeTCB;              //!< Pointer to TCB of waiting task.
-    OS_WAITABLE_OBJ    *OSWaitNodeECB;              //!< Pointer to ECB the task wait for.
-    OS_LIST_NODE        OSWaitNodeList;             //!< waiting NODE list.
-    UINT32              OSWaitNodeDly;              //!< Ticks to wait for this object.
+    OS_TCB             *OSWaitNodeTCB;              //!< Pointer to TCB.
+    OS_WAITABLE_OBJ    *OSWaitNodeECB;              //!< Pointer to ECB.
+    OS_LIST_NODE        OSWaitNodeList;             //!< list of wait node.
     UINT8               OSWaitNodeRes;              //!< Wait resault.
 };
 
-//!< Waitable object.
+/*!
+ *! \brief  Waitable object type.
+ *! \Note   For casting use, do NOT define any varibles.
+ */
 struct os_waitable_obj {
-    OS_OBJ_HEAD;
-    UINT16              OSWaitObjCnt;               //!< counter.
-    OS_LIST_NODE        OSWaitObjWaitNodeList;      //!< Pointer to waiting NODE of task waits on this object.
-    OS_LIST_NODE        OSWaitObjList;
-};
-
-//!< Ready bitmap
-struct os_prio_bitmap {
-    OS_PRIO             Y;
-    OS_PRIO             X[OS_BITMAP_TBL_SIZE];
+    OS_OBJ_HEAD         OSWaitObjHeader;
+    UINT16              OSWaitObjCnt;               //!< counter. usage spedified by different objects.
+    OS_LIST_NODE        OSWaitObjWaitNodeList;      //!< List of wait-node of task waiting on it.
 };
 
 /*!
@@ -218,13 +219,9 @@ struct os_prio_bitmap {
  */
 #if (OS_SEM_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
 struct os_sem {
-    union {
-        OS_OBJ_HEAD;
-        OS_OBJ_HEAD     OSSemObjHead;
-    };
-    UINT16              OSSemCnt;                  //!< Semaphore count.
-    OS_LIST_NODE        OSSemWaitList;             //!< Pointer to first NODE of task waiting on semaphore
-    OS_LIST_NODE        OSSemObjList;
+    OS_OBJ_HEAD         OSSemObjHead;
+    UINT16              OSSemCnt;                   //!< Semaphore count.
+    OS_LIST_NODE        OSSemWaitList;              //!< List of wait-node of task waiting on it.
 };
 #endif
 
@@ -233,19 +230,17 @@ struct os_sem {
  */
 #if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 struct os_mutex {
-    union {
-        OS_OBJ_HEAD;
-        OS_OBJ_HEAD     OSMutexObjHead;
-    };
-    UINT8               OSMutexCnt;                 //!< recursive counter.
-    UINT8               OSMutexCeilingPrio;         //!< Mutex's ceiling prio.
-    UINT8               OSMutexOwnerPrio;           //!< Mutex owner's prio.
-    OS_LIST_NODE        OSMutexWaitList;            //!< Pointer to first NODE of task waiting on mutex
-    OS_LIST_NODE        OSMutexObjList;             //!< link to os's manage list.
+    OS_OBJ_HEAD         OSMutexObjHeader;
+    UINT16              OSMutexCnt;                 //!< recursive counter. to allow a task to get the same mutex multiple times.
+    OS_LIST_NODE        OSMutexWaitList;            //!< List of wait-node of task waiting on it.
+
 #if OS_MUTEX_OVERLAP_EN > 0u
-    OS_LIST_NODE        OSMutexOvlpList;
+    OS_LIST_NODE        OSMutexOvlpList;            //!< list of mutex. to allow a task to own multiple mutex.
 #endif
+    
     OS_TCB             *OSMutexOwnerTCB;            //!< Pointer to mutex owner's TCB
+    UINT8               OSMutexOwnerPrio;           //!< Mutex owner's prio.
+    UINT8               OSMutexCeilingPrio;         //!< Mutex's ceiling prio.
 };
 #endif
 
@@ -254,13 +249,9 @@ struct os_mutex {
  */
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 struct os_flag {
-    union {
-        OS_OBJ_HEAD;
-        OS_OBJ_HEAD     OSFlagObjHead;
-    };
+    OS_OBJ_HEAD         OSFlagObjHeader;
     UINT16              OSFlagFlags;                //!< Flag options
-    OS_LIST_NODE        OSFlagWaitList;             //!< Pointer to first NODE of task waiting on flag
-    OS_LIST_NODE        OSFlagObjList;
+    OS_LIST_NODE        OSFlagWaitList;             //!< List of wait-node of task waiting on it.
 };
 #endif
 
@@ -268,22 +259,17 @@ struct os_flag {
  *! \Brief  TASK CONTROL BLOCK
  */
 struct os_tcb {
-    union {
-        OS_OBJ_HEAD;
-        OS_OBJ_HEAD     OSTCBObjHead;
-    };
+    OS_OBJ_HEAD         OSTCBObjHeader;
     
-    UINT8               OSTCBOpt;                   //!< Task options as passed by osTaskCreate()
-    UINT8               OSTCBPrio;                  //!< Task priority (0 == highest)
-    
-    UINT16              OSTCBTimeSlice;
-    UINT16              OSTCBTimeSliceCnt;
+    UINT16              OSTCBOpt;                   //!< Task options as passed by osTaskCreate()
 
-    OS_STK             *OSTCBStkPtr;                //!< Pointer to current TOP of stack
+    UINT32              OSTCBDly;                   //!< time to wait.
+    
+    OS_STK             *OSTCBStkPtr;                //!< stack point
 
     OS_WAIT_NODE       *OSTCBWaitNode;
 
-    OS_LIST_NODE        OSTCBList;                  //!< TCB list node for scheduler.
+    OS_LIST_NODE        OSTCBList;                  //!< TCB list for scheduler.
     
 #if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 #   if OS_MUTEX_OVERLAP_EN > 0u
@@ -293,14 +279,22 @@ struct os_tcb {
 #   endif
 #endif
     
+    UINT16              OSTCBTimeSlice;             //!< for time-slice schedule.
+    UINT16              OSTCBTimeSliceCnt;
+    
+    UINT16              OSTCBStatus;
+    
+    UINT8               OSTCBPrio;                  //!< Task priority (0 == highest)
+    
 #if OS_TASK_PROFILE_EN > 0u
+    OS_STK             *OSTCBStkBase;               //!< Base address of the task stack
     UINT16              OSTCBStkSize;               //!< Size of task stack (in number of stack elements)
     UINT16              OSTCBStkUsed;               //!< Number of BYTES used from the stack
-    OS_STK             *OSTCBStkBase;               //!< Base address of the task stack
     UINT32              OSTCBCtxSwCtr;              //!< Number of times the task was switched in
     UINT32              OSTCBCyclesTot;             //!< Total number of ticks the task has been running
     UINT32              OSTCBCyclesStart;           //!< Snapshot of tick at start of task
 #endif
+    
 };
 
 /*!
@@ -309,8 +303,9 @@ struct os_tcb {
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 typedef struct {
     OS_LIST_NODE        OSWaitList;
-    BOOL                OSFlagManualReset;
     BOOL                OSFlagStatus;
+    
+    BOOL                OSFlagManualReset;
 } OS_FLAG_INFO;
 #endif
 
@@ -322,8 +317,8 @@ typedef struct {
     OS_LIST_NODE        OSWaitList;
     OS_TCB             *OSOwnerTCB;
     UINT8               OSOwnerPrio;
+    
     UINT8               OSCeilingPrio;
-    UINT8               OSValue;                    //!< Mutex value (FALSE = used, TRUE = available)
 } OS_MUTEX_INFO;
 #endif
 
@@ -341,42 +336,45 @@ typedef struct {
  *! \Brief  GLOBAL VARIABLES
  */
 #if (OS_SEM_EN > 0u) && (OS_MAX_SEMAPHORES > 0u)
-OS_EXT  OS_LIST_NODE   *osSempFreeList;                     //!< Pointer to list of free semaphore control blocks
-OS_EXT  OS_SEM          osSempFreeTbl[OS_MAX_SEMAPHORES];   //!< Table of semaphore control blocks
+OS_EXT  OS_LIST_NODE   *osSempFreeList;                         //!< Pointer to list of free semaphore control blocks
+OS_EXT  OS_SEM          osSempFreeTbl[OS_MAX_SEMAPHORES];       //!< Table of semaphore control blocks
 #endif
 
 #if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
-OS_EXT  OS_LIST_NODE   *osMutexFreeList;                    //!< Pointer to list of free mutex control blocks
-OS_EXT  OS_MUTEX        osMutexFreeTbl[OS_MAX_MUTEXES];     //!< Table of mutex control blocks
+OS_EXT  OS_LIST_NODE   *osMutexFreeList;                        //!< Pointer to list of free mutex control blocks
+OS_EXT  OS_MUTEX        osMutexFreeTbl[OS_MAX_MUTEXES];         //!< Table of mutex control blocks
 #endif
 
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
-OS_EXT  OS_LIST_NODE   *osFlagFreeList;                     //!< Pointer to list of free flag control blocks
-OS_EXT  OS_FLAG         osFlagFreeTbl[OS_MAX_FLAGS];        //!< Table of flag control blocks
+OS_EXT  OS_LIST_NODE   *osFlagFreeList;                         //!< Pointer to list of free flag control blocks
+OS_EXT  OS_FLAG         osFlagFreeTbl[OS_MAX_FLAGS];            //!< Table of flag control blocks
 #endif
 
 OS_EXT  OS_LIST_NODE   *osTCBFreeList;                                  //!< List of free TCBs
 OS_EXT  OS_TCB          osTCBFreeTbl[OS_MAX_TASKS + OS_N_SYS_TASKS];    //!< Table of free TCBs
      
-OS_EXT  OS_LIST_NODE    osWaitableObjList;
-OS_EXT  OS_LIST_NODE    osSleepList;                        //!< Doubly linked list of sleep task's TCB
+OS_EXT  OS_LIST_NODE    osWaitList;                             //!< list of wait node.
+OS_EXT  OS_LIST_NODE    osWaitRunoverList;
+OS_EXT  volatile UINT32 osCoreTimerScanHand;
+OS_EXT  volatile UINT32 osCoreTimerScanHandOld;
 
-OS_EXT  OS_PRIO_BITMAP  osRdyBitmap;                        //!< Ready bitmap
-OS_EXT  OS_LIST_NODE    osRdyList[OS_MAX_PRIO_LEVELS];      //!< Table of pointers to TCB of active task
 
-OS_EXT  OS_TCB         *osTCBCur;                           //!< Pointer to currently running TCB
-OS_EXT  OS_TCB         *osTCBNextRdy;                       //!< Pointer to highest priority TCB Ready-to-Run
+OS_EXT  OS_PRIO_BITMAP  osRdyBitmap;                            //!< Ready bitmap
+OS_EXT  OS_LIST_NODE    osRdyList[OS_MAX_PRIO_LEVELS];          //!< Table of pointers to TCB of active task
 
-OS_EXT  UINT8           osIntNesting;                       //!< Interrupt nesting level
-OS_EXT  UINT8           osLockNesting;                      //!< Multitasking lock nesting level
+OS_EXT  OS_TCB         *osTCBCur;                               //!< Pointer to currently running TCB
+OS_EXT  OS_TCB         *osTCBNextRdy;                           //!< Pointer to highest priority TCB Ready-to-Run
 
-OS_EXT  BOOL            osRunning;                          //!< Flag indicating that kernel is running
+OS_EXT  UINT16          osIntNesting;                           //!< Interrupt nesting level
+OS_EXT  UINT16          osLockNesting;                          //!< Multitasking lock nesting level
+
+OS_EXT  BOOL            osRunning;                              //!< Flag indicating that kernel is running
 
 #if OS_STAT_EN > 0u
-OS_EXT  UINT32          osCtxSwCtr;                             //!< Counter of number of context switches
+OS_EXT  volatile UINT32 osCtxSwCtr;                             //!< Counter of number of context switches
 OS_EXT  UINT32          osIdleCtrMax;                           //!< Max. value that idle ctr can take in 1 sec.
-OS_EXT  UINT8           osCPUUsage;                             //!< Percentage of CPU used
-OS_EXT  BOOL            osStatRunning;                          //!< Flag indicating that the statistic task is running
+OS_EXT  UINT16          osCPUUsage;                             //!< Percentage of CPU used
+OS_EXT  BOOL            osTaskStatRunning;                      //!< Flag indicating that the statistic task is running
 OS_EXT  OS_STK          osTaskStatStk[OS_TASK_STAT_STK_SIZE];   //!< Statistics task stack
 #endif
 
@@ -596,10 +594,7 @@ void        OS_UnlockSched         (void);
 void        OS_TaskStkChk          (OS_TCB         *ptcb);
 #endif
 
-void        OS_WaitNodeRemove     (OS_TCB         *ptcb);
-
-void        OS_RegWaitableObj      (OS_WAITABLE_OBJ *pobj);
-void        OS_DeregWaitableObj    (OS_WAITABLE_OBJ *pobj);
+void        OS_WaitNodeRemove      (OS_TCB         *ptcb);
 
 void        OS_TCBInit             (OS_TCB         *ptcb,
                                     UINT8           prio,

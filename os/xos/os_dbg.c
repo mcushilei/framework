@@ -100,8 +100,8 @@ const UINT32 OSDataSize =
 #endif
                           + sizeof(osTCBFreeTbl)
                           + sizeof(osTCBFreeList)
-                          + sizeof(osWaitableObjList)
-                          + sizeof(osSleepList)
+                          + sizeof(osWaitList)
+                          + sizeof(osWaitRunoverList)
                           + sizeof(osRdyBitmap)
                           + sizeof(osRdyList)
                           + sizeof(osTCBCur)
@@ -113,7 +113,7 @@ const UINT32 OSDataSize =
                           + sizeof(osCtxSwCtr)
                           + sizeof(osIdleCtrMax)
                           + sizeof(osCPUUsage)
-                          + sizeof(osStatRunning)
+                          + sizeof(osTaskStatRunning)
                           + sizeof(osTaskStatStk)
 #endif
                           + sizeof(osIdleCtr)

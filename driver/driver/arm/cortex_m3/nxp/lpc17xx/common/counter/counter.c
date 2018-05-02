@@ -22,11 +22,11 @@
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
 #include "..\device.h"
-#include ".\reg_timer.h"
+#include ".\reg_counter.h"
 #include "..\scon\pm.h"
 
 /*============================ MACROS ========================================*/
-//! \brief timer channel max counter
+//! \brief counter channel max counter
 #define TC_MAX_CHANNEL          (2ul)
 
 
@@ -51,25 +51,25 @@
     },
 
 #define __TIMER_FUNCTION(__N, __A)                                              \
-    bool timer##__N##_init(void)                                                \
+    bool counter##__N##_init(void)                                                \
     {                                                                           \
-        return timer_init(&__TIMER[__N]);                                       \
+        return counter_init(&__TIMER[__N]);                                       \
     }                                                                           \
-    bool timer##__N##_enable(void)  \
+    bool counter##__N##_enable(void)  \
     {                                   \
-        return timer_enable(&__TIMER[__N]);    \
+        return counter_enable(&__TIMER[__N]);    \
     }                                           \
-    bool timer##__N##_disable(void) \
+    bool counter##__N##_disable(void) \
     {                                   \
-        return timer_disable(&__TIMER[__N]);    \
+        return counter_disable(&__TIMER[__N]);    \
     }                                           \
-    bool timer##__N##_start(void)   \
+    bool counter##__N##_start(void)   \
     {                                               \
-        return timer_start(&__TIMER[__N]);         \
+        return counter_start(&__TIMER[__N]);         \
     }                                           \
-    bool timer##__N##_stop(void)                            \
+    bool counter##__N##_stop(void)                            \
     {                                       \
-        return timer_stop(&__TIMER[__N]);              \
+        return counter_stop(&__TIMER[__N]);              \
     }                                           \
 
 /*============================ TYPES =========================================*/
@@ -79,42 +79,42 @@ typedef struct {
     tmr_reg_t * const   ptReg;              //!< reference to register page
     const uint32_t      tPCON;              //!< ahbclk info
     const uint32_t      tPCLK;              //!<
-} __timer_t;
+} __counter_t;
 //! @}
 
 /*============================ PROTOTYPES ====================================*/
-static bool timer_init(__timer_t *ptThis);
-static bool timer_enable(__timer_t *ptThis);
-static bool timer_disable(__timer_t *ptThis);
-static bool timer_start(__timer_t *ptThis);
-static bool timer_stop(__timer_t *ptThis);
+static bool counter_init(__counter_t *ptThis);
+static bool counter_enable(__counter_t *ptThis);
+static bool counter_disable(__counter_t *ptThis);
+static bool counter_start(__counter_t *ptThis);
+static bool counter_stop(__counter_t *ptThis);
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
-//! \brief internal timer object
-static __timer_t __TIMER[] = {
+//! \brief internal counter object
+static __counter_t __TIMER[] = {
     MREPEAT(TIMER_COUNT, __TIMER_OBJ, NULL)
 };
 
 /*============================ IMPLEMENTATION ================================*/
 
-/*! \brief initialize timer
- *! \param ptThis timer object
- *! \param ptTimerCfg timer configuration object
+/*! \brief initialize counter
+ *! \param ptThis counter object
+ *! \param ptTimerCfg counter configuration object
  *! \retval true initialization succeed
  *! \retval false initialization failed
  */
-static bool timer_init(__timer_t *ptThis)
+static bool counter_init(__counter_t *ptThis)
 {
     return true;
 }
 
-/*! \brief timer enable
- *! \param ptThis timer object
- *! \retval true timer enable succeed
- *! \retval false timer enable failed
+/*! \brief counter enable
+ *! \param ptThis counter object
+ *! \retval true counter enable succeed
+ *! \retval false counter enable failed
  */
-static bool timer_enable(__timer_t *ptThis)
+static bool counter_enable(__counter_t *ptThis)
 {
     if (NULL == ptThis) {
         return false;
@@ -126,12 +126,12 @@ static bool timer_enable(__timer_t *ptThis)
     return true;
 }
 
-/*! \brief timer disable
- *! \param ptThis timer object
- *! \retval true timer disable succeed
- *! \retval false timer disable failed
+/*! \brief counter disable
+ *! \param ptThis counter object
+ *! \retval true counter disable succeed
+ *! \retval false counter disable failed
  */
-static bool timer_disable(__timer_t *ptThis)
+static bool counter_disable(__counter_t *ptThis)
 {
     if (NULL == ptThis) {
         return false;
@@ -143,12 +143,12 @@ static bool timer_disable(__timer_t *ptThis)
     return true;
 }  
 
-/*! \brief timer start count
- *! \param ptThis timer object
- *! \retval true timer start count succeed
- *! \retval false timer start count failed
+/*! \brief counter start count
+ *! \param ptThis counter object
+ *! \retval true counter start count succeed
+ *! \retval false counter start count failed
  */
-static bool timer_start(__timer_t *ptThis)
+static bool counter_start(__counter_t *ptThis)
 {
     if (NULL == ptThis) {
         return false;
@@ -161,12 +161,12 @@ static bool timer_start(__timer_t *ptThis)
     return true;
 }
 
-/*! \brief timer stop count
- *! \param ptThis timer object
- *! \retval true timer stop count succeed
- *! \retval false timer stop count failed
+/*! \brief counter stop count
+ *! \param ptThis counter object
+ *! \retval true counter stop count succeed
+ *! \retval false counter stop count failed
  */
-static bool timer_stop(__timer_t *ptThis)
+static bool counter_stop(__counter_t *ptThis)
 {
     if (NULL == ptThis) {
         return false;

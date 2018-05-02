@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -156,18 +156,6 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
     return OS_ERR_NONE;
 }
 
-/*!
- *! \Brief       DELETE CURRENT TASK
- *!
- *! \Description This function delete current running task. The deleted task is returned to the dormant
- *!              state and can be re-activated by creating the deleted task again. This function is
- *!              internal to OS and called by os_task_wrapper. Your application should terminate a task
- *!              by return.
- *!
- *! \Arguments   none
- *!
- *! \Returns     none
- */
 #if OS_TASK_DEL_EN > 0u
 #if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 static void os_unlock_mutex(OS_MUTEX *pmutex)
@@ -194,12 +182,23 @@ static void os_unlock_mutex(OS_MUTEX *pmutex)
 }
 #endif
 
+/*!
+ *! \Brief       DELETE CURRENT TASK
+ *!
+ *! \Description This function delete current running task. The deleted task is returned to the dormant
+ *!              state and can be re-activated by creating the deleted task again. This function is
+ *!              internal to OS and called by os_task_wrapper. Your task should be terminated by return.
+ *!              
+ *!
+ *! \Arguments   none
+ *!
+ *! \Returns     none
+ */
 static void os_task_del(void)
 {
     OS_TCB         *ptcb;
-    OS_LIST_NODE   *list;
     OS_MUTEX       *pmutex;
-#if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
+#if OS_CRITICAL_METHOD == 3u
     OS_CPU_SR       cpu_sr = 0u;
 #endif
 
@@ -207,19 +206,19 @@ static void os_task_del(void)
     OSEnterCriticalSection(cpu_sr);
     ptcb = osTCBCur;
     
-    //! set free from any object suspend for.
+    //! set free from any object that it suspend for.
     if (ptcb->OSTCBWaitNode != NULL) {      //!< Is this task suspend for any object?
         OS_WaitNodeRemove(ptcb);            //!< Yes, set it free from that object.
     } else {                                //!< NO. It's owned by scheduler ...
         OS_SchedulerUnreadyTask(ptcb);      //!< ... set it free from scheduler.
     }
 
-    //! task should has released all mutex. A fatal error may have happened.
+    //! task should has released all mutex. This should be a fatal error???
 #if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 #if OS_MUTEX_OVERLAP_EN > 0u
-    for (list = ptcb->OSTCBOwnMutexList.Next; list != &ptcb->OSTCBOwnMutexList;) {
-        list = list->Next;
+    for (OS_LIST_NODE *list = ptcb->OSTCBOwnMutexList.Next; list != &ptcb->OSTCBOwnMutexList;) {
         pmutex = OS_CONTAINER_OF(list, OS_MUTEX, OSMutexOvlpList);
+        list = list->Next;
         os_unlock_mutex(pmutex);
     }
 #else
@@ -259,7 +258,6 @@ static void os_task_del(void)
 OS_ERR osTaskChangePrio(OS_HANDLE taskHandle, UINT8 newprio)
 {
     OS_TCB     *ptcb = (OS_TCB *)taskHandle;
-    OS_MUTEX   *pmutex;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
@@ -280,7 +278,7 @@ OS_ERR osTaskChangePrio(OS_HANDLE taskHandle, UINT8 newprio)
 #if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 #   if OS_MUTEX_OVERLAP_EN > 0u
     if (ptcb->OSTCBOwnMutexList.Next != &ptcb->OSTCBOwnMutexList) {
-        pmutex = OS_CONTAINER_OF(ptcb->OSTCBOwnMutexList.Next, OS_MUTEX, OSMutexOvlpList);
+        OS_MUTEX *pmutex = OS_CONTAINER_OF(ptcb->OSTCBOwnMutexList.Next, OS_MUTEX, OSMutexOvlpList);
         pmutex->OSMutexOwnerPrio = newprio;
         if (newprio < ptcb->OSTCBPrio) {
             OS_ChangeTaskPrio(ptcb, newprio);

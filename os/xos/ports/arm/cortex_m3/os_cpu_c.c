@@ -76,7 +76,7 @@ static uint32_t SVC2_Process(uint32_t R0, uint32_t R1, uint32_t R2, uint32_t R3)
 
 typedef uint32_t fnSVCHandle_t(uint32_t, uint32_t, uint32_t, uint32_t);
 
-static const fnSVCHandle_t *SVC_ProcessFunArray[] = {
+static fnSVCHandle_t * const SVC_ProcessFunArray[] = {
     SVC0_Process, SVC1_Process, SVC2_Process,
 };
 

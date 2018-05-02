@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -50,7 +50,7 @@
  */
 OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 initCnt)
 {
-    OS_SEM     *psemp;
+    OS_SEM     *psem;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
@@ -67,8 +67,8 @@ OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 initCnt)
 
     //! malloc a ECB from pool.
     OSEnterCriticalSection(cpu_sr);
-    psemp = OS_ObjPoolNew(&osSempFreeList);
-    if (psemp == NULL) {
+    psem = OS_ObjPoolNew(&osSempFreeList);
+    if (psem == NULL) {
         OSExitCriticalSection(cpu_sr);
         return OS_ERR_OBJ_DEPLETED;
     }
@@ -77,18 +77,13 @@ OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 initCnt)
     //! Set object type.
     //! Init semaphore value.
     //! Init wait list head.
-    psemp->OSObjType    = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_SEM)
-                        | OS_OBJ_TYPE_WAITABLE_MSK
-                        | OS_OBJ_PRIO_TYPE_SET(OS_OBJ_PRIO_TYPE_PRIO_LIST);
-    psemp->OSSemCnt     = initCnt;
-    os_list_init_head(&psemp->OSSemWaitList);
+    psem->OSSemObjHead.OSObjType =    OS_OBJ_TYPE_SET(OS_OBJ_TYPE_SEM)
+                                    | OS_OBJ_TYPE_WAITABLE_MSK
+                                    | OS_OBJ_PRIO_TYPE_SET(OS_OBJ_PRIO_TYPE_PRIO_LIST);
+    psem->OSSemCnt     = initCnt;
+    os_list_init_head(&psem->OSSemWaitList);
     
-    //! reg waitable object.
-    OSEnterCriticalSection(cpu_sr);
-    OS_RegWaitableObj((OS_WAITABLE_OBJ *)psemp);
-    OSExitCriticalSection(cpu_sr);
-
-    *pSemHandle = psemp;
+    *pSemHandle = psem;
     
     return OS_ERR_NONE;
 }
@@ -116,7 +111,7 @@ OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 initCnt)
  *! \Notes       1) This function must be used with care.  Tasks that would normally expect the
  *!                 presence of the semaphore MUST check the return code of osSemPend().
  *!              2) OSSemAccept() callers will not know that the intended semaphore has been deleted
- *!                 unless they check 'psemp' to see that it's a NULL pointer.
+ *!                 unless they check 'psem' to see that it's a NULL pointer.
  *!              3) This call can potentially disable interrupts for a long time.  The interrupt
  *!                 disable time is directly proportional to the number of tasks waiting on the semaphore.
  *!              4) Because ALL tasks pending on the semaphore will be readied, you MUST be careful
@@ -128,7 +123,7 @@ OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 initCnt)
 #if OS_SEM_DEL_EN > 0u
 OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
 {
-    OS_SEM     *psemp;
+    OS_SEM     *psem;
     BOOL        taskPend;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
@@ -146,19 +141,19 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
     if (*pSemHandle == NULL) {          //!< Validate handle
         return OS_ERR_INVALID_HANDLE;
     }
-    psemp = (OS_SEM *)*pSemHandle;
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate object's type
+    psem = (OS_SEM *)*pSemHandle;
+    if (OS_OBJ_TYPE_GET(psem->OSSemObjHead.OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
     OSEnterCriticalSection(cpu_sr);
-    if (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) {   //!< See if any tasks waiting on semaphore
+    if (psem->OSSemWaitList.Next != &psem->OSSemWaitList) {     //!< See if any tasks waiting on semaphore
         taskPend    = TRUE;                                     //!< Yes
     } else {
         taskPend    = FALSE;                                    //!< No
     }
     switch (opt) {
-        case OS_DEL_NOT_IN_USE:                                    //!< Delete semaphore only if no suspended task
+        case OS_DEL_NOT_IN_USE:                                 //!< Delete semaphore only if no suspended task
             if (taskPend != FALSE) {
                 OSExitCriticalSection(cpu_sr);
                 return OS_ERR_TASK_WAITING;
@@ -172,14 +167,13 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
             OSExitCriticalSection(cpu_sr);
             return OS_ERR_INVALID_OPT;
     }
-    OS_DeregWaitableObj((OS_WAITABLE_OBJ *)psemp);
     
-    while (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) { //!< Ready ALL tasks suspend for semaphore
-        OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psemp, OS_STAT_PEND_ABORT);
+    while (psem->OSSemWaitList.Next != &psem->OSSemWaitList) {  //!< Ready ALL tasks suspend for semaphore
+        OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psem, OS_STAT_PEND_ABORT);
     }
-    psemp->OSObjType    = OS_OBJ_TYPE_UNUSED;
-    psemp->OSSemCnt     = 0u;
-    OS_ObjPoolFree(&osSempFreeList, psemp);
+    psem->OSSemObjHead.OSObjType    = OS_OBJ_TYPE_UNUSED;
+    psem->OSSemCnt                  = 0u;
+    OS_ObjPoolFree(&osSempFreeList, psem);
     OSExitCriticalSection(cpu_sr);
     
     if (taskPend) {
@@ -216,7 +210,7 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
  */
 OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
 {
-    OS_SEM         *psemp = (OS_SEM *)hSemaphore;
+    OS_SEM         *psem = (OS_SEM *)hSemaphore;
     OS_WAIT_NODE    node;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR       cpu_sr = 0u;
@@ -235,13 +229,13 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
     if (osLockNesting > 0u) {           //!< See if called with scheduler locked ...
         return OS_ERR_PEND_LOCKED;      //!< ... can't PEND when locked
     }
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate object's type
+    if (OS_OBJ_TYPE_GET(psem->OSSemObjHead.OSObjType) != OS_OBJ_TYPE_SEM) {     //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
     OSEnterCriticalSection(cpu_sr);
-    if (psemp->OSSemCnt > 0u) {                  //!< If sem. is positive, resource available ...
-        psemp->OSSemCnt--;                       //!< ... decrement semaphore only if positive.
+    if (psem->OSSemCnt > 0u) {                  //!< If sem. is positive, resource available ...
+        psem->OSSemCnt--;                       //!< ... decrement semaphore only if positive.
         OSExitCriticalSection(cpu_sr);
         return OS_ERR_NONE;
     }
@@ -251,7 +245,7 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
         return OS_ERR_TIMEOUT;
     }
 
-    OS_WaitableObjAddTask((OS_WAITABLE_OBJ *)psemp, &node, timeout);    //!< Suspend current task until event or timeout occurs
+    OS_WaitableObjAddTask((OS_WAITABLE_OBJ *)psem, &node, timeout);    //!< Suspend current task until event or timeout occurs
     OSExitCriticalSection(cpu_sr);
     OS_SchedulerRunNext();
 
@@ -292,7 +286,7 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
  */
 OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
 {
-    OS_SEM     *psemp = (OS_SEM *)hSemaphore;
+    OS_SEM     *psem = (OS_SEM *)hSemaphore;
     UINT8       err;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
@@ -304,7 +298,7 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate object's type
+    if (OS_OBJ_TYPE_GET(psem->OSSemObjHead.OSObjType) != OS_OBJ_TYPE_SEM) {     //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
     
@@ -313,12 +307,12 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
     }
 
     OSEnterCriticalSection(cpu_sr);
-    if (cnt <= (65535u - psemp->OSSemCnt)) {    //!< Make sure semaphore will not overflow
-        psemp->OSSemCnt += cnt;                 //!< Increment semaphore count to register event
-        if (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) {       //!< See if any tasks waiting for semaphore
-            while (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList && psemp->OSSemCnt != 0u) {
-                psemp->OSSemCnt--;                                      //!< decrement semaphore count...
-                OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psemp, OS_STAT_PEND_OK);                //!< ...and ready HPT waiting on event
+    if (cnt <= (65535u - psem->OSSemCnt)) {    //!< Make sure semaphore will not overflow
+        psem->OSSemCnt += cnt;                 //!< Increment semaphore count to register event
+        if (psem->OSSemWaitList.Next != &psem->OSSemWaitList) {     //!< See if any tasks waiting for semaphore
+            while (psem->OSSemWaitList.Next != &psem->OSSemWaitList && psem->OSSemCnt != 0u) {
+                psem->OSSemCnt--;                                   //!< decrement semaphore count...
+                OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psem, OS_STAT_PEND_OK);    //!< ...and ready HPT waiting on event
             }
             OSExitCriticalSection(cpu_sr);
             OS_SchedulerRunPrio();
@@ -354,7 +348,7 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
 #if OS_SEM_PEND_ABORT_EN > 0u
 OS_ERR osSemPendAbort(OS_HANDLE hSemaphore)
 {
-    OS_SEM     *psemp = (OS_SEM *)hSemaphore;
+    OS_SEM     *psem = (OS_SEM *)hSemaphore;
     UINT8       err;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
@@ -366,14 +360,14 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore)
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate object's type
+    if (OS_OBJ_TYPE_GET(psem->OSSemObjHead.OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
     OSEnterCriticalSection(cpu_sr);
-    if (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) {           //!< See if any task waiting on semaphore?
-        while (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) {    //!< Yes, ready ALL tasks waiting on semaphore
-            OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psemp, OS_STAT_PEND_ABORT);
+    if (psem->OSSemWaitList.Next != &psem->OSSemWaitList) {           //!< See if any task waiting on semaphore?
+        while (psem->OSSemWaitList.Next != &psem->OSSemWaitList) {    //!< Yes, ready ALL tasks waiting on semaphore
+            OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)psem, OS_STAT_PEND_ABORT);
         }
         OSExitCriticalSection(cpu_sr);
         OS_SchedulerRunPrio();
@@ -409,7 +403,7 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore)
 #if OS_SEM_SET_EN > 0u
 OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
 {
-    OS_SEM     *psemp = (OS_SEM *)hSemaphore;
+    OS_SEM     *psem = (OS_SEM *)hSemaphore;
     UINT8       err;
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
@@ -421,16 +415,16 @@ OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
         return OS_ERR_INVALID_HANDLE;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate object's type
+    if (OS_OBJ_TYPE_GET(psem->OSSemObjHead.OSObjType) != OS_OBJ_TYPE_SEM) { //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
     err = OS_ERR_NONE;
     OSEnterCriticalSection(cpu_sr);
-    if (psemp->OSSemWaitList.Next != &psemp->OSSemWaitList) {   //!< See if task(s) waiting?
+    if (psem->OSSemWaitList.Next != &psem->OSSemWaitList) {     //!< See if task(s) waiting?
         err = OS_ERR_TASK_WAITING;
     } else {
-        psemp->OSSemCnt = cnt;                                  //!< No, OK to set the value
+        psem->OSSemCnt = cnt;                                   //!< No, OK to set the value
     }
     OSExitCriticalSection(cpu_sr);
     
@@ -450,13 +444,13 @@ OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
  *!
  *! \Returns     OS_ERR_NONE            The call was successful and the message was sent
  *!              OS_ERR_INVALID_HANDLE  If 'hSemaphore' is an invalid handle.
- *!              OS_ERR_OBJ_TYPE      If you didn't pass a event semaphore object.
+ *!              OS_ERR_OBJ_TYPE        If you didn't pass a event semaphore object.
  *!              OS_ERR_PDATA_NULL      If 'pInfo' is a NULL pointer
  */
 #if OS_SEM_QUERY_EN > 0u
 OS_ERR osSemQuery(OS_HANDLE hSemaphore, OS_SEM_INFO *pInfo)
 {
-    OS_SEM     *psemp = (OS_SEM *)hSemaphore;
+    OS_SEM     *psem = (OS_SEM *)hSemaphore;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
     OS_CPU_SR   cpu_sr = 0u;
 #endif
@@ -470,13 +464,13 @@ OS_ERR osSemQuery(OS_HANDLE hSemaphore, OS_SEM_INFO *pInfo)
         return OS_ERR_PDATA_NULL;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(psemp->OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate object's type
+    if (OS_OBJ_TYPE_GET(psem->OSSemObjHead.OSObjType) != OS_OBJ_TYPE_SEM) {    //!< Validate object's type
         return OS_ERR_OBJ_TYPE;
     }
 
     OSEnterCriticalSection(cpu_sr);
-    pInfo->OSCnt        = psemp->OSSemCnt;         //!< Get semaphore count
-    pInfo->OSWaitList   = psemp->OSSemWaitList;    //!< Copy wait list
+    pInfo->OSCnt        = psem->OSSemCnt;         //!< Get semaphore count
+    pInfo->OSWaitList   = psem->OSSemWaitList;    //!< Copy wait list
     OSExitCriticalSection(cpu_sr);
     
     return OS_ERR_NONE;

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2017-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -82,9 +82,9 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
     //! Set object type.
     //! init mutex property.
     //! init mutex wait list head.
-    pmutex->OSObjType           = OS_OBJ_TYPE_SET(OS_OBJ_TYPE_MUTEX)
-                                | OS_OBJ_TYPE_WAITABLE_MSK
-                                | OS_OBJ_PRIO_TYPE_SET(OS_OBJ_PRIO_TYPE_PRIO_LIST);
+    pmutex->OSMutexObjHeader.OSObjType =   OS_OBJ_TYPE_SET(OS_OBJ_TYPE_MUTEX)
+                                        | OS_OBJ_TYPE_WAITABLE_MSK
+                                        | OS_OBJ_PRIO_TYPE_SET(OS_OBJ_PRIO_TYPE_PRIO_LIST);
     pmutex->OSMutexCnt          = 0u;
     pmutex->OSMutexCeilingPrio  = ceilingPrio;
     pmutex->OSMutexOwnerPrio    = 0u;
@@ -94,11 +94,6 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
     pmutex->OSMutexOwnerTCB     = NULL;
     os_list_init_head(&pmutex->OSMutexWaitList);
     
-    //! reg waitable object.
-    OSEnterCriticalSection(cpu_sr);
-    OS_RegWaitableObj((OS_WAITABLE_OBJ *)pmutex);
-    OSExitCriticalSection(cpu_sr);
-
     *pMutexHandle = pmutex;
     
     return OS_ERR_NONE;
@@ -163,7 +158,7 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
         return OS_ERR_INVALID_HANDLE;
     }
     pmutex = (OS_MUTEX *)*pMutexHandle;
-    if (OS_OBJ_TYPE_GET(pmutex->OSObjType) != OS_OBJ_TYPE_MUTEX) {   //!< Validate event block type.
+    if (OS_OBJ_TYPE_GET(pmutex->OSMutexObjHeader.OSObjType) != OS_OBJ_TYPE_MUTEX) {   //!< Validate event block type.
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -194,10 +189,7 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
              return OS_ERR_INVALID_OPT;
     }
     
-    //! set free this object from OS.
-    OS_DeregWaitableObj((OS_WAITABLE_OBJ *)pmutex);
-    
-    //! remove the owner if present.
+    //! remove the owner if there is any.
     powner = pmutex->OSMutexOwnerTCB;
     if (powner != NULL) {
 #if OS_MUTEX_OVERLAP_EN > 0u
@@ -216,7 +208,7 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
         OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pmutex, OS_STAT_PEND_ABORT);
     }
     
-    pmutex->OSObjType           = OS_OBJ_TYPE_UNUSED;
+    pmutex->OSMutexObjHeader.OSObjType = OS_OBJ_TYPE_UNUSED;
     pmutex->OSMutexCnt          = 0u;
     pmutex->OSMutexCeilingPrio  = 0u;
     pmutex->OSMutexOwnerPrio    = 0u;
@@ -283,7 +275,7 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
     if (osLockNesting > 0u) {               //!< See if called with scheduler locked ...
         return OS_ERR_PEND_LOCKED;          //!< ... can't PEND when locked
     }
-    if (OS_OBJ_TYPE_GET(pmutex->OSObjType) != OS_OBJ_TYPE_MUTEX) {  //!< Validate object's type.
+    if (OS_OBJ_TYPE_GET(pmutex->OSMutexObjHeader.OSObjType) != OS_OBJ_TYPE_MUTEX) {  //!< Validate object's type.
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -385,7 +377,7 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
     if (osIntNesting > 0u) {                //!< See if called from ISR ...
         return OS_ERR_USE_IN_ISR;           //!< ... mutex can't be used from an ISR.
     }
-    if (OS_OBJ_TYPE_GET(pmutex->OSObjType) != OS_OBJ_TYPE_MUTEX) {   //!< Validate event block type
+    if (OS_OBJ_TYPE_GET(pmutex->OSMutexObjHeader.OSObjType) != OS_OBJ_TYPE_MUTEX) {   //!< Validate event block type
         return OS_ERR_OBJ_TYPE;
     }
 
@@ -466,19 +458,17 @@ OS_ERR osMutexQuery(OS_HANDLE hMutex, OS_MUTEX_INFO *pInfo)
         return OS_ERR_PDATA_NULL;
     }
 #endif
-    if (OS_OBJ_TYPE_GET(pmutex->OSObjType) != OS_OBJ_TYPE_MUTEX) {  //!< Validate objext's type
+    if (OS_OBJ_TYPE_GET(pmutex->OSMutexObjHeader.OSObjType) != OS_OBJ_TYPE_MUTEX) {  //!< Validate objext's type
         return OS_ERR_OBJ_TYPE;
     }
 
     OSEnterCriticalSection(cpu_sr);
     if (pmutex->OSMutexOwnerTCB == NULL) {                  //!< Does any task own this mutex?
-        pInfo->OSValue       = TRUE;
-        pInfo->OSOwnerPrio   = 0u;
         pInfo->OSOwnerTCB    = NULL;
+        pInfo->OSOwnerPrio   = 0u;
     } else {
-        pInfo->OSValue       = FALSE;
         pInfo->OSOwnerTCB    = pmutex->OSMutexOwnerTCB;
-        pInfo->OSOwnerPrio   = pmutex->OSMutexOwnerTCB->OSTCBPrio;
+        pInfo->OSOwnerPrio   = pmutex->OSMutexOwnerPrio;
     }
     pInfo->OSCeilingPrio     = pmutex->OSMutexCeilingPrio;
     pInfo->OSWaitList        = pmutex->OSMutexWaitList;     //!< Copy wait list
