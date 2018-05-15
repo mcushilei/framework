@@ -18,13 +18,38 @@
 #ifndef __USE_BITS_H__
 #define __USE_BITS_H__
 
+//! \brief types and macros for bit operations
+//! \note  some bit operations may be supported by compiler or hardware.
+
 /*============================ INCLUDES ======================================*/
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
-//! \brief bit mask
+//! \brief bit mask operations
 #define BIT(__N)                (1u << (__N))
 #define __BITMASK(__WIDTH)      (BIT(__WIDTH) - 1u)
 #define BITMASK(__MSB, __LSB)   ((BIT(__MSB) | __BITMASK(__MSB)) ^ __BITMASK(__LSB))
+
+//! \brief byte order operations
+#define BYTE_ORDER_SWITCH_16(__UINT16) do {\
+    __UINT16 = (((__UINT16) >> 8) & 0x00FF) | (((__UINT16) << 8) & 0xFF00);\
+} while (0)
+
+#define BYTE_ORDER_SWITCH_32(__UINT32) do {\
+    __UINT32 = (((__UINT32) >>  8) & 0x00FF00FF) | (((__UINT32) <<  8) & 0xFF00FF00);\
+    __UINT32 = (((__UINT32) >> 16) & 0x0000FFFF) | (((__UINT32) << 16) & 0xFFFF0000);\
+} while (0)
+
+#if defined(__BIG_ENDIAN__)
+#define BYTE_ORDER_TO_MSB_32(__UINT32) 
+#else
+#define BYTE_ORDER_TO_MSB_32(__UINT32)  BYTE_ORDER_SWITCH_32(__UINT32)
+#endif
+
+#if defined(__BIG_ENDIAN__)
+#define BYTE_ORDER_TO_LSB_32(__UINT32)  BYTE_ORDER_SWITCH_32(__UINT32)
+#else
+#define BYTE_ORDER_TO_LSB_32(__UINT32)
+#endif
 
 /*============================ TYPES =========================================*/
 typedef union {

@@ -131,7 +131,6 @@ enum {
     FSM_RT_UNHANDLE,    //!< event unhandle
     FSM_RT_ERR,
 };
-typedef uint_fast8_t fsm_rt_t;
 
 
 /*============================ GLOBAL VARIABLES ==============================*/
