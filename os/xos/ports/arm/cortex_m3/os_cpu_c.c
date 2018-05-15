@@ -36,9 +36,9 @@ uint32_t OSCriticalNesting = 0;                      //!<  关中断计数器（
 *********************************************************************************************************
 */
 
-OS_STK *OSTaskStkInit(OS_STK *ptos, void *wrap, void *task, void *parg)
+CPU_STK *OSTaskStkInit(CPU_STK *ptos, void *wrap, void *task, void *parg)
 {
-    OS_STK *stk;
+    CPU_STK *stk;
 
 
     stk       = ptos;                               //!< Load stack pointer

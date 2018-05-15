@@ -56,7 +56,7 @@ void OS_SchedulerInit(void)
 void OS_LockSched(void)
 {
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
-    OS_CPU_SR  cpu_sr = 0u;
+    CPU_SR  cpu_sr = 0u;
 #endif
 
 
@@ -74,7 +74,7 @@ void OS_LockSched(void)
 void OS_UnlockSched(void)
 {
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
-    OS_CPU_SR  cpu_sr = 0u;
+    CPU_SR  cpu_sr = 0u;
 #endif
 
 
@@ -206,7 +206,7 @@ void OS_SchedulerNext(void)
 void OS_SchedulerRunPrio(void)
 {
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
     if (osIntNesting != 0u) {                   //!< Can not be used in ISR and ...
@@ -244,7 +244,7 @@ void OS_SchedulerRunPrio(void)
 void OS_SchedulerRunNext(void)
 {
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
     if (osIntNesting != 0u) {                   //!< Can not be used in ISR and ...

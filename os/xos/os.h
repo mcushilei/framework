@@ -24,12 +24,14 @@
 
 /*============================ MACROS ========================================*/
 
-#define OS_CRITICAL_SECTION_DEFINE(__CS)    OS_CPU_SR   __CS;
+#define OS_CPU_STK                          CPU_STK
+
+#define OS_CRITICAL_SECTION_DEFINE(__CS)    CPU_SR   __CS;
 #define OS_CRITICAL_SECTION_ENTER(__CS)     osEnterCriticalSection(__CS)
 #define OS_CRITICAL_SECTION_EXIT(__CS)      osExitCriticalSection(__CS)
 
 #define OS_CRITICAL_SECTION(...) do {   \
-    OS_CPU_SR   __cpu_sr;               \
+    CPU_SR   __cpu_sr;                  \
     osEnterCriticalSection(__cpu_sr);   \
     __VA_ARGS__                         \
     osExitCriticalSection(__cpu_sr);    \

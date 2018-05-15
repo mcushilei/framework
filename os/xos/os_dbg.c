@@ -66,7 +66,7 @@ const UINT16 OSPrioLevel        = OS_MAX_PRIO_LEVELS;
 
 const UINT16 OSRdyTblSize       = OS_BITMAP_TBL_SIZE;           //!< Number of bytes in the ready table 
 
-const UINT16 OSStkWidth         = sizeof(OS_STK);               //!< Size in Bytes of a stack entry     
+const UINT16 OSStkWidth         = sizeof(CPU_STK);               //!< Size in Bytes of a stack entry     
 
 const UINT16 OSTaskIdleStkSize  = OS_TASK_IDLE_STK_SIZE;
 const UINT16 OSTaskStatStkSize  = OS_TASK_STAT_STK_SIZE;

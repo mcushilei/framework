@@ -52,7 +52,7 @@ OS_ERR osSemCreate(OS_HANDLE *pSemHandle, UINT16 initCnt)
 {
     OS_SEM     *psem;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 
@@ -126,7 +126,7 @@ OS_ERR osSemDelete(OS_HANDLE *pSemHandle, UINT8 opt)
     OS_SEM     *psem;
     BOOL        taskPend;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 
@@ -213,9 +213,9 @@ OS_ERR osSemPend(OS_HANDLE hSemaphore, UINT32 timeout)
     OS_SEM         *psem = (OS_SEM *)hSemaphore;
     OS_WAIT_NODE    node;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR       cpu_sr = 0u;
+    CPU_SR       cpu_sr = 0u;
 #endif
-    UINT8           err;
+    OS_ERR          err;
 
 
 #if OS_ARG_CHK_EN > 0u
@@ -289,7 +289,7 @@ OS_ERR osSemPost(OS_HANDLE hSemaphore, UINT16 cnt)
     OS_SEM     *psem = (OS_SEM *)hSemaphore;
     UINT8       err;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 
@@ -351,7 +351,7 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore)
     OS_SEM     *psem = (OS_SEM *)hSemaphore;
     UINT8       err;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 
@@ -404,9 +404,9 @@ OS_ERR osSemPendAbort(OS_HANDLE hSemaphore)
 OS_ERR osSemSet(OS_HANDLE hSemaphore, UINT16 cnt)
 {
     OS_SEM     *psem = (OS_SEM *)hSemaphore;
-    UINT8       err;
+    OS_ERR      err;
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 
@@ -452,7 +452,7 @@ OS_ERR osSemQuery(OS_HANDLE hSemaphore, OS_SEM_INFO *pInfo)
 {
     OS_SEM     *psem = (OS_SEM *)hSemaphore;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 

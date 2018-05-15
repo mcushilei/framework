@@ -259,7 +259,7 @@ static void os_init_free_obj_list(void)
 void osIntEnter(void)
 {
 #if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
-    OS_CPU_SR       cpu_sr = 0u;
+    CPU_SR       cpu_sr = 0u;
 #endif
 
 
@@ -293,7 +293,7 @@ void osIntEnter(void)
 void osIntExit(void)
 {
 #if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
-    OS_CPU_SR       cpu_sr = 0u;
+    CPU_SR       cpu_sr = 0u;
 #endif
 
 
@@ -486,7 +486,7 @@ void osTimeTick(void)
     OS_TCB             *ptcb;
     OS_WAIT_NODE       *pnode;
 #if OS_CRITICAL_METHOD == 3u                               //!< Allocate storage for CPU status register
-    OS_CPU_SR       cpu_sr = 0u;
+    CPU_SR       cpu_sr = 0u;
 #endif
 
 
@@ -572,12 +572,16 @@ void osTimeTick(void)
  */
 void osTaskSleep(UINT32 ticks)
 {
+    OS_WAIT_NODE    node;
 #if OS_CRITICAL_METHOD == 3u                        //!< Allocate storage for CPU status register
-    OS_CPU_SR       cpu_sr = 0u;
+    CPU_SR       cpu_sr = 0u;
 #endif
 
 
     if (ticks == 0u) {                              //!< 0 means no delay!
+        return;
+    }
+    if (ticks == OS_INFINITE) {                     //!< can NOT sleep forever!
         return;
     }
     
@@ -588,15 +592,22 @@ void osTaskSleep(UINT32 ticks)
         return;
     }
     
+    //! initial wait node.
+    node.OSWaitNodeTCB = osTCBCur;
+    node.OSWaitNodeECB = NULL;
+    node.OSWaitNodeRes = OS_STAT_PEND_OK;
+    os_list_init_head(&node.OSWaitNodeList);
+    
     OSEnterCriticalSection(cpu_sr);
-    osTCBCur->OSTCBWaitNode = NULL;                        //!< Store node in task's TCB
-    OS_SchedulerUnreadyTask(osTCBCur);                       //!< remove this task from scheduler's ready list.
     if (ticks != OS_INFINITE) {
+        osTCBCur->OSTCBWaitNode = &node;            //!< Store node in task's TCB. node has not any effect here.
+                                                    //!  it is just a tag that this task is not in ready or running status.
+        OS_SchedulerUnreadyTask(osTCBCur);          //!< remove this task from scheduler's ready list.
         osTCBCur->OSTCBDly = ticks;
-        OS_WaitListInsert(osTCBCur);    //!< add task to the end of sleeping task list.
+        OS_WaitListInsert(osTCBCur);                //!< add task to waiting task list.
     }
     OSExitCriticalSection(cpu_sr);
-    OS_SchedulerRunNext();                                   //!< Find next task to run!
+    OS_SchedulerRunNext();                      //!< Find next task to run!
 }
 
 /*!
@@ -620,7 +631,7 @@ void osTaskSleep(UINT32 ticks)
 void osStatInit(void)
 {
 #if OS_CRITICAL_METHOD == 3u                     //!< Allocate storage for CPU status register
-    OS_CPU_SR  cpu_sr = 0u;
+    CPU_SR  cpu_sr = 0u;
 #endif
 
 
@@ -707,7 +718,7 @@ static void os_init_idle_task(void)
 static void os_task_idle(void *parg)
 {
 #if OS_CRITICAL_METHOD == 3u                     //!< Allocate storage for CPU status register
-    OS_CPU_SR  cpu_sr = 0u;
+    CPU_SR  cpu_sr = 0u;
 #endif
 
 
@@ -752,7 +763,7 @@ static void os_task_statistics(void *parg)
     OS_LIST_NODE       *list;
     OS_TCB             *ptcb;
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
-    OS_CPU_SR           cpu_sr = 0u;
+    CPU_SR           cpu_sr = 0u;
 #endif
 
 
@@ -812,7 +823,7 @@ static void os_task_statistics(void *parg)
  *!              stkSize       is the size of the stack (in 'stack units').  If the stack units are INT8Us
  *!                            then, 'stkSize' contains the number of bytes for the stack.  If the stack
  *!                            units are INT32Us then, the stack contains '4 * stkSize' bytes.  The stack
- *!                            units are established by the #define constant OS_STK which is CPU
+ *!                            units are established by the #define constant CPU_STK which is CPU
  *!                            specific.  'stkSize' is 0 if called by 'osTaskCreate()'.
  *!
  *!              opt           options as passed to 'osTaskCreate()' or,
@@ -824,8 +835,8 @@ static void os_task_statistics(void *parg)
  */
 void OS_TCBInit(OS_TCB  *ptcb,
                 UINT8    prio,
-                OS_STK  *psp,
-                OS_STK  *pstk,
+                CPU_STK  *psp,
+                CPU_STK  *pstk,
                 UINT32   stkSize,
                 UINT8    opt)
 {
@@ -880,11 +891,11 @@ void OS_TCBInit(OS_TCB  *ptcb,
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
 void OS_TaskStkChk(OS_TCB *ptcb)
 {
-    OS_STK    *pstk;
+    CPU_STK    *pstk;
     UINT32     nfree;
     UINT32     size;
 #if OS_CRITICAL_METHOD == 3u                            //!< Allocate storage for CPU status register
-    OS_CPU_SR  cpu_sr = 0u;
+    CPU_SR  cpu_sr = 0u;
 #endif
 
 
@@ -984,7 +995,7 @@ OS_TCB *OS_WaitableObjRdyTask(OS_WAITABLE_OBJ *pobj, UINT8 pendRes)
     pnode->OSWaitNodeRes = pendRes;
     OS_WaitNodeRemove(ptcb);                //!< Remove this task from event's wait list
     OS_WaitListRemove(ptcb);
-    OS_SchedulerReadyTask(ptcb);             //!< Put task in the ready list
+    OS_SchedulerReadyTask(ptcb);            //!< Put task in the ready list
     return ptcb;
 }
 
@@ -1007,22 +1018,21 @@ void OS_ChangeTaskPrio(OS_TCB *ptcb, UINT8 newprio)
     OS_WAITABLE_OBJ    *pobj;
     OS_WAIT_NODE       *pnode;
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 
     OSEnterCriticalSection(cpu_sr);
     pnode = ptcb->OSTCBWaitNode;
-    if (pnode != NULL) {                        //!< if task is pending.(so, it is not in ready list.)
+    if (pnode != NULL) {                        //!< if task is waiting for any object or sleep?
         pobj = pnode->OSWaitNodeECB;
-        if (pobj != NULL) {                     //!< Is this task pending for any object?...(it may be in sleep.)
-            if (OS_OBJ_PRIO_TYPE_GET(pobj->OSWaitObjHeader.OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {  //!< ...Yes. Has this object a prio-wait list?
-                OS_LIST_NODE *list;
+        if (pobj != NULL) {                     //!< Is this task pending for any object?
+            if (OS_OBJ_PRIO_TYPE_GET(pobj->OSWaitObjHeader.OSObjType) == OS_OBJ_PRIO_TYPE_PRIO_LIST) {  //!< Yes. Has this object a prio-wait list?
+                OS_LIST_NODE *list;                                                                     //!< Yes...
                 OS_WAIT_NODE *nextNode;
                 
-                //!< Yes, remove wait node from old priority.
-                os_list_del(&pnode->OSWaitNodeList);
-                //!< then find and put on the new position.
+                os_list_del(&pnode->OSWaitNodeList);    //!< ...remove wait node from old priority.
+                                                        //!  then find and put on the new position.
                 for (list = pobj->OSWaitObjWaitNodeList.Next; list != &pobj->OSWaitObjWaitNodeList; list = list->Next) {
                     nextNode = OS_CONTAINER_OF(list, OS_WAIT_NODE, OSWaitNodeList);
                     if (newprio < nextNode->OSWaitNodeTCB->OSTCBPrio) {
@@ -1031,12 +1041,13 @@ void OS_ChangeTaskPrio(OS_TCB *ptcb, UINT8 newprio)
                 }
                 os_list_add(&pnode->OSWaitNodeList, list->Prev);
             }
+        } else {                                //! task is sleeping, so nothing else will be changed.
         }
         ptcb->OSTCBPrio = newprio;              //!< Set new task priority
-    } else {
-        OS_SchedulerUnreadyTask(ptcb);           //!< Remove TCB from old priority
-        ptcb->OSTCBPrio = newprio;              //!< Set new task priority        
-        OS_SchedulerReadyTask(ptcb);             //!< Place TCB @ new priority
+    } else {                                    //!< Task is in scheduler's table.
+        OS_SchedulerUnreadyTask(ptcb);          //!< Remove TCB from old priority
+        ptcb->OSTCBPrio = newprio;              //!< Set new task priority
+        OS_SchedulerReadyTask(ptcb);            //!< Place TCB @ new priority
     }
     OSExitCriticalSection(cpu_sr);
 }
@@ -1055,7 +1066,7 @@ void OS_BitmapSet(OS_PRIO_BITMAP *pmap, UINT8 prio)
 #endif
     bity = 1u << y;
     
-    pmap->Y    |= bity;                  //!< Make this priority has task ready-to-run.
+    pmap->Y    |= bity;
     pmap->X[y] |= bitx;
 }
 

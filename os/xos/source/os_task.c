@@ -15,6 +15,11 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
+/*!
+ *! \Brief functions for task manage.
+ *!
+ */
+
 
 //! \note do not move this pre-processor statement to other places
 #define  __OS_TASK_C__
@@ -29,7 +34,7 @@
 static void os_task_del        (void);
 
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
-static void os_task_stk_clr    (OS_STK         *pbos,
+static void os_task_stk_clr    (CPU_STK         *pbos,
                                 UINT32          size,
                                 UINT8           opt);
 #endif
@@ -68,8 +73,8 @@ static void os_task_wrapper    (void           *ptask,
  *!
  *!              pstk      point to the LOWEST (valid) memory location of the stack.
  *!
- *!              stkSize   is the size of the stack in number of elements.  If OS_STK is set to UINT8,
- *!                        'stkSize' corresponds to the number of bytes available.  If OS_STK is set to
+ *!              stkSize   is the size of the stack in number of elements.  If CPU_STK is set to UINT8,
+ *!                        'stkSize' corresponds to the number of bytes available.  If CPU_STK is set to
  *!                        UINT32, 'stkSize' contains the number of 32-bit entries available on the stack.
  *!
  *!              opt       contains additional information (or options) about the behavior of the task.  The
@@ -90,14 +95,14 @@ OS_ERR  osTaskCreate(   OS_HANDLE  *pHandle,
                         OS_TASK    *task,
                         void       *parg,
                         UINT8       prio,
-                        OS_STK     *pstk,
+                        CPU_STK     *pstk,
                         UINT32      stkSize,
                         UINT8       opt)
 {
     OS_TCB     *ptcb;
-    OS_STK     *psp;
+    CPU_STK     *psp;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 
@@ -187,7 +192,7 @@ static void os_unlock_mutex(OS_MUTEX *pmutex)
  *!
  *! \Description This function delete current running task. The deleted task is returned to the dormant
  *!              state and can be re-activated by creating the deleted task again. This function is
- *!              internal to OS and called by os_task_wrapper. Your task should be terminated by return.
+ *!              internal to OS and called by os_task_wrapper. Your task should be terminated by a return.
  *!              
  *!
  *! \Arguments   none
@@ -199,7 +204,7 @@ static void os_task_del(void)
     OS_TCB         *ptcb;
     OS_MUTEX       *pmutex;
 #if OS_CRITICAL_METHOD == 3u
-    OS_CPU_SR       cpu_sr = 0u;
+    CPU_SR       cpu_sr = 0u;
 #endif
 
 
@@ -213,7 +218,7 @@ static void os_task_del(void)
         OS_SchedulerUnreadyTask(ptcb);      //!< ... set it free from scheduler.
     }
 
-    //! task should has released all mutex. This should be a fatal error???
+    //! to ensure task releases all mutex(es) that it has had got. This should be a fatal error???
 #if (OS_MUTEX_EN > 0u) && (OS_MAX_MUTEXES > 0u)
 #if OS_MUTEX_OVERLAP_EN > 0u
     for (OS_LIST_NODE *list = ptcb->OSTCBOwnMutexList.Next; list != &ptcb->OSTCBOwnMutexList;) {
@@ -258,8 +263,8 @@ static void os_task_del(void)
 OS_ERR osTaskChangePrio(OS_HANDLE taskHandle, UINT8 newprio)
 {
     OS_TCB     *ptcb = (OS_TCB *)taskHandle;
-#if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+#if OS_CRITICAL_METHOD == 3u
+    CPU_SR   cpu_sr = 0u;
 #endif
     
     
@@ -361,7 +366,7 @@ static void os_task_wrapper(void *ptask, void *parg)
  */
 
 #if (OS_STAT_TASK_STK_CHK_EN > 0u)
-static void os_task_stk_clr(OS_STK  *pstk,
+static void os_task_stk_clr(CPU_STK  *pstk,
                             UINT32   size,
                             UINT8    opt)
 {
@@ -369,7 +374,7 @@ static void os_task_stk_clr(OS_STK  *pstk,
         if ((opt & OS_TASK_OPT_STK_CLR) != 0x00u) {  //!< See if stack needs to be cleared
             while (size > 0u) {
                 size--;
-                *pstk++ = (OS_STK)0;
+                *pstk++ = (CPU_STK)0;
             }
         }
     }

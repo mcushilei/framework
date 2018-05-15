@@ -120,6 +120,14 @@ enum {
 #define OS_TASK_OPT_STK_CLR         (0x02u)    //!< Clear the stack when the task is create
 #define OS_TASK_OPT_SAVE_FP         (0x04u)    //!< Save the contents of any floating-point registers
 
+enum {
+    OS_TASK_STA_STOP = 0u,          //!< task has not been init.(not be created)
+    OS_TASK_STA_PEND_WAIT,          //!< task is waiting for a event or sleeping for a DEFINITE time.(in wait list)
+    OS_TASK_STA_PEND,               //!< task is waiting for a event or suspended for a INFINITE time.(in pend list)
+    OS_TASK_STA_RDY,                //!< task is ready to run.(in the list of ready table)
+    OS_TASK_STA_RUN,                //!< task is running.
+};
+
 /*!
  *! \Brief  ERROR CODES
  */
@@ -261,11 +269,14 @@ struct os_flag {
 struct os_tcb {
     OS_OBJ_HEAD         OSTCBObjHeader;
     
-    UINT16              OSTCBOpt;                   //!< Task options as passed by osTaskCreate()
+    UINT8               OSTCBOpt;                   //!< Task options as passed by osTaskCreate()
+    
+    UINT8               OSTCBPrio;                  //!< Task priority (0 == highest)
 
     UINT32              OSTCBDly;                   //!< time to wait.
     
-    OS_STK             *OSTCBStkPtr;                //!< stack point
+    //! KEEP 8 bytes offsets from here.
+    CPU_STK            *OSTCBStkPtr;                //!< stack point
 
     OS_WAIT_NODE       *OSTCBWaitNode;
 
@@ -282,12 +293,9 @@ struct os_tcb {
     UINT16              OSTCBTimeSlice;             //!< for time-slice schedule.
     UINT16              OSTCBTimeSliceCnt;
     
-    UINT16              OSTCBStatus;
-    
-    UINT8               OSTCBPrio;                  //!< Task priority (0 == highest)
     
 #if OS_TASK_PROFILE_EN > 0u
-    OS_STK             *OSTCBStkBase;               //!< Base address of the task stack
+    CPU_STK             *OSTCBStkBase;               //!< Base address of the task stack
     UINT16              OSTCBStkSize;               //!< Size of task stack (in number of stack elements)
     UINT16              OSTCBStkUsed;               //!< Number of BYTES used from the stack
     UINT32              OSTCBCtxSwCtr;              //!< Number of times the task was switched in
@@ -353,7 +361,7 @@ OS_EXT  OS_FLAG         osFlagFreeTbl[OS_MAX_FLAGS];            //!< Table of fl
 OS_EXT  OS_LIST_NODE   *osTCBFreeList;                                  //!< List of free TCBs
 OS_EXT  OS_TCB          osTCBFreeTbl[OS_MAX_TASKS + OS_N_SYS_TASKS];    //!< Table of free TCBs
      
-OS_EXT  OS_LIST_NODE    osWaitList;                             //!< list of wait node.
+OS_EXT  OS_LIST_NODE    osWaitList;                             //!< list of waiting task.
 OS_EXT  OS_LIST_NODE    osWaitRunoverList;
 OS_EXT  volatile UINT32 osCoreTimerScanHand;
 OS_EXT  volatile UINT32 osCoreTimerScanHandOld;
@@ -375,11 +383,11 @@ OS_EXT  volatile UINT32 osCtxSwCtr;                             //!< Counter of 
 OS_EXT  UINT32          osIdleCtrMax;                           //!< Max. value that idle ctr can take in 1 sec.
 OS_EXT  UINT16          osCPUUsage;                             //!< Percentage of CPU used
 OS_EXT  BOOL            osTaskStatRunning;                      //!< Flag indicating that the statistic task is running
-OS_EXT  OS_STK          osTaskStatStk[OS_TASK_STAT_STK_SIZE];   //!< Statistics task stack
+OS_EXT  CPU_STK         osTaskStatStk[OS_TASK_STAT_STK_SIZE];   //!< Statistics task stack
 #endif
 
 OS_EXT  volatile UINT32 osIdleCtr;                              //!< Idle counter
-OS_EXT  OS_STK          osTaskIdleStk[OS_TASK_IDLE_STK_SIZE];   //!< Idle task stack
+OS_EXT  CPU_STK         osTaskIdleStk[OS_TASK_IDLE_STK_SIZE];   //!< Idle task stack
 
 
 
@@ -482,7 +490,7 @@ OS_ERR      osTaskCreate           (OS_HANDLE      *pHandle,
                                     OS_TASK        *task,
                                     void           *parg,
                                     UINT8           prio,
-                                    OS_STK         *pstk,
+                                    CPU_STK        *pstk,
                                     UINT32          stkSize,
                                     UINT8           opt);
 
@@ -531,7 +539,7 @@ void        OSStartTheFirst        (void);
 void        OSIntCtxSw             (void);
 void        OSCtxSw                (void);
 
-OS_STK     *OSTaskStkInit          (OS_STK          *ptos,
+CPU_STK     *OSTaskStkInit          (CPU_STK        *ptos,
                                     void            *wrap,
                                     void            *task,
                                     void            *parg);
@@ -574,7 +582,7 @@ void        os_list_add            (OS_LIST_NODE   *node,
 void        os_list_del            (OS_LIST_NODE   *entry);
 
 bool        OS_ObjPoolFree         (OS_LIST_NODE  **ppObj,
-                                    void           *pobj);
+                                    void           *pObj);
 void       *OS_ObjPoolNew          (OS_LIST_NODE  **ppObj);
 
 /*!
@@ -598,8 +606,8 @@ void        OS_WaitNodeRemove      (OS_TCB         *ptcb);
 
 void        OS_TCBInit             (OS_TCB         *ptcb,
                                     UINT8           prio,
-                                    OS_STK         *psp,
-                                    OS_STK         *pstk,
+                                    CPU_STK         *psp,
+                                    CPU_STK         *pstk,
                                     UINT32          stk_size,
                                     UINT8           opt);
 

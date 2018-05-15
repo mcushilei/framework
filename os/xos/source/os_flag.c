@@ -25,6 +25,9 @@
 #if (OS_FLAG_EN > 0u) && (OS_MAX_FLAGS > 0u)
 
 /*============================ MACROS ========================================*/
+#define OS_FLAG_STATUS_BIT              (0x01u)
+#define OS_FLAG_MANUAL_RESET_BIT        (0x80u)
+
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
 /*============================ PROTOTYPES ====================================*/
@@ -57,7 +60,7 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL initValue, BOOL manualReset)
     OS_FLAG    *pflag;
     UINT16      flags = 0;
 #if OS_CRITICAL_METHOD == 3u
-    OS_CPU_SR   cpu_sr = 0u;            //!< Allocate storage for CPU status register
+    CPU_SR   cpu_sr = 0u;            //!< Allocate storage for CPU status register
 #endif
 
 
@@ -71,10 +74,10 @@ OS_ERR osFlagCreate(OS_HANDLE *pFlagHandle, BOOL initValue, BOOL manualReset)
     }
 
     if (initValue != FALSE) {
-        flags |= 0x01u;
+        flags |= OS_FLAG_STATUS_BIT;
     }
     if (manualReset == FALSE) {
-        flags |= 0x80u;
+        flags |= OS_FLAG_MANUAL_RESET_BIT;
     }
     
     //! malloc ECB from pool.
@@ -137,7 +140,7 @@ OS_ERR osFlagDelete(OS_HANDLE *pFlagHandle, UINT8 opt)
     BOOL        taskPend;
     BOOL        taskSched = FALSE;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 
@@ -223,10 +226,10 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
     OS_WAIT_NODE    node;
     UINT16          ready;
     UINT16          consume;
+    OS_ERR          err;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR       cpu_sr = 0u;
+    CPU_SR       cpu_sr = 0u;
 #endif
-    UINT8           err;
 
 
 #if OS_ARG_CHK_EN > 0u
@@ -245,11 +248,11 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
     }
 
     OSEnterCriticalSection(cpu_sr);
-    consume = pflag->OSFlagFlags & 0x80u;
-    ready   = pflag->OSFlagFlags & 0x01u;
-    if (ready != 0u) {                          //!< See if flag set
+    consume = pflag->OSFlagFlags & OS_FLAG_MANUAL_RESET_BIT;
+    ready   = pflag->OSFlagFlags & OS_FLAG_STATUS_BIT;
+    if (ready != 0u) {                          //!< See if flag has benn set.
         if (consume != 0u) {                    //!< Yes. See if we need to consume the flags.
-            pflag->OSFlagFlags &= ~0x01u;       //!< Yes. Reset the flag.
+            pflag->OSFlagFlags &= ~OS_FLAG_STATUS_BIT;       //!< Yes. Reset the flag.
         }
         OSExitCriticalSection(cpu_sr);
         return OS_ERR_NONE;
@@ -291,7 +294,7 @@ OS_ERR osFlagPend(OS_HANDLE hFlag, UINT32 timeout)
  *!
  *! \Returns     OS_ERR_NONE            The call was successfull
  *!              OS_ERR_INVALID_HANDLE  If 'hFlag' is an invalid handle.
- *!              OS_ERR_OBJ_TYPE      If you didn't pass a event flag object.
+ *!              OS_ERR_OBJ_TYPE        If you didn't pass a event flag object.
  *!
  *! \Notes       1) The execution time of this function depends on the number of tasks waiting on
  *!                 the event flag.
@@ -302,7 +305,7 @@ OS_ERR osFlagSet(OS_HANDLE hFlag)
 {
     OS_FLAG      *pflag = (OS_FLAG *)hFlag;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR     cpu_sr = 0u;
+    CPU_SR     cpu_sr = 0u;
 #endif
 
 
@@ -316,13 +319,13 @@ OS_ERR osFlagSet(OS_HANDLE hFlag)
     }
 
     OSEnterCriticalSection(cpu_sr);
-    pflag->OSFlagFlags |= 0x01u;                //!< Set the flags.
+    pflag->OSFlagFlags |= OS_FLAG_STATUS_BIT;                   //!< Set the flags.
     if (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) {         //!< See if any task is waiting for this flag.
         while (pflag->OSFlagWaitList.Next != &pflag->OSFlagWaitList) {  //!< Yes, Ready ALL tasks waiting for this flag.
             OS_WaitableObjRdyTask((OS_WAITABLE_OBJ *)pflag, OS_STAT_PEND_OK);
         }
-        if (pflag->OSFlagFlags & 0x80u) {       //!< Is this a auto-reset flag?
-            pflag->OSFlagFlags &= ~0x01u;       //!< Yes, Reset the flag.
+        if (pflag->OSFlagFlags & OS_FLAG_MANUAL_RESET_BIT) {    //!< Is this a auto-reset flag?
+            pflag->OSFlagFlags &= ~OS_FLAG_STATUS_BIT;          //!< Yes, Reset the flag.
         }
     }
     OSExitCriticalSection(cpu_sr);
@@ -346,7 +349,7 @@ OS_ERR osFlagReset(OS_HANDLE hFlag)
 {
     OS_FLAG    *pflag = (OS_FLAG *)hFlag;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 
@@ -360,7 +363,7 @@ OS_ERR osFlagReset(OS_HANDLE hFlag)
     }
 
     OSEnterCriticalSection(cpu_sr);
-    pflag->OSFlagFlags &= ~0x01u;       //!< Reset the flags
+    pflag->OSFlagFlags &= ~OS_FLAG_STATUS_BIT;       //!< Reset the flags
     OSExitCriticalSection(cpu_sr);
     
     return OS_ERR_NONE;
@@ -369,7 +372,8 @@ OS_ERR osFlagReset(OS_HANDLE hFlag)
 /*!
  *! \Brief       QUERY A FLAG
  *!
- *! \Description This function is used to get the information of the flag.
+ *! \Description This function is used to get the information of the flag. This is intent on statistic use, do not
+ *!              use in your application.
  *!
  *! \Arguments   hFlag          is a handle to the desired flag.
  *!              pInfo          a pointer to a OS_FLAG_INFO struct to store the information.
@@ -384,7 +388,7 @@ OS_ERR osFlagQuery(OS_HANDLE hFlag, OS_FLAG_INFO *pInfo)
     OS_FLAG    *pflag = (OS_FLAG *)hFlag;
     UINT16      flag;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 
@@ -402,12 +406,12 @@ OS_ERR osFlagQuery(OS_HANDLE hFlag, OS_FLAG_INFO *pInfo)
 
     OSEnterCriticalSection(cpu_sr);
     flag = pflag->OSFlagFlags;
-    if (flag & 0x80 != 0) {                     //!< Is this a manual-rest flag?
+    if (flag & OS_FLAG_MANUAL_RESET_BIT) {      //!< Is this a manual-rest flag?
         pInfo->OSFlagManualReset = FALSE;
     } else {
         pInfo->OSFlagManualReset = TRUE;
     }
-    if (flag & 0x01 != 0) {                     //!< Is this flag set?
+    if (flag & OS_FLAG_MANUAL_RESET_BIT) {      //!< Is this flag set?
         pInfo->OSFlagStatus = TRUE;
     } else {
         pInfo->OSFlagStatus = FALSE;

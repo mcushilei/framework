@@ -52,7 +52,7 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
 {
     OS_MUTEX   *pmutex;
 #if OS_CRITICAL_METHOD == 3u                    //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 
@@ -142,7 +142,7 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
     BOOL        taskPend;
     BOOL        taskSched = FALSE;
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 
@@ -257,11 +257,11 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
 {
     OS_MUTEX       *pmutex = (OS_MUTEX *)hMutex;
     OS_WAIT_NODE    node;
-#if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
-    OS_CPU_SR       cpu_sr = 0u;
-#endif
     OS_ERR          err;
     UINT8           prio;
+#if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
+    CPU_SR       cpu_sr = 0u;
+#endif
 
 
 #if OS_ARG_CHK_EN > 0u
@@ -365,7 +365,7 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
     OS_TCB     *ptcb;
     BOOL        taskSched = FALSE;
 #if OS_CRITICAL_METHOD == 3u                //!< Allocate storage for CPU status register
-    OS_CPU_SR   cpu_sr = 0u;
+    CPU_SR   cpu_sr = 0u;
 #endif
 
 
@@ -446,7 +446,7 @@ OS_ERR osMutexQuery(OS_HANDLE hMutex, OS_MUTEX_INFO *pInfo)
 {
     OS_MUTEX       *pmutex = (OS_MUTEX *)hMutex;
 #if OS_CRITICAL_METHOD == 3u            //!< Allocate storage for CPU status register
-    OS_CPU_SR       cpu_sr = 0u;
+    CPU_SR       cpu_sr = 0u;
 #endif
 
 

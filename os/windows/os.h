@@ -24,6 +24,7 @@
 #include ".\app_cfg.h"
 #include ".\api\os.h"
 #include ".\api\com\com.h"
+#include ".\api\socket\socket.h"
 
 /*============================ MACROS ========================================*/
 enum {
