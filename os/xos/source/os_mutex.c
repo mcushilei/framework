@@ -19,6 +19,7 @@
 //! \note do not move this pre-processor statement to other places
 #define  __OS_MUTEX_C__
 
+
 /*============================ INCLUDES ======================================*/
 #include ".\os.h"
 
@@ -31,6 +32,18 @@
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
+
+//! How does task own mutex? from time zone:
+//! overlap enabled:
+//!                         .....
+//!                 |--------- mutex 3 ---------|
+//!       |------------------ mutex 2 -------------|
+//!     |------------------ mutex 1 ----------------------|
+//! |------------------ mutex 0 -----------------------------|   ...
+//! 
+//! overlap disabled:
+//! |--- mutex 0 ---|   |------ mutex 1 ------|         |--- mutex 2 ---| ...
+//!
 
 /*!
  *! \Brief       CREATE A MUTEX
@@ -82,7 +95,7 @@ OS_ERR osMutexCreate(OS_HANDLE *pMutexHandle, UINT8 ceilingPrio)
     //! Set object type.
     //! init mutex property.
     //! init mutex wait list head.
-    pmutex->OSMutexObjHeader.OSObjType =   OS_OBJ_TYPE_SET(OS_OBJ_TYPE_MUTEX)
+    pmutex->OSMutexObjHeader.OSObjType =  OS_OBJ_TYPE_SET(OS_OBJ_TYPE_MUTEX)
                                         | OS_OBJ_TYPE_WAITABLE_MSK
                                         | OS_OBJ_PRIO_TYPE_SET(OS_OBJ_PRIO_TYPE_PRIO_LIST);
     pmutex->OSMutexCnt          = 0u;
@@ -250,8 +263,9 @@ OS_ERR osMutexDelete(OS_HANDLE *pMutexHandle, UINT8 opt)
  *!              OS_ERR_OVERLAP_MUTEX   Current task try getting the mutex while it has gotten another one.
  *!                                     User should release the mutex before try getting it again.
  *!
- *! \Notes       1) The task that has owned one mutex MUST NOT try to own another one. It's say it
+ *! \Notes       1) The task that has owned one mutex could NOT try to own other one. It's say it
  *!                 could not be overlapped if OS_MUTEX_OVERLAP_EN = 0.
+ *!              2) If OS_MUTEX_OVERLAP_EN != 0, 
  */
 OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
 {
@@ -280,8 +294,8 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
     }
 
     OSEnterCriticalSection(cpu_sr);
-    if (pmutex->OSMutexOwnerTCB == NULL) {              //!< Is mutex owned by any task?
-#if OS_MUTEX_OVERLAP_EN > 0u
+    if (pmutex->OSMutexOwnerTCB == NULL) {              //!< Has mutex been possessed by any other task?...
+#if OS_MUTEX_OVERLAP_EN > 0u                            //!  ...No.
         os_list_add(&pmutex->OSMutexOvlpList, osTCBCur->OSTCBOwnMutexList.Prev);
 #else
         if (osTCBCur->OSTCBOwnMutex != NULL) {
@@ -297,8 +311,8 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
         return OS_ERR_NONE;
     }
     
-    if (pmutex->OSMutexOwnerTCB == osTCBCur) {          //!< Is mutex owned by CURRENT task?
-        if (pmutex->OSMutexCnt < 255u) {
+    if (pmutex->OSMutexOwnerTCB == osTCBCur) {          //!< Is mutex owned by CURRENT task?...
+        if (pmutex->OSMutexCnt < 255u) {                //! ...Yes.
             pmutex->OSMutexCnt++;
             OSExitCriticalSection(cpu_sr);
             return OS_ERR_NONE;
@@ -313,7 +327,8 @@ OS_ERR osMutexPend(OS_HANDLE hMutex, UINT32 timeout)
         return OS_ERR_TIMEOUT;
     }
 
-    if (pmutex->OSMutexCeilingPrio < osTCBCur->OSTCBPrio) {
+                                                            //! anti prio-reserve mechanism: ceiling AND bubbling
+    if (pmutex->OSMutexCeilingPrio < osTCBCur->OSTCBPrio) { //! compare and get the highest prio of ...
         prio = pmutex->OSMutexCeilingPrio;
     } else {
         prio = osTCBCur->OSTCBPrio;
@@ -386,6 +401,10 @@ OS_ERR osMutexPost(OS_HANDLE hMutex)
         OSExitCriticalSection(cpu_sr);
         return OS_ERR_NOT_MUTEX_OWNER;
     }
+#if OS_MUTEX_OVERLAP_EN > 0u
+#else
+    osTCBCur->OSTCBOwnMutex = NULL;
+#endif
     
     if (pmutex->OSMutexCnt != 0u) {                 //!< Does current task own this mutex recursively?
         pmutex->OSMutexCnt--;

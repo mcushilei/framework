@@ -247,7 +247,7 @@ struct os_mutex {
 #endif
     
     OS_TCB             *OSMutexOwnerTCB;            //!< Pointer to mutex owner's TCB
-    UINT8               OSMutexOwnerPrio;           //!< Mutex owner's prio.
+    UINT8               OSMutexOwnerPrio;           //!< Backup of mutex owner's prio, for owner's prio may be changed to a higher one.
     UINT8               OSMutexCeilingPrio;         //!< Mutex's ceiling prio.
 };
 #endif
