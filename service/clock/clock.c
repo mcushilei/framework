@@ -32,52 +32,64 @@
 /*============================ TYPES =========================================*/
 typedef struct {
     uint32_t        Hand;
-    list_node_t     AlarmListToday;
-    list_node_t     AlarmListNextDay;
+    list_node_t    *NextAlarm;
+    list_node_t     AlarmList;
 } real_clock_t;
 
-/*============================ PROTOTYPES ====================================*/
-/*============================ LOCAL VARIABLES ===============================*/
+/*============================ PRIVATE PROTOTYPES ============================*/
+/*============================ PRIVATE VARIABLES =============================*/
 static real_clock_t realClock;
 
-/*============================ GLOBAL VARIABLES ==============================*/
+/*============================ PUBLIC VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
 static void __clock_list_insert(list_node_t *pList, alarmclock_t *ac)
 {
-    alarmclock_t *pAC;
     list_node_t  *pNode;
 
-    for (pNode = pList->Next; pNode != pList; pNode = pNode->Next) {
-        pAC = CONTAINER_OF(pNode, alarmclock_t, ListNode);
+    for (pNode = pList; pNode != &realClock.AlarmList; pNode = pNode->Next) {
+        alarmclock_t *pAC = CONTAINER_OF(pNode, alarmclock_t, ListNode);
         if (ac->Count < pAC->Count) {
             break;
         }
     }
-    list_add(&ac->ListNode, pNode->Prev);
+    pNode = pNode->Prev;
+    list_add(&ac->ListNode, pNode);
 }
 
 static void clock_list_insert(alarmclock_t *ac)
 {
     list_node_t *pList;
 
-    //! ac->Count forward realClock.Hand?
-    if (ac->Count > realClock.Hand) {   //! yes.
-        pList = &realClock.AlarmListToday;
-    } else {                            //! no.
-        pList = &realClock.AlarmListNextDay;
+    if (realClock.NextAlarm == &realClock.AlarmList) {
+        pList = realClock.AlarmList.Next;
+        __clock_list_insert(pList, ac);
+        //! consdering we may add node to the tail, so we need to check if we should start checking alarm.
+        alarmclock_t *pAC = CONTAINER_OF(realClock.AlarmList.Prev, alarmclock_t, ListNode);
+        if (realClock.Hand < pAC->Count) {
+            realClock.NextAlarm = realClock.AlarmList.Prev;
+        }
+    } else {
+        alarmclock_t *pAC = CONTAINER_OF(realClock.NextAlarm, alarmclock_t, ListNode);
+        if (ac->Count >= pAC->Count) {
+            pList = realClock.NextAlarm;
+        } else {
+            pList = realClock.AlarmList.Next;
+        }
+        __clock_list_insert(pList, ac);
     }
-    __clock_list_insert(pList, ac);
 }
 
 static void clock_list_remove(alarmclock_t *ac)
 {
+    alarmclock_t *pAC = CONTAINER_OF(realClock.NextAlarm, alarmclock_t, ListNode);
+    if (ac == pAC) {
+        realClock.NextAlarm = realClock.NextAlarm->Next;
+    }
     list_del(&ac->ListNode);
 }
 
 static void clock_alarm_process(alarmclock_t *ac)
 {
-    clock_list_remove(ac);
-    clock_list_insert(ac);
     ac->Flag |= BIT(0);
     if (ac->pRoutine != NULL) {
         ac->pRoutine();
@@ -87,36 +99,32 @@ static void clock_alarm_process(alarmclock_t *ac)
 //! This function should be called periodly.
 void clock_tick_tock(void)
 {
-    __CLOCK_SAFE_ATOM_CODE(
-        //! increase realClock.Hand
-        ++realClock.Hand;
-        if (realClock.Hand >= CLOCK_TICKS_A_DAY) {
-            realClock.Hand = 0u;
-        }
+    if (realClock.NextAlarm == NULL) {  //! to avoid error when this is called from ISR...
+        return;                         //! ...before clock has been initialised.
+    }
 
+    __CLOCK_SAFE_ATOM_CODE(
         //! to see if it has run over.
         if (0u == realClock.Hand) { //! yes.            
-            //! move realClock.AlarmListNextDay to realClock.AlarmListToday.
-            list_node_t *pHead = realClock.AlarmListNextDay.Next;
-            list_node_t *pTail = realClock.AlarmListNextDay.Prev;
-            realClock.AlarmListNextDay.Next = &realClock.AlarmListNextDay;
-            realClock.AlarmListNextDay.Prev = &realClock.AlarmListNextDay;
-            realClock.AlarmListToday.Next = pHead;
-            realClock.AlarmListToday.Prev = pTail;
-            pHead->Prev = &realClock.AlarmListToday;
-            pTail->Next = &realClock.AlarmListToday;
+            realClock.NextAlarm = realClock.AlarmList.Next;
         }
 
-        //! to see if there is any ac overflow in realClock.AlarmListToday.
-        for (list_node_t *pNode = realClock.AlarmListToday.Next; pNode != &realClock.AlarmListToday; ) {
-            alarmclock_t *pAC = CONTAINER_OF(pNode, alarmclock_t, ListNode);
+        //! to see if there is any ac overflow in Alarm List.
+        while (realClock.NextAlarm != &realClock.AlarmList) {
+            alarmclock_t *pAC = CONTAINER_OF(realClock.NextAlarm, alarmclock_t, ListNode);
             //! to see if it has overflow.
             if (pAC->Count > realClock.Hand) { //!< no.
                 break;            //!< The list has been sorted, so we just break.
             } else {                        //!< yes
-                pNode = pNode->Next;
+                realClock.NextAlarm = realClock.NextAlarm->Next;
                 clock_alarm_process(pAC);
             }
+        }
+
+        //! increase realClock.Hand
+        ++realClock.Hand;
+        if (realClock.Hand >= CLOCK_TICKS_A_DAY) {
+            realClock.Hand = 0u;
         }
     )
 }
@@ -124,18 +132,41 @@ void clock_tick_tock(void)
 bool clock_init(void)
 {
     realClock.Hand = 0u;
-    list_init_head(&realClock.AlarmListToday);
-    list_init_head(&realClock.AlarmListNextDay);
+    list_init_head(&realClock.AlarmList);
+    realClock.NextAlarm = &realClock.AlarmList;
     return true;
 }
 
 bool clock_set_time(uint32_t time)
 {
-    realClock.Hand = time;
-    //! considering we may turn hand forward, so:
-    //! remove all thoese alarms which before current Hand from AlarmListToday to AlarmListNextDay.
-    //! considering we may turn hand backward, so:
-    //! remove all thoese alarms which after current Hand from AlarmListNextDay to AlarmListToday.
+    bool forward = false;
+    
+    __CLOCK_SAFE_ATOM_CODE(
+        if (time > realClock.Hand) {
+            forward = true;
+        }
+        realClock.Hand = time;
+    
+        if (forward) {
+            for (; realClock.NextAlarm != &realClock.AlarmList; realClock.NextAlarm = realClock.NextAlarm->Next) {
+                alarmclock_t *pAC = CONTAINER_OF(realClock.NextAlarm, alarmclock_t, ListNode);
+                if (pAC->Count > time) {
+                    break;
+                }
+            }
+        } else {
+            if (realClock.NextAlarm == &realClock.AlarmList) {
+                realClock.NextAlarm = realClock.NextAlarm->Prev;
+            }
+            for (; realClock.NextAlarm != &realClock.AlarmList; realClock.NextAlarm = realClock.NextAlarm->Prev) {
+                alarmclock_t *pAC = CONTAINER_OF(realClock.NextAlarm, alarmclock_t, ListNode);
+                if (pAC->Count < time) {
+                    realClock.NextAlarm = realClock.NextAlarm->Next;
+                    break;
+                }
+            }
+        }
+    )
     return true;
 }
 
@@ -186,7 +217,5 @@ bool alarmclock_is_timeout(alarmclock_t *ac)
 
     return false;
 }
-
-
 
 /* EOF */

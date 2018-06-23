@@ -31,20 +31,20 @@
 typedef void alarmclock_routine_t(void);
 
 typedef struct {
-	uint8_t         Flag;
-	uint32_t        Count;
-	uint32_t        Period;
-	alarmclock_routine_t *pRoutine;
-	list_node_t     ListNode;
+	uint8_t                 Flag;
+	uint32_t                Count;
+	alarmclock_routine_t   *pRoutine;
+	list_node_t             ListNode;
 } alarmclock_t;
 
-/*============================ GLOBAL VARIABLES ==============================*/
-/*============================ PROTOTYPES ====================================*/
-extern bool clock_init(void);
-extern void clock_tick_tock(void);
-extern bool alarmclock_config    (alarmclock_t *ac, uint32_t value, alarmclock_routine_t *pRoutine);
-extern void alarmclock_start     (alarmclock_t *ac, uint32_t value);
-extern void alarmclock_stop      (alarmclock_t *ac);
+/*============================ PUBLIC VARIABLES ==============================*/
+/*============================ PUBLIC PROTOTYPES =============================*/
+extern bool clock_init          (void);
+extern bool clock_set_time      (uint32_t time);
+extern void clock_tick_tock     (void);
+extern bool alarmclock_config   (alarmclock_t *ac, uint32_t value, alarmclock_routine_t *pRoutine);
+extern void alarmclock_start    (alarmclock_t *ac, uint32_t value);
+extern void alarmclock_stop     (alarmclock_t *ac);
 extern bool alarmclock_is_timeout(alarmclock_t *ac);
 
 #endif  //!< #ifndef __CLOCK_PUBLIC_H__
