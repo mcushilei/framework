@@ -32,7 +32,6 @@ typedef void timer_routine_t(void);
 
 typedef struct {
 	uint8_t         Flag;
-	uint8_t         Ctrl;
 	uint32_t        Count;
 	uint32_t        Period;
 	timer_routine_t *pRoutine;
@@ -42,12 +41,12 @@ typedef struct {
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/
 extern bool timer_init(void);
+extern void timer_tick(void);
 extern bool timer_config(
 	timer_t        *timer,
 	uint32_t		initValue,
 	uint32_t		reloadValue,
 	timer_routine_t *pRoutine);
-extern void timer_tick(void);
 extern void timer_start(timer_t *timer, uint32_t value);
 extern void timer_stop(timer_t *timer);
 extern bool timer_is_timeout(timer_t *timer);

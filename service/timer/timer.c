@@ -18,7 +18,8 @@
 //! \note do not move this pre-processor statement to other places
 #define __SERVICE_TIMER_C__
 
-//! \brief normal precision timer that count in millisecond.
+//! \brief normal precision timer that count in millisecond. abstract: a clock 
+//!        with only one hand which has a one-day cycle.
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
@@ -31,8 +32,8 @@
 /*============================ LOCAL VARIABLES ===============================*/
 static volatile uint32_t    scanHand;
 static volatile uint32_t    scanHandOld;
-static list_node_t          timerList;            //! those two list should be sorted by increase. 
-static list_node_t          timerRunoverList;
+static list_node_t          timerListToday;
+static list_node_t          timerListNextDay;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
@@ -40,8 +41,8 @@ static list_node_t          timerRunoverList;
 bool timer_init(void)
 {
     scanHandOld = scanHand;
-    list_init_head(&timerList);
-    list_init_head(&timerRunoverList);
+    list_init_head(&timerListToday);
+    list_init_head(&timerListNextDay);
     return true;
 }
 
@@ -49,25 +50,16 @@ static void timer_list_insert(timer_t *timer)
 {
     list_node_t *pList;
 
-    //! to see if we have run over.
-    if (scanHandOld > scanHand) { //! yes.
-        if (timer->Count > scanHand) {
-            pList = &timerRunoverList;
-        } else {
-            pList = &timerList;
-        }
-    } else {
-        if (timer->Count > scanHand) {
-            pList = &timerList;
-        } else {
-            pList = &timerRunoverList;
-        }
+    //! timer->Count forward scanHand?
+    if (timer->Count > scanHand) {  //! yes.
+        pList = &timerListToday;
+    } else {                        //! no.
+        pList = &timerListNextDay;
     }
 
-    //! is this list empty?
-    if (pList->Next == pList) {     //! yes.
+    if (LIST_IS_EMPTY(pList)) {
         list_add(&timer->ListNode, pList);
-    } else {                        //! no.
+    } else {
         timer_t *pTimer;
         list_node_t *pNode;
 
@@ -83,19 +75,18 @@ static void timer_list_insert(timer_t *timer)
 
 static void timer_list_remove(timer_t *timer)
 {
-    //! remove it.
     list_del(&timer->ListNode);
 }
 
 static void timer_timeout_processs(timer_t *timer)
 {
+    if (timer->Period != 0u) {
+        timer->Count = timer->Period + scanHand;
+        timer_list_insert(timer);
+    }
     timer->Flag |= BIT(0);
     if (timer->pRoutine != NULL) {
         timer->pRoutine();
-    }
-    if (timer->Period != 0u) {
-        timer->Count = scanHand + timer->Period;
-        timer_list_insert(timer);
     }
 }
 
@@ -106,11 +97,11 @@ void timer_tick(void)
     ++scanHand;
 
     __TIMER_SAFE_ATOM_CODE(
-        //! to see if we have run over.
-        if (scanHandOld > scanHand) { //! yes.
-            //! all timer in timerList has timeout.
-            if (timerList.Next != &timerList) {    //! see if timerList is empyt.
-                for (list_node_t *pNode = timerList.Next; pNode != &timerList; ) {
+        //! to see if it has run over.
+        if (scanHandOld > scanHand) { //! yes.            
+            //! all timer in timerListToday has timeout. so, empty it.
+            if (!LIST_IS_EMPTY(&timerListToday)) {
+                for (list_node_t *pNode = timerListToday.Next; pNode != &timerListToday; ) {
                     timer_t *pTimer = CONTAINER_OF(pNode, timer_t, ListNode);
                     pNode = pNode->Next;
                     list_del(&pTimer->ListNode);
@@ -118,22 +109,22 @@ void timer_tick(void)
                 }
             }
 
-            //! move timerRunoverList to timerList.
-            if (timerRunoverList.Next != &timerRunoverList) {    //! see if timerRunoverList is empty.
-                list_node_t *pHead = timerRunoverList.Next;
-                list_node_t *pTail = timerRunoverList.Prev;
-                timerRunoverList.Next = &timerRunoverList;
-                timerRunoverList.Prev = &timerRunoverList;
-                timerList.Next = pHead;
-                timerList.Prev = pTail;
-                pHead->Prev = &timerList;
-                pTail->Next = &timerList;
+            //! move timerListNextDay to timerListToday.
+            if (!LIST_IS_EMPTY(&timerListNextDay)) {
+                list_node_t *pHead = timerListNextDay.Next;
+                list_node_t *pTail = timerListNextDay.Prev;
+                timerListNextDay.Next = &timerListNextDay;
+                timerListNextDay.Prev = &timerListNextDay;
+                timerListToday.Next = pHead;
+                timerListToday.Prev = pTail;
+                pHead->Prev = &timerListToday;
+                pTail->Next = &timerListToday;
             }
         }
 
-        //! to see if there is any timer overflow in timerList.
-        if (timerList.Next != &timerList) {    //! see if timerList is empyt.
-            for (list_node_t *pNode = timerList.Next; pNode != &timerList; ) {
+        if (!LIST_IS_EMPTY(&timerListToday)) {
+            //! to see if there is any timer overflow in timerListToday.
+            for (list_node_t *pNode = timerListToday.Next; pNode != &timerListToday; ) {
                 timer_t *pTimer = CONTAINER_OF(pNode, timer_t, ListNode);
                 //! to see if it has overflow.
                 if (pTimer->Count > scanHand) { //!< no.
@@ -146,26 +137,25 @@ void timer_tick(void)
             }
         }
     )
-
+    
     scanHandOld = scanHand;
 }
 
-//! count in millisecond.
-//! NO reentrible
 bool timer_config(
     timer_t        *timer,
     uint32_t        initValue,
     uint32_t        reloadValue,
     timer_routine_t *pRoutine)
 {
-    timer->Count  = (initValue   + TIMER_TICK_CYCLE - 1u) / TIMER_TICK_CYCLE;
+    initValue     = (initValue   + TIMER_TICK_CYCLE - 1u) / TIMER_TICK_CYCLE;
     timer->Period = (reloadValue + TIMER_TICK_CYCLE - 1u) / TIMER_TICK_CYCLE;
     timer->Flag   = 0;
     timer->pRoutine = pRoutine;
     list_init_head(&timer->ListNode);
-    if (timer->Count != 0u) {
-        timer->Count += scanHand;
+    if (initValue != 0u) {
+        //! start it.
         __TIMER_SAFE_ATOM_CODE(
+            timer->Count = initValue + scanHand;
             timer_list_insert(timer);
         )
     }
@@ -173,25 +163,26 @@ bool timer_config(
     return true;
 }
 
-//! NO reentrible
 void timer_start(timer_t *timer, uint32_t value)
 {
+    value = (value + TIMER_TICK_CYCLE - 1u) / TIMER_TICK_CYCLE;
     __TIMER_SAFE_ATOM_CODE(
-        //! remove it from any list.
+        //! remove it from running list.
         timer_list_remove(timer);
-        //! update it and then add it to list again.
         if (value != 0u) {
-            timer->Count = (value + TIMER_TICK_CYCLE - 1u) / TIMER_TICK_CYCLE + scanHand;
+            //! start it again.
+            timer->Count = value + scanHand;
             timer_list_insert(timer);
+        } else {
+            //! nothing else to do.
         }
     )
 }
 
-//! NO reentrible
 void timer_stop(timer_t *timer)
 {
     __TIMER_SAFE_ATOM_CODE(
-        //! remove it from any list.
+        //! remove it from running list.
         timer_list_remove(timer);
     )
 }
@@ -208,10 +199,10 @@ bool timer_is_timeout(timer_t *timer)
 
 bool timer_is_running(timer_t *timer)
 {
-    if (timer->ListNode.Next != &timer->ListNode) {
-        return true;
+    if (LIST_IS_EMPTY(&timer->ListNode)) {
+        return false;
     }
-    return false;
+    return true;
 }
 
 
