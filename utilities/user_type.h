@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2015-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -126,12 +126,19 @@ typedef volatile uint16_t   reg16_t;
 typedef volatile uint32_t   reg32_t;
 
 enum {
-    FSM_RT_CPL = 0,     //!< fsm complete
+    FSM_RT_CPL      = 0,
     FSM_RT_ONGOING,
-    FSM_RT_UNHANDLE,    //!< event unhandle
+    FSM_RT_UNHANDLE,
     FSM_RT_ERR,
 };
 
+enum {
+    LOW             = 1,
+    MEDIUM_LOW      = 2,
+    MEDIUM          = 3,
+    MEDIUM_HIGH     = 4,
+    HIGH            = 5,
+};
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ PROTOTYPES ====================================*/

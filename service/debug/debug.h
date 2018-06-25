@@ -73,7 +73,7 @@
 #if DEBUG_FOMART_STRING == ENABLED
 #   define __DEBUG_PRINT(...)                   printf(__VA_ARGS__)
 #else
-#   define __DEBUG_PRINT(string, ...)           string_printf("%s", (uint32_t)string)
+#   define __DEBUG_PRINT(__STR, ...)            debug_print_string(__STR)
 #endif
 
 #if DEBUG_DISALLOW_FILE_INFO == ENABLED

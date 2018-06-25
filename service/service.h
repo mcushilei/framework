@@ -37,6 +37,7 @@
 #include ".\geometry\geometry.h"
 #include ".\calendar\calendar.h"
 #include ".\block_memory\block_memory.h"
+#include ".\clock\clock.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/

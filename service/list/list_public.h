@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2017 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2018 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -15,12 +15,9 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-
-
+//! Do not move this pre-processor statement to other places
 #ifndef __LIST_PUBLIC_H__
 #define __LIST_PUBLIC_H__
-
-
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
@@ -33,8 +30,8 @@ DEF_STRUCTURE(list_node_t)
     list_node_t       *Prev;
 END_DEF_STRUCTURE(list_node_t)
 
-/*============================ GLOBAL VARIABLES ==============================*/
-/*============================ PROTOTYPES ====================================*/
+/*============================ PUBLIC VARIABLES ==============================*/
+/*============================ PUBLIC PROTOTYPES =============================*/
 extern void list_init_head  (list_node_t *head);
 extern void list_add        (list_node_t *node, list_node_t *head);
 extern void list_del        (list_node_t *entry);

@@ -173,7 +173,7 @@ extern scheduler_t          fsmScheduler;
 extern void         fsm_init            (void);
 extern bool         fsm_scheduler       (void);
 
-extern void         fsm_time_tick       (void);
+extern void         fsm_tick       (void);
 extern fsm_err_t    fsm_time_delay      (uint32_t          wTimeout);
 
 extern void         fsm_int_enter       (void);

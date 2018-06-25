@@ -43,6 +43,10 @@
         EXIT_SAFE_ATOM_CODE();  \
     }
 
+#define CPU_RESET()             do {\
+    SCB->AIRCR = (0x05FA << SCB_AIRCR_VECTKEY_Pos) | SCB_AIRCR_SYSRESETREQ_Msk;\
+} while (0)
+
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ LOCAL VARIABLES ===============================*/
