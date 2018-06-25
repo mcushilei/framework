@@ -39,7 +39,7 @@ bool efsm_init     (efsm_t         *EFSM,
     EFSM->StackLevel    = 0;
     EFSM->CurrentLevel  = 0;
     EFSM->Stack[0]      = pInitState;
-    EFSM->Status        = EFSM_STATUS_STOPPED;
+    EFSM->Status        = EFSM_STATUS_RUNNING;
 
     return true;
 }
@@ -84,24 +84,10 @@ bool efsm_to_upper(efsm_t *EFSM, efsm_state_t *pState)
     return true;
 }
 
-//! to destroy all layers over current layer.
+//! to delete all layers above current layer.
 bool efsm_to_current(efsm_t *EFSM)
 {
     EFSM->StackLevel = EFSM->CurrentLevel;
-    
-    return true;
-}
-
-//! to reduce current layer. note this will destroy current layer and all those over it if exist.
-bool efsm_to_lower(efsm_t *EFSM)
-{
-    if (EFSM->CurrentLevel == 0u) {             //!< avoid overflow.
-        return false;
-    }
-    
-    //! POP stack.
-    EFSM->CurrentLevel--;
-    EFSM->StackLevel = EFSM->CurrentLevel;      //!< POP stack to current level.
     
     return true;
 }
@@ -115,14 +101,11 @@ bool efsm_current_layer_to_state(efsm_t *EFSM, efsm_state_t *pState)
     return true;
 }
 
-//! to take a state transfer on current layer. note this will DESTROY ALL layers over current layer.
+//! to take a state transfer on current layer. note this will delete all layers over current layer.
 bool efsm_to_state(efsm_t *EFSM, efsm_state_t *pState)
 {
-    if (EFSM->StackLevel == EFSM->CurrentLevel) {
-        EFSM->Status = EFSM_STATUS_TRANSFER_STATE;
-    }
-    EFSM->StackLevel = EFSM->CurrentLevel;          //!< delete all layers above current layer.
-    EFSM->Stack[EFSM->CurrentLevel] = pState;       //!< transfer to state.
+    efsm_to_current(EFSM);
+    efsm_current_layer_to_state(EFSM, pState);
 
     return true;
 }
@@ -131,8 +114,9 @@ bool efsm_to_state(efsm_t *EFSM, efsm_state_t *pState)
  *  \param EFSM                 point to an event fsm.
  *  \param pEvent               point to an event. The type of event is base on application.
  *  \retval FSM_RT_CPL          event has been handle success.
- *  \retval FSM_RT_ONGOING      state has not been run complete.
- *  \retval FSM_RT_ERR          failed to get current state, might stack uninitialzed or voerflow.
+ *  \retval FSM_RT_ONGOING      event has not been handle completely.
+ *  \retval FSM_RT_ERR          failed to get current state, stack might have benn uninitialzed or voerflowed.
+ *                              It is failed to handle the event.
  */
 uint8_t efsm_dispatch_event(efsm_t *EFSM, event_code_t event, void *arg)
 {
@@ -140,47 +124,37 @@ uint8_t efsm_dispatch_event(efsm_t *EFSM, event_code_t event, void *arg)
     uint8_t res;
     
     pState = efsm_get_current_state(EFSM);
-    if (pState == NULL) {
-        return FSM_RT_ERR;
-    }
-    switch (EFSM->Status) {
-        case EFSM_STATUS_STOPPED:
-        case EFSM_STATUS_TRANSFER_STATE:
-        case EFSM_STATUS_ADD_LAYER:
-            (*pState)(EFSM_EVENT_ENTRY_STATE, NULL);
-            break;
-
-        default:
-            break;
-    }
-    EFSM->Status = EFSM_STATUS_RUNNING;
-    res = (*pState)(event, arg);        //!< run this handler.
-    switch (EFSM->Status) {
-        case EFSM_STATUS_TRANSFER_STATE:
-            (*pState)(EFSM_EVENT_EXIT_STATE, NULL);
-            break;
-
-        default:
-            break;
-    }
+    res = (*pState)(event, arg);    //!< run this handler to process the event.
     switch (res) {
-        case FSM_RT_UNHANDLE:
-            //! Try to handle this event at lower level if current state does not handle it.
-            if (!efsm_current_level_decrease(EFSM)) {
-                efsm_reset_current_level(EFSM);
-                return FSM_RT_CPL;
-            }
-            return FSM_RT_ONGOING;
-
         case FSM_RT_ONGOING:
             return FSM_RT_ONGOING;
 
-        case FSM_RT_CPL:
-        default:
+        case FSM_RT_CPL:            //! at last, this event has been processed completely.
+            do {                    //! to see if there is any state change.
+                switch (EFSM->Status) {
+                    case EFSM_STATUS_TRANSFER_STATE:
+                    case EFSM_STATUS_ADD_LAYER:
+                        EFSM->Status = EFSM_STATUS_RUNNING;
+                        pState = efsm_get_current_state(EFSM);
+                        (*pState)(EFSM_EVENT_ENTRY_STATE, NULL); //! we don't care the resault of processing EFSM_EVENT_ENTRY_STATE.
+                        break;
+
+                    default:
+                        EFSM->Status = EFSM_STATUS_RUNNING;
+                        break;
+                }
+            } while (EFSM->Status != EFSM_STATUS_RUNNING);
             efsm_reset_current_level(EFSM);
             return FSM_RT_CPL;
+
+        case FSM_RT_UNHANDLE:       //!< this state can't handle this event, to see if there is any state on lower layer can handle it.
+        default:
+            if (!efsm_current_level_decrease(EFSM)) {       //! layer stack is underflow?
+                efsm_reset_current_level(EFSM);             //! yes. reset layer pointer.
+                return FSM_RT_ERR;
+            }
+            return FSM_RT_ONGOING;
     }
 }
-
 
 /* EOF */

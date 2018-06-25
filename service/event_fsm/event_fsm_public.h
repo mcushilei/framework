@@ -43,8 +43,7 @@ typedef struct {
 } efsm_t;
 
 enum {
-    EFSM_STATUS_STOPPED = 0,
-    EFSM_STATUS_RUNNING,
+    EFSM_STATUS_RUNNING     = 0,
     EFSM_STATUS_TRANSFER_STATE,
     EFSM_STATUS_ADD_LAYER,
 };
@@ -66,7 +65,6 @@ extern uint8_t  efsm_dispatch_event (efsm_t *EFSM, event_code_t event, void *arg
 extern bool efsm_to_state       (efsm_t *EFSM, efsm_state_t *State);
 extern bool efsm_to_upper       (efsm_t *EFSM, efsm_state_t *State);
 extern bool efsm_to_current     (efsm_t *EFSM);
-extern bool efsm_to_lower       (efsm_t *EFSM);
 extern bool efsm_current_layer_to_state(efsm_t *EFSM, efsm_state_t *State);
 
 
