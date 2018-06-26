@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2016 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2016-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -15,12 +15,12 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-
-
+//! Do not move this pre-processor statement to other places
+#define __FSM_SEM_C__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include ".\fsm.h"
+#include ".\fsm_sem_public.h"
 
 #if SAFE_TASK_THREAD_SYNC == ENABLED
 
@@ -55,7 +55,7 @@ void fsm_semaphore_init(void)
 
 fsm_err_t fsm_semaphore_create(
           fsm_handle_t     *pptSem,
-          uint16_t          hwInitialCount)
+          uint16_t          initialCount)
 {
     fsm_semaphore_t *ptSem;
     
@@ -74,11 +74,8 @@ fsm_err_t fsm_semaphore_create(
     ptSem       = fsmSemtList;
     fsmSemtList = (fsm_semaphore_t *)ptSem->ObjNext;
     
-    ptSem->ObjType      = FSM_OBJ_TYPE_SEM;
-    ptSem->ObjFlag      = 0u;
-    ptSem->Head         = NULL;           
-    ptSem->Tail         = NULL;
-    ptSem->SemCounter   = hwInitialCount;
+    list_init(&ptSem->TaskQueue);
+    ptSem->SemCounter   = initialCount;
     
     *pptSem = ptSem;
 
@@ -91,10 +88,9 @@ fsm_err_t fsm_semaphore_create(
  *! \retval true event raised
  *! \retval false event haven't raised yet.
  */
-fsm_err_t fsm_semaphore_wait(fsm_handle_t hObject, uint32_t wTimeout)
+fsm_err_t fsm_semaphore_wait(fsm_handle_t hObject, uint32_t timeDelay)
 {
     uint8_t             chResult;
-    uint8_t             ObjType;
     fsm_tcb_t          *pTask = fsmScheduler.CurrentTask;
     fsm_semaphore_t    *ptSem = (fsm_semaphore_t *)hObject;
 
@@ -107,24 +103,14 @@ fsm_err_t fsm_semaphore_wait(fsm_handle_t hObject, uint32_t wTimeout)
     }
     
     switch (pTask->Status) {
-        case FSM_TASK_STATUS_READY:
-            ObjType = ((fsm_basis_obj_t *)hObject)->ObjType;
-            if (!(ObjType & FSM_OBJ_TYPE_WAITABLE)) {
-                return FSM_ERR_OBJ_NOT_WAITABLE;
-            }
-            if (ObjType != FSM_OBJ_TYPE_SEM) {
-                return FSM_ERR_OBJ_TYPE;
-            }
-            
+        case FSM_TASK_STATUS_READY:            
             FSM_SAFE_ATOM_CODE(
                 if (ptSem->SemCounter == 0) {
-                    if (wTimeout == 0u) {
+                    if (timeDelay == 0u) {
                         chResult = FSM_ERR_TASK_PEND_TIMEOUT;
                     } else {
                         //! add task to the object's wait queue.
-                        pTask->Object = hObject;
-                        fsm_set_task_pend(wTimeout);
-                        fsm_waitable_obj_add_task(hObject, pTask);
+                        fsm_waitable_obj_add_task(hObject, pTask, timeDelay);
                         chResult = FSM_ERR_OBJ_NOT_SINGLED;
                     }
                 } else {
@@ -153,26 +139,22 @@ fsm_err_t fsm_semaphore_wait(fsm_handle_t hObject, uint32_t wTimeout)
     return chResult;
 }
 
-fsm_err_t fsm_semaphore_release(fsm_handle_t hObject, uint16_t hwReleaseCount)
+fsm_err_t fsm_semaphore_release(fsm_handle_t hObject, uint16_t releaseCount)
 {
     fsm_semaphore_t *ptSem = (fsm_semaphore_t *)hObject;
     fsm_tcb_t       *pTask;
     
-    if ((NULL == ptSem) || (0 == hwReleaseCount)) {
+    if ((NULL == ptSem) || (0u == releaseCount)) {
         return FSM_ERR_INVALID_PARAM;
     }
     
-    if (ptSem->ObjType != FSM_OBJ_TYPE_SEM) {
-        return FSM_ERR_OBJ_TYPE;
-    }
-    
     FSM_SAFE_ATOM_CODE(
-        if (hwReleaseCount <= (65535u - ptSem->SemCounter)) {
-            ptSem->SemCounter += hwReleaseCount;
+        if (releaseCount <= (65535u - ptSem->SemCounter)) {
+            ptSem->SemCounter += releaseCount;
         }
         
         //! wake up blocked tasks.
-        while ((NULL != ptSem->Head) && (0 != ptSem->SemCounter)) {
+        while ((!LIST_IS_EMPTY(&ptSem->TaskQueue)) && (0u != ptSem->SemCounter)) {
             ptSem->SemCounter--;
             pTask = fsm_waitable_obj_get_task(hObject);
             fsm_set_task_ready(pTask, FSM_TASK_STATUS_PEND_OK);

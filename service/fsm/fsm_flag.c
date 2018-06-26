@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2016 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2016-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -15,12 +15,12 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-
-
+//! Do not move this pre-processor statement to other places
+#define __FSM_FLAG_C__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include ".\fsm.h"
+#include ".\fsm_flag_public.h"
 
 #if SAFE_TASK_THREAD_SYNC == ENABLED
 
@@ -55,14 +55,14 @@ void fsm_flag_init(void)
 
 /*! \brief initialize task event
  *! \param pFlag event object
- *! \param bManualReset flag that indicates whether the event should reset to 
+ *! \param isManualReset flag that indicates whether the event should reset to 
  *!        inactived state automatically.
- *! \param bInitialState event initial state, either set or not.
+ *! \param initialState event initial state, either set or not.
  *! \return pointer for event object
  */
 fsm_err_t fsm_flag_create  (fsm_handle_t   *pptEvent,
-                            bool            bManualReset,
-                            bool            bInitialState)
+                            bool            isManualReset,
+                            bool            initialState)
 {
     uint8_t     flag;
     fsm_flag_t *pFlag;
@@ -83,17 +83,14 @@ fsm_err_t fsm_flag_create  (fsm_handle_t   *pptEvent,
     fsmFlagFreeList = (fsm_flag_t *)pFlag->ObjNext;
     
     flag = 0;
-    if (bManualReset) {
+    if (isManualReset) {
         flag |= FSM_EVENT_MANUAL_RESET_BIT;
     }
-    if (bInitialState) {
+    if (initialState) {
         flag |= FSM_EVENT_SINGNAL_BIT;
     }
     
-    pFlag->ObjType      = FSM_OBJ_TYPE_FLAG;
-    pFlag->ObjFlag      = 0u;
-    pFlag->Head         = NULL;           
-    pFlag->Tail         = NULL;
+    list_init(&pFlag->TaskQueue);
     pFlag->EventFlag    = flag;
 
     *pptEvent = pFlag;
@@ -107,10 +104,9 @@ fsm_err_t fsm_flag_create  (fsm_handle_t   *pptEvent,
  *! \retval true event raised
  *! \retval false event haven't raised yet.
  */
-fsm_err_t fsm_flag_wait(fsm_handle_t hObject, uint32_t wTimeout)
+fsm_err_t fsm_flag_wait(fsm_handle_t hObject, uint32_t timeDelay)
 {
     uint8_t         chResult;
-    uint8_t         ObjType;
     fsm_tcb_t      *pTask = fsmScheduler.CurrentTask;
     fsm_flag_t     *pFlag = (fsm_flag_t *)hObject;
 
@@ -124,14 +120,6 @@ fsm_err_t fsm_flag_wait(fsm_handle_t hObject, uint32_t wTimeout)
     
     switch (pTask->Status) {
         case FSM_TASK_STATUS_READY:
-            ObjType = ((fsm_basis_obj_t *)hObject)->ObjType;
-            if (!(ObjType & FSM_OBJ_TYPE_WAITABLE)) {
-                return FSM_ERR_OBJ_NOT_WAITABLE;
-            }
-            if (ObjType != FSM_OBJ_TYPE_FLAG) {
-                return FSM_ERR_OBJ_TYPE;
-            }
-            
             FSM_SAFE_ATOM_CODE(
                 if (pFlag->EventFlag & FSM_EVENT_SINGNAL_BIT) {
                     if (!(pFlag->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
@@ -139,13 +127,11 @@ fsm_err_t fsm_flag_wait(fsm_handle_t hObject, uint32_t wTimeout)
                     }
                     chResult = FSM_ERR_NONE;
                 } else {
-                    if (wTimeout == 0u) {
+                    if (timeDelay == 0u) {
                         chResult = FSM_ERR_TASK_PEND_TIMEOUT;
                     } else {
                         //! add task to the object's wait queue.
-                        pTask->Object = hObject;
-                        fsm_set_task_pend(wTimeout);
-                        fsm_waitable_obj_add_task(hObject, pTask);
+                        fsm_waitable_obj_add_task(hObject, pTask, timeDelay);
                         chResult = FSM_ERR_OBJ_NOT_SINGLED;
                     }
                 }
@@ -184,18 +170,14 @@ fsm_err_t fsm_flag_set  (fsm_handle_t hObject)
         return FSM_ERR_INVALID_PARAM;
     }
     
-    if (pFlag->ObjType != FSM_OBJ_TYPE_FLAG) {
-        return FSM_ERR_OBJ_TYPE;
-    }
-    
     FSM_SAFE_ATOM_CODE(
         pFlag->EventFlag |= FSM_EVENT_SINGNAL_BIT;
-        if (pFlag->TaskQueue.Head != NULL) {
+        if (LIST_IS_EMPTY(&pFlag->TaskQueue)) {
             if (!(pFlag->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
                 pFlag->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
             }
             //! wake up all blocked tasks.
-            while (pFlag->TaskQueue.Head != NULL) {
+            while (!LIST_IS_EMPTY(&pFlag->TaskQueue)) {
                 pTask = fsm_waitable_obj_get_task(hObject);
                 fsm_set_task_ready(pTask, FSM_TASK_STATUS_PEND_OK);
             }
@@ -215,10 +197,6 @@ fsm_err_t fsm_flag_reset(fsm_handle_t hObject)
 
     if (NULL == pFlag) {
         return FSM_ERR_INVALID_PARAM;
-    }
-    
-    if (pFlag->ObjType != FSM_OBJ_TYPE_FLAG) {
-        return FSM_ERR_OBJ_TYPE;
     }
     
     FSM_SAFE_ATOM_CODE(

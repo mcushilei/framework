@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2016 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2016-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -15,12 +15,12 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-
-
+//! Do not move this pre-processor statement to other places
+#define __FSM_MUTEX_C__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
-#include ".\fsm.h"
+#include ".\fsm_mutex_public.h"
 
 #if SAFE_TASK_THREAD_SYNC == ENABLED
 
@@ -72,10 +72,7 @@ fsm_err_t    fsm_mutex_create  (fsm_handle_t *pptMutex)
     ptMutex      = fsmMutexList;
     fsmMutexList = (fsm_mutex_t *)ptMutex->ObjNext;
     
-    ptMutex->ObjType    = FSM_OBJ_TYPE_MUTEX;
-    ptMutex->ObjFlag    = 0u;
-    ptMutex->Head       = NULL;           
-    ptMutex->Tail       = NULL;
+    list_init(&ptMutex->TaskQueue);
     ptMutex->MutexOwner = NULL;
 
     *pptMutex = ptMutex;
@@ -89,10 +86,9 @@ fsm_err_t    fsm_mutex_create  (fsm_handle_t *pptMutex)
  *! \retval true event raised
  *! \retval false event haven't raised yet.
  */
-fsm_err_t fsm_mutex_wait(fsm_handle_t hObject, uint32_t wTimeout)
+fsm_err_t fsm_mutex_wait(fsm_handle_t hObject, uint32_t timeDelay)
 {
     uint8_t         chResult;
-    uint8_t         ObjType;
     fsm_tcb_t      *pTask = fsmScheduler.CurrentTask;
     fsm_mutex_t    *ptMutex = (fsm_mutex_t *)hObject;
 
@@ -106,25 +102,15 @@ fsm_err_t fsm_mutex_wait(fsm_handle_t hObject, uint32_t wTimeout)
     
     switch (pTask->Status) {
         case FSM_TASK_STATUS_READY:
-            ObjType = ((fsm_basis_obj_t *)hObject)->ObjType;
-            if (!(ObjType & FSM_OBJ_TYPE_WAITABLE)) {
-                return FSM_ERR_OBJ_NOT_WAITABLE;
-            }
-            if (ObjType != FSM_OBJ_TYPE_MUTEX) {
-                return FSM_ERR_OBJ_TYPE;
-            }
-            
             chResult = FSM_ERR_OBJ_NOT_SINGLED;
             if (ptMutex->MutexOwner != NULL) {
                 if (ptMutex->MutexOwner == pTask) {
                     chResult = FSM_ERR_NONE;
-                } else if (wTimeout == 0u) {
+                } else if (timeDelay == 0u) {
                     chResult = FSM_ERR_TASK_PEND_TIMEOUT;
                 } else {
                     //! add task to the object's wait queue.
-                    pTask->Object = hObject;
-                    fsm_set_task_pend(wTimeout);
-                    fsm_waitable_obj_add_task(hObject, pTask);
+                    fsm_waitable_obj_add_task(hObject, pTask, timeDelay);
                     chResult = FSM_ERR_OBJ_NOT_SINGLED;
                 }
             } else {
@@ -163,10 +149,6 @@ fsm_err_t fsm_mutex_release(fsm_handle_t hObject)
     
     if (fsmIntNesting != 0) {
         return FSM_ERR_CALL_IN_ISR;
-    }
-    
-    if (ptMutex->ObjType != FSM_OBJ_TYPE_MUTEX) {
-        return FSM_ERR_OBJ_TYPE;
     }
     
     if (pTask != ptMutex->MutexOwner) {

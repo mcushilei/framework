@@ -41,8 +41,8 @@ static list_node_t          timerListNextDay;
 bool timer_init(void)
 {
     scanHandOld = scanHand;
-    list_init_head(&timerListToday);
-    list_init_head(&timerListNextDay);
+    list_init(&timerListToday);
+    list_init(&timerListNextDay);
     return true;
 }
 
@@ -58,7 +58,7 @@ static void timer_list_insert(timer_t *timer)
     }
 
     if (LIST_IS_EMPTY(pList)) {
-        list_add(&timer->ListNode, pList);
+        list_insert(&timer->ListNode, pList);
     } else {
         timer_t *pTimer;
         list_node_t *pNode;
@@ -69,13 +69,13 @@ static void timer_list_insert(timer_t *timer)
                 break;
             }
         }
-        list_add(&timer->ListNode, pNode->Prev);
+        list_insert(&timer->ListNode, pNode->Prev);
     }
 }
 
 static void timer_list_remove(timer_t *timer)
 {
-    list_del(&timer->ListNode);
+    list_remove(&timer->ListNode);
 }
 
 static void timer_timeout_processs(timer_t *timer)
@@ -104,7 +104,7 @@ void timer_tick(void)
                 for (list_node_t *pNode = timerListToday.Next; pNode != &timerListToday; ) {
                     timer_t *pTimer = CONTAINER_OF(pNode, timer_t, ListNode);
                     pNode = pNode->Next;
-                    list_del(&pTimer->ListNode);
+                    list_remove(&pTimer->ListNode);
                     timer_timeout_processs(pTimer);
                 }
             }
@@ -131,7 +131,7 @@ void timer_tick(void)
                     break;            //!< The list has been sorted, so we just break.
                 } else {                        //!< yes
                     pNode = pNode->Next;
-                    list_del(&pTimer->ListNode);
+                    list_remove(&pTimer->ListNode);
                     timer_timeout_processs(pTimer);
                 }
             }
@@ -151,7 +151,7 @@ bool timer_config(
     timer->Period = (reloadValue + TIMER_TICK_CYCLE - 1u) / TIMER_TICK_CYCLE;
     timer->Flag   = 0;
     timer->pRoutine = pRoutine;
-    list_init_head(&timer->ListNode);
+    list_init(&timer->ListNode);
     if (initValue != 0u) {
         //! start it.
         __TIMER_SAFE_ATOM_CODE(

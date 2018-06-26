@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2016-2018 by Dreistein<mcu_shilei@hotmail.com>                *
+ *  Copyright(C)2018 by Dreistein<mcu_shilei@hotmail.com>                     *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -15,8 +15,8 @@
  *  along with this program; if not, see http://www.gnu.org/licenses/.        *
 *******************************************************************************/
 
-#ifndef __FSM_H__
-#define __FSM_H__
+//! Do not move this pre-processor statement to other places
+#define __FSM_C__
 
 /*============================ INCLUDES ======================================*/
 #include ".\app_cfg.h"
@@ -26,32 +26,26 @@
 #include ".\fsm_sem.h"
 
 /*============================ MACROS ========================================*/
-#define FSM_TASK            fsm_tcb_t *
-#define FSM_TASK_STACK      task_stack_t
-#define FSM_OBJ             fsm_handle_t
-
 /*============================ MACROFIED FUNCTIONS ===========================*/
-//! \brief start define a FSM state
-#define DEF_STATE(__NAME)       void __NAME(void *Arg)
-#define REF_STATE(__NAME)       __NAME
-#define PROTOTYPE_STATE(__NAME) void __NAME(void *Arg)
-
-//! \brief state transfering
-#define FSM_TRANSFER_TO(__ROUTINE, __ARG_ADDR)                                  \
-            fsm_state_transfer(__ROUTINE, __ARG_ADDR)
-
-//! \brief state complete
-#define FSM_COMPLETE()                                                          \
-            fsm_state_transfer(NULL, NULL)
-
-//! \brief call sub sfm and return to current state when sub sfm run complete
-#define FSM_CALL(__ROUTINE, __ARG_ADDR)                                         \
-            fsm_call_sub(__ROUTINE, __ARG_ADDR)
-
 /*============================ TYPES =========================================*/
-/*============================ GLOBAL VARIABLES ==============================*/
-/*============================ PROTOTYPES ====================================*/
-extern void         fsm_init            (void);
+/*============================ PRIVATE PROTOTYPES ============================*/
+/*============================ PRIVATE VARIABLES =============================*/
+/*============================ PUBLIC VARIABLES ==============================*/
+/*============================ IMPLEMENTATION ================================*/
 
-#endif  //! #ifndef __FSM_H__
+/*! \brief fsm init.
+ */
+void fsm_init(void)
+{
+    fsmIntNesting = 0;
+    fsmScheduler.CurrentTask    = NULL;
+    fsmScheduler.Running        = false;
+    list_init(&fsmScheduler.PendList);
+    list_init(&fsmScheduler.ReadyList);
+    fsm_tcb_pool_init();
+    fsm_flag_init();
+    fsm_mutex_init();
+    fsm_semaphore_init();
+}
+
 /* EOF */

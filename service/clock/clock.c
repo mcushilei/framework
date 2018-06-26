@@ -53,7 +53,7 @@ static void __clock_list_insert(list_node_t *pList, alarmclock_t *ac)
         }
     }
     pNode = pNode->Prev;
-    list_add(&ac->ListNode, pNode);
+    list_insert(&ac->ListNode, pNode);
 }
 
 static void clock_list_insert(alarmclock_t *ac)
@@ -85,7 +85,7 @@ static void clock_list_remove(alarmclock_t *ac)
     if (ac == pAC) {
         realClock.NextAlarm = realClock.NextAlarm->Next;
     }
-    list_del(&ac->ListNode);
+    list_remove(&ac->ListNode);
 }
 
 static void clock_alarm_process(alarmclock_t *ac)
@@ -104,27 +104,23 @@ void clock_tick_tock(void)
     }
 
     __CLOCK_SAFE_ATOM_CODE(
-        //! to see if it has run over.
-        if (0u == realClock.Hand) { //! yes.            
+        //! move hand forward.
+        ++realClock.Hand;
+        //! and then to see if it has run over.
+        if (realClock.Hand >= CLOCK_TICKS_A_DAY) {
+            realClock.Hand = 0u;
             realClock.NextAlarm = realClock.AlarmList.Next;
         }
 
-        //! to see if there is any ac overflow in Alarm List.
+        //! to see if there is any alarm triggered in list.
         while (realClock.NextAlarm != &realClock.AlarmList) {
             alarmclock_t *pAC = CONTAINER_OF(realClock.NextAlarm, alarmclock_t, ListNode);
-            //! to see if it has overflow.
-            if (pAC->Count > realClock.Hand) { //!< no.
+            if (pAC->Count > realClock.Hand) {  //!< no.
                 break;            //!< The list has been sorted, so we just break.
-            } else {                        //!< yes
+            } else {                            //!< yes
                 realClock.NextAlarm = realClock.NextAlarm->Next;
                 clock_alarm_process(pAC);
             }
-        }
-
-        //! increase realClock.Hand
-        ++realClock.Hand;
-        if (realClock.Hand >= CLOCK_TICKS_A_DAY) {
-            realClock.Hand = 0u;
         }
     )
 }
@@ -132,7 +128,7 @@ void clock_tick_tock(void)
 bool clock_init(void)
 {
     realClock.Hand = 0u;
-    list_init_head(&realClock.AlarmList);
+    list_init(&realClock.AlarmList);
     realClock.NextAlarm = &realClock.AlarmList;
     return true;
 }
@@ -178,7 +174,7 @@ bool alarmclock_config(
     value %= CLOCK_TICKS_A_DAY;
     ac->Flag     = 0;
     ac->pRoutine = pRoutine;
-    list_init_head(&ac->ListNode);
+    list_init(&ac->ListNode);
     //! start it.
     __CLOCK_SAFE_ATOM_CODE(
         ac->Count = value;

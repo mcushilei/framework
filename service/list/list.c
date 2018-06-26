@@ -55,18 +55,18 @@ static void __list_remove(list_node_t *prev, list_node_t *next)
     prev->Next = next;
 }
 
-void list_init_head(list_node_t *head)
+void list_init(list_node_t *head)
 {
     head->Next = head;
     head->Prev = head;
 }
 
-void list_add(list_node_t *node, list_node_t *head)
+void list_insert(list_node_t *node, list_node_t *ahead)
 {
-    __list_insert(node, head, head->Next);
+    __list_insert(node, ahead, ahead->Next);
 }
  
-void list_del(list_node_t *entry)
+void list_remove(list_node_t *entry)
 {
     __list_remove(entry->Prev, entry->Next);
     entry->Next = entry;

@@ -32,9 +32,9 @@ END_DEF_STRUCTURE(list_node_t)
 
 /*============================ PUBLIC VARIABLES ==============================*/
 /*============================ PUBLIC PROTOTYPES =============================*/
-extern void list_init_head  (list_node_t *head);
-extern void list_add        (list_node_t *node, list_node_t *head);
-extern void list_del        (list_node_t *entry);
+extern void list_init   (list_node_t *head);
+extern void list_insert (list_node_t *node, list_node_t *ahead);
+extern void list_remove (list_node_t *entry);
 
 #endif  //! #ifndef __LIST_PUBLIC_H__
 /* EOF */
