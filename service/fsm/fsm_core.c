@@ -43,14 +43,16 @@ static void         fsm_tcb_init               (fsm_tcb_t          *pTCB,
                                                 void               *arg,
                                                 task_stack_t       *stack,
                                                 uint8_t             stackSize);
+
 static bool         fsm_task_enqueue           (list_node_t    *pTaskQueue,
-                                                fsm_tcb_t          *pTask);
+                                                fsm_tcb_t      *pTask);
 static fsm_tcb_t   *fsm_task_dequeue           (list_node_t    *pTaskQueue);
-static bool         fsm_task_remove_from_queue (list_node_t    *pTaskQueue,
-                                                fsm_tcb_t          *pTask);
+
 static fsm_tcb_t   *fsm_get_next_ready_task    (void);
 static void         fsm_set_task_pend          (uint32_t            timeDelay);
 
+static void         fsm_set_task_ready         (fsm_tcb_t          *pTask,
+                                                uint8_t             pendStat);
 
 /*============================ LOCAL VARIABLES ===============================*/
 static fsm_tcb_t   *fsmTCBFreeList;                 //! TCB
@@ -293,7 +295,7 @@ void fsm_tick(void)
  */
 static bool fsm_task_enqueue(list_node_t *pTaskQueue, fsm_tcb_t *pTask)
 {
-    list_insert(&pTask->ListNode, pTaskQueue);
+    list_insert(&pTask->ListNode, pTaskQueue->Prev);
 
     return true;
 }
@@ -312,17 +314,10 @@ static fsm_tcb_t *fsm_task_dequeue(list_node_t *pTaskQueue)
         return NULL;
     }
     
-    pTask = CONTAINER_OF(pTaskQueue->Prev, fsm_tcb_t, ListNode);
+    pTask = CONTAINER_OF(pTaskQueue->Next, fsm_tcb_t, ListNode);
     list_remove(&pTask->ListNode);
 
     return pTask;
-}
-
-static bool fsm_task_remove_from_queue(list_node_t *pTaskQueue, fsm_tcb_t *pTask)
-{
-    list_remove(&pTask->ListNode);
-    
-    return true;
 }
 
 /*! \brief  add a task to ready list queue.
@@ -333,7 +328,7 @@ void fsm_set_task_ready(fsm_tcb_t *pTask, uint8_t pendStat)
     FSM_SAFE_ATOM_CODE(
         pTask->Status = pendStat;
         pTask->Object = NULL;
-        fsm_task_remove_from_queue(&fsmScheduler.PendList, pTask);
+        list_remove(&pTask->ListNode);
         fsm_task_enqueue(&fsmScheduler.ReadyList, pTask);
     )
 }
@@ -359,14 +354,16 @@ static fsm_tcb_t *fsm_get_next_ready_task(void)
 }
 
 
-void fsm_waitable_obj_add_task(fsm_waitable_obj_t *pObj, fsm_tcb_t *pTask, uint32_t timeDelay)
+void fsm_waitable_obj_pnd_task(fsm_waitable_obj_t *pObj, uint32_t timeDelay)
 {
+    fsm_tcb_t *pTask = fsmScheduler.CurrentTask;
+    
     pTask->Object = pObj;
-    fsm_set_task_pend(timeDelay);
     list_insert(&pTask->WaitNode, &pObj->TaskQueue);
+    fsm_set_task_pend(timeDelay);
 }
 
-fsm_tcb_t *fsm_waitable_obj_get_task(fsm_waitable_obj_t *pObj)
+fsm_tcb_t *fsm_waitable_obj_rdy_task(fsm_waitable_obj_t *pObj, uint8_t pendStat)
 {
     fsm_tcb_t *pTask;
     
@@ -376,6 +373,7 @@ fsm_tcb_t *fsm_waitable_obj_get_task(fsm_waitable_obj_t *pObj)
     
     pTask = CONTAINER_OF(pObj->TaskQueue.Next, fsm_tcb_t, WaitNode);
     list_remove(&pTask->WaitNode);
+    fsm_set_task_ready(pTask, pendStat);
 
     return pTask;
 }

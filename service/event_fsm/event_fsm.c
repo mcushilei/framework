@@ -65,7 +65,7 @@ static efsm_state_t *efsm_get_current_state(efsm_t *EFSM)
     return EFSM->Stack[EFSM->CurrentLevel];
 }
 
-//! to add layer to current layer. this will destroy all layers over current layer at first and then add the new one.
+//! to add layer to current layer. this will at first destroy all layers over current layer and then add the new one.
 bool efsm_to_upper(efsm_t *EFSM, efsm_state_t *pState)
 {
     if ((EFSM->CurrentLevel + 1u) >= EFSM->StackSize) { //!< avoid overflow.
@@ -127,6 +127,7 @@ uint8_t efsm_dispatch_event(efsm_t *EFSM, event_code_t event, void *arg)
     res = (*pState)(event, arg);    //!< run this handler to process the event.
     switch (res) {
         case FSM_RT_ONGOING:
+            EFSM->Status = EFSM_STATUS_RUNNING;
             return FSM_RT_ONGOING;
 
         case FSM_RT_CPL:            //! at last, this event has been processed completely.
@@ -149,6 +150,7 @@ uint8_t efsm_dispatch_event(efsm_t *EFSM, event_code_t event, void *arg)
 
         case FSM_RT_UNHANDLE:       //!< this state can't handle this event, to see if there is any state on lower layer can handle it.
         default:
+            EFSM->Status = EFSM_STATUS_RUNNING;
             if (!efsm_current_level_decrease(EFSM)) {       //! layer stack is underflow?
                 efsm_reset_current_level(EFSM);             //! yes. reset layer pointer.
                 return FSM_RT_ERR;

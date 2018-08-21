@@ -55,7 +55,7 @@ void fsm_mutex_init(void)
 
 fsm_err_t    fsm_mutex_create  (fsm_handle_t *pptMutex)
 {
-    fsm_mutex_t *ptMutex;
+    fsm_mutex_t *pMutex;
     
     if (NULL == pptMutex) {
         return FSM_ERR_INVALID_PARAM;
@@ -69,13 +69,13 @@ fsm_err_t    fsm_mutex_create  (fsm_handle_t *pptMutex)
         *pptMutex = NULL;
         return FSM_ERR_OBJ_DEPLETED;
     }
-    ptMutex      = fsmMutexList;
-    fsmMutexList = (fsm_mutex_t *)ptMutex->ObjNext;
+    pMutex      = fsmMutexList;
+    fsmMutexList = (fsm_mutex_t *)pMutex->ObjNext;
     
-    list_init(&ptMutex->TaskQueue);
-    ptMutex->MutexOwner = NULL;
+    list_init(&pMutex->TaskQueue);
+    pMutex->MutexOwner = NULL;
 
-    *pptMutex = ptMutex;
+    *pptMutex = pMutex;
 
     return FSM_ERR_NONE;
 }
@@ -88,9 +88,9 @@ fsm_err_t    fsm_mutex_create  (fsm_handle_t *pptMutex)
  */
 fsm_err_t fsm_mutex_wait(fsm_handle_t hObject, uint32_t timeDelay)
 {
-    uint8_t         chResult;
+    uint8_t         err;
     fsm_tcb_t      *pTask = fsmScheduler.CurrentTask;
-    fsm_mutex_t    *ptMutex = (fsm_mutex_t *)hObject;
+    fsm_mutex_t    *pMutex = (fsm_mutex_t *)hObject;
 
     if (NULL == hObject) {
         return FSM_ERR_INVALID_PARAM;
@@ -102,48 +102,48 @@ fsm_err_t fsm_mutex_wait(fsm_handle_t hObject, uint32_t timeDelay)
     
     switch (pTask->Status) {
         case FSM_TASK_STATUS_READY:
-            chResult = FSM_ERR_OBJ_NOT_SINGLED;
-            if (ptMutex->MutexOwner != NULL) {
-                if (ptMutex->MutexOwner == pTask) {
-                    chResult = FSM_ERR_NONE;
+            err = FSM_ERR_OBJ_NOT_SINGLED;
+            if (pMutex->MutexOwner != NULL) {
+                if (pMutex->MutexOwner == pTask) {
+                    err = FSM_ERR_NONE;
                 } else if (timeDelay == 0u) {
-                    chResult = FSM_ERR_TASK_PEND_TIMEOUT;
+                    err = FSM_ERR_TASK_PEND_TIMEOUT;
                 } else {
                     //! add task to the object's wait queue.
-                    fsm_waitable_obj_add_task(hObject, pTask, timeDelay);
-                    chResult = FSM_ERR_OBJ_NOT_SINGLED;
+                    fsm_waitable_obj_pnd_task(hObject, timeDelay);
+                    err = FSM_ERR_OBJ_NOT_SINGLED;
                 }
             } else {
-                ptMutex->MutexOwner = pTask;
-                chResult = FSM_ERR_NONE;
+                pMutex->MutexOwner = pTask;
+                err = FSM_ERR_NONE;
             }
             break;
             
         case FSM_TASK_STATUS_PEND_OK:
             pTask->Status    = FSM_TASK_STATUS_READY;
-            chResult         = FSM_ERR_NONE;
+            err         = FSM_ERR_NONE;
             break;
             
         case FSM_TASK_STATUS_PEND_TIMEOUT:
             pTask->Status    = FSM_TASK_STATUS_READY;
-            chResult        = FSM_ERR_TASK_PEND_TIMEOUT;
+            err        = FSM_ERR_TASK_PEND_TIMEOUT;
             break;
             
         case FSM_TASK_STATUS_PEND:
         default:
-            chResult = FSM_ERR_OBJ_NOT_SINGLED;
+            err = FSM_ERR_OBJ_NOT_SINGLED;
             break;
     }
 
-    return chResult;
+    return err;
 }
 
 fsm_err_t fsm_mutex_release(fsm_handle_t hObject)
 {
-    fsm_mutex_t *ptMutex = (fsm_mutex_t *)hObject;
+    fsm_mutex_t *pMutex = (fsm_mutex_t *)hObject;
     fsm_tcb_t   *pTask = fsmScheduler.CurrentTask;
 
-    if (NULL == ptMutex) {
+    if (NULL == pMutex) {
         return FSM_ERR_INVALID_PARAM;
     }
     
@@ -151,17 +151,16 @@ fsm_err_t fsm_mutex_release(fsm_handle_t hObject)
         return FSM_ERR_CALL_IN_ISR;
     }
     
-    if (pTask != ptMutex->MutexOwner) {
+    if (pTask != pMutex->MutexOwner) {
         return FSM_ERR_NOT_MUTEX_OWNER;
     }
     
+    pMutex->MutexOwner = NULL;
+    
     //! wake up the first blocked task.
-    pTask = fsm_waitable_obj_get_task(hObject);
-    if (pTask != NULL) {
-        ptMutex->MutexOwner = pTask;
-        fsm_set_task_ready(pTask, FSM_TASK_STATUS_PEND_OK);
-    } else {
-        ptMutex->MutexOwner = NULL;
+    if (!LIST_IS_EMPTY(&pMutex->TaskQueue)) {
+        pTask = fsm_waitable_obj_rdy_task(hObject, FSM_TASK_STATUS_PEND_OK);
+        pMutex->MutexOwner = pTask;
     }
         
     return FSM_ERR_NONE;

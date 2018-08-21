@@ -49,8 +49,8 @@ typedef enum {
 //! \name com_cfg_t
 //! @{
 typedef struct {
-    uint16_t        hwMode;     //!< commport mode
     uint32_t        wBaudrate;  //!< commport baudrate
+    uint16_t        hwMode;     //!< commport mode
 } com_cfg_t;
 //! @}
 
@@ -124,7 +124,7 @@ uint32_t enum_all_comm(void)
     return 0;
 }
 
-static bool com_cfg(com_t *ptThis, com_cfg_t *ptCfg)
+static bool com_cfg(com_t *ptThis, const com_cfg_t *ptCfg)
 {
     DCB             tDCB = { 0 };
     COMMTIMEOUTS    tTimeOuts = { 0 };
@@ -199,7 +199,7 @@ static bool com_cfg(com_t *ptThis, com_cfg_t *ptCfg)
     return true;
 }
 
-bool com_open(com_t *ptThis, const uint8_t *pchCom, com_cfg_t *ptCfg, void *pComEventHandle)
+bool com_open(com_t *ptThis, const uint8_t *pchCom, const com_cfg_t *ptCfg, void *pComEventHandle)
 {
     if ((NULL == ptThis) || (NULL == pchCom) || (NULL == ptCfg)) {
         return false;

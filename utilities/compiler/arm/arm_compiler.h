@@ -51,18 +51,16 @@
 //! \brief none standard memory types
 #if     __IS_COMPILER_IAR__
 #   define NO_INIT          __no_init
-#   define INLINE           inline
 #   define WEAK             __weak
 #   define ROOT             __root
 #   define RAMFUNC          __ramfunc
 #   define __asm__          __asm
-#   define ALIGN(__N)       _Pragma(STRINGZ(data_alignment=__N))
+#   define ALIGN(__N)       _Alignas(__N)
 #   define ALIGN_OF(__V)    __ALIGNOF__(__V)
 #   define AT_ADDR(__ADDR)  _Pragma(STRINGZ(location=__ADDR))
 #   define SECTION(__SEC)   _Pragma(STRINGZ(location=__SEC))
 #elif   __IS_COMPILER_GCC__
 #   define NO_INIT          __attribute__((section("noinit"))
-#   define INLINE           inline
 #   define WEAK             __attribute__((weak))
 #   define ROOT             __attribute__((used))
 #   define RAMFUNC          __attribute__((section("textrw")))
@@ -73,7 +71,6 @@
 #   define SECTION(__SEC)   __attribute__((section(__SEC)))
 #elif   __IS_COMPILER_MDK__
 #   define NO_INIT          __attribute__((section("noinit"),zero_init))
-#   define INLINE           __inline
 #   define WEAK             __attribute__((weak))
 #   define ROOT             __attribute__((used))
 #   define RAMFUNC          __attribute__((section("textrw")))

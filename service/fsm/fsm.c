@@ -43,9 +43,11 @@ void fsm_init(void)
     list_init(&fsmScheduler.PendList);
     list_init(&fsmScheduler.ReadyList);
     fsm_tcb_pool_init();
+#if SAFE_TASK_THREAD_SYNC == ENABLED
     fsm_flag_init();
     fsm_mutex_init();
     fsm_semaphore_init();
+#endif
 }
 
 /* EOF */

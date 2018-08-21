@@ -47,8 +47,8 @@ typedef enum {
 //! \name usart configuration
 //! @{
 typedef struct {
-    uint16_t            hwMode;
     uint32_t            wBaudrate;
+    uint16_t            hwMode;
 } com_cfg_t;
 //! @}
 

@@ -37,14 +37,14 @@
 #   define DISABLED         0
 #endif
 
-#define Hz                  *1u
-#define KHz                 *1000u
-#define MHz                 *1000000u
-#define GHz                 *1000000000u
+#define Hz                  *1ul
+#define KHz                 *1000ul
+#define MHz                 *1000000ul
+#define GHz                 *1000000000ul
 
-#define KB                  *1024u
-#define MB                  *1024u*1024u
-#define GB                  *1024u*1024u*1024u
+#define KB                  *1024ul
+#define MB                  *1024ul*1024ul
+#define GB                  *1024ul*1024ul*1024ul
 
 /*============================ MACROFIED FUNCTIONS ===========================*/
 #define __REG_MACRO__

@@ -106,7 +106,7 @@ fsm_err_t fsm_flag_create  (fsm_handle_t   *pptEvent,
  */
 fsm_err_t fsm_flag_wait(fsm_handle_t hObject, uint32_t timeDelay)
 {
-    uint8_t         chResult;
+    uint8_t         err;
     fsm_tcb_t      *pTask = fsmScheduler.CurrentTask;
     fsm_flag_t     *pFlag = (fsm_flag_t *)hObject;
 
@@ -125,14 +125,14 @@ fsm_err_t fsm_flag_wait(fsm_handle_t hObject, uint32_t timeDelay)
                     if (!(pFlag->EventFlag & FSM_EVENT_MANUAL_RESET_BIT)) {
                         pFlag->EventFlag &= ~FSM_EVENT_SINGNAL_BIT;
                     }
-                    chResult = FSM_ERR_NONE;
+                    err = FSM_ERR_NONE;
                 } else {
                     if (timeDelay == 0u) {
-                        chResult = FSM_ERR_TASK_PEND_TIMEOUT;
+                        err = FSM_ERR_TASK_PEND_TIMEOUT;
                     } else {
                         //! add task to the object's wait queue.
-                        fsm_waitable_obj_add_task(hObject, pTask, timeDelay);
-                        chResult = FSM_ERR_OBJ_NOT_SINGLED;
+                        fsm_waitable_obj_pnd_task(hObject, timeDelay);
+                        err = FSM_ERR_OBJ_NOT_SINGLED;
                     }
                 }
             )
@@ -140,21 +140,21 @@ fsm_err_t fsm_flag_wait(fsm_handle_t hObject, uint32_t timeDelay)
             
         case FSM_TASK_STATUS_PEND_OK:
             pTask->Status    = FSM_TASK_STATUS_READY;
-            chResult         = FSM_ERR_NONE;
+            err         = FSM_ERR_NONE;
             break;
         
         case FSM_TASK_STATUS_PEND_TIMEOUT:
             pTask->Status    = FSM_TASK_STATUS_READY;
-            chResult         = FSM_ERR_TASK_PEND_TIMEOUT;
+            err         = FSM_ERR_TASK_PEND_TIMEOUT;
             break;
         
         case FSM_TASK_STATUS_PEND:
         default:
-            chResult = FSM_ERR_OBJ_NOT_SINGLED;
+            err = FSM_ERR_OBJ_NOT_SINGLED;
             break;
     }
 
-    return chResult;
+    return err;
 }
 
 /*! \brief set task event
@@ -164,7 +164,6 @@ fsm_err_t fsm_flag_wait(fsm_handle_t hObject, uint32_t timeDelay)
 fsm_err_t fsm_flag_set  (fsm_handle_t hObject) 
 {
     fsm_flag_t  *pFlag = (fsm_flag_t *)hObject;
-    fsm_tcb_t   *pTask;
     
     if (NULL == pFlag) {
         return FSM_ERR_INVALID_PARAM;
@@ -178,8 +177,7 @@ fsm_err_t fsm_flag_set  (fsm_handle_t hObject)
             }
             //! wake up all blocked tasks.
             while (!LIST_IS_EMPTY(&pFlag->TaskQueue)) {
-                pTask = fsm_waitable_obj_get_task(hObject);
-                fsm_set_task_ready(pTask, FSM_TASK_STATUS_PEND_OK);
+                fsm_waitable_obj_rdy_task(hObject, FSM_TASK_STATUS_PEND_OK);
             }
         }
     )

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2015-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -24,15 +24,15 @@
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
-#define ENABLE_GLOBAL_INTERRUPT()   __enable_interrupt()
-#define DISABLE_GLOBAL_INTERRUPT()  __disable_interrupt()
+#define ENABLE_GLOBAL_INTERRUPT()   __set_PRIMASK(0)
+#define DISABLE_GLOBAL_INTERRUPT()  __set_PRIMASK(1)
 
 //! \brief Enter the safe atom operations
-#define ENTER_SAFE_ATOM_CODE()  uint32_t __wState = __get_interrupt_state();    \
-                                __disable_interrupt()
+#define ENTER_SAFE_ATOM_CODE()  volatile uint32_t __wState = __get_PRIMASK();    \
+                                __set_PRIMASK(1)
 
 //! \brief Exit from the safe atom operations
-#define EXIT_SAFE_ATOM_CODE()   __set_interrupt_state(__wState)
+#define EXIT_SAFE_ATOM_CODE()   __set_PRIMASK(__wState)
 
 //! \brief The safe ATOM code section macro
 #define SAFE_ATOM_CODE(...) {   \
@@ -40,6 +40,10 @@
         __VA_ARGS__             \
         EXIT_SAFE_ATOM_CODE();  \
     }
+
+#define CPU_RESET()             do {\
+    SCB->AIRCR = (0x05FA << SCB_AIRCR_VECTKEY_Pos) | SCB_AIRCR_SYSRESETREQ_Msk;\
+} while (0)
 
 /*============================ TYPES =========================================*/
 /*============================ GLOBAL VARIABLES ==============================*/

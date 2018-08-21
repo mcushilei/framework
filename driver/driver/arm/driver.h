@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2015 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2015-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -27,7 +27,7 @@
 #   include ".\cortex_m0plus\driver.h"
 #elif   defined(__CORTEX_M3__)
 #   include ".\cortex_m3\driver.h" 
-#elif   defined(__CORTEX_M4__)
+#elif   defined(__CORTEX_M4__) || defined(__CORTEX_M4F__)
 #   include ".\cortex_m4\driver.h"
 #elif   defined(__ARM7__)
 #   include ".\arm7\driver.h"

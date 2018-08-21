@@ -27,7 +27,12 @@
 //! \brief bit mask operations
 #define BIT(__N)                (1u << (__N))
 #define __BITMASK(__WIDTH)      (BIT(__WIDTH) - 1u)
-#define BITMASK(__MSB, __LSB)   ((BIT(__MSB) | __BITMASK(__MSB)) ^ __BITMASK(__LSB))
+#define BITMASK(__MSB, __LSB)   ( (BIT(__MSB) | __BITMASK(__MSB)) ^ __BITMASK(__LSB) )
+
+#define BIT64(__N)              ((uint64_t)1 << (__N))
+#define __BITMASK64(__WIDTH)    (BIT64(__WIDTH) - 1u)
+#define BITMASK64(__MSB, __LSB) ( (BIT64(__MSB) | __BITMASK64(__MSB)) ^ __BITMASK64(__LSB) )
+
 
 //! \brief byte order operations
 #define BYTE_ORDER_SWITCH_16(__UINT16) do {\
@@ -56,6 +61,7 @@ typedef union {
     uint16_t    Value;
 
     uint8_t     Bytes[2];
+    //! Byte0 is always the LSB.
     struct {
 #if defined(__BIG_ENDIAN__)
         uint8_t Byte1;
@@ -102,6 +108,7 @@ typedef union {
     };
 
     uint8_t     Bytes[4];
+    //! Byte0 is always the LSB.
     struct {
 #if defined(__BIG_ENDIAN__)
         uint8_t Byte3;

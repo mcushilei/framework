@@ -34,12 +34,14 @@ static volatile uint32_t    scanHand;
 static volatile uint32_t    scanHandOld;
 static list_node_t          timerListToday;
 static list_node_t          timerListNextDay;
+static uint8_t              isStart;
 
 /*============================ GLOBAL VARIABLES ==============================*/
 /*============================ IMPLEMENTATION ================================*/
 
 bool timer_init(void)
 {
+    isStart = 0xCC;
     scanHandOld = scanHand;
     list_init(&timerListToday);
     list_init(&timerListNextDay);
@@ -95,6 +97,10 @@ void timer_tick(void)
 {
     //! increase scanHand
     ++scanHand;
+    
+    if (isStart != 0xCCu) {
+        return;
+    }
 
     __TIMER_SAFE_ATOM_CODE(
         //! to see if it has run over.

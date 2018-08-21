@@ -21,9 +21,11 @@
 #define __PREPROCESSOR_H__
 
 /*============================ INCLUDES ======================================*/
-#include "tpaste.h"
-#include "stringz.h"
-#include "mrepeat.h"
+#include ".\tpaste.h"
+#include ".\stringz.h"
+#include ".\mrepeat.h"
+#include ".\mrepeat_alphabetical.h"
+#include ".\mrepeat_n2a.h"
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/

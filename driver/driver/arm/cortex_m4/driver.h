@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright(C)2016 by Dreistein<mcu_shilei@hotmail.com>                     *
+ *  Copyright(C)2016-2018 by Dreistein<mcu_shilei@hotmail.com>                *
  *                                                                            *
  *  This program is free software; you can redistribute it and/or modify it   *
  *  under the terms of the GNU Lesser General Public License as published     *
@@ -26,6 +26,8 @@
 #   include ".\TI\driver.h"
 #elif   defined(__FREESCALE__)
 #   include ".\freescale\driver.h"
+#elif   defined(__AMBIQ__)
+#   include ".\ambiq\driver.h"
 #else
 #   error "Unsupported arm device, please check your configuration."
 #endif

@@ -80,6 +80,7 @@ typedef union {
     void               *ObjNext;
     struct {
         list_node_t         ListNode;
+        
         uint32_t            Delay;
         
         uint8_t             Flag;
@@ -89,10 +90,10 @@ typedef union {
         uint8_t             StackPoint;
         task_stack_t       *Stack;
         
-#if SAFE_TASK_THREAD_SYNC == ENABLED
+//#if SAFE_TASK_THREAD_SYNC == ENABLED
         fsm_handle_t        Object;
         list_node_t         WaitNode;
-#endif
+//#endif
     };
 } fsm_tcb_t;
 
@@ -139,14 +140,12 @@ extern fsm_err_t    fsm_call_sub        (fsm_state_t       *state,
 
 
 /*--------------------------- internal use only ------------------------------*/
-extern void         fsm_set_task_ready         (fsm_tcb_t          *pTask,
-                                                uint8_t             pendStat);
-extern void         fsm_waitable_obj_add_task  (fsm_waitable_obj_t *pObj,
-                                                fsm_tcb_t          *pTask,
+extern void         fsm_waitable_obj_pnd_task  (fsm_waitable_obj_t *pObj,
                                                 uint32_t            timeDelay);
 extern void         fsm_waitable_obj_remove_task(fsm_waitable_obj_t *pObj,
                                                 fsm_tcb_t          *pTask);
-extern fsm_tcb_t   *fsm_waitable_obj_get_task  (fsm_waitable_obj_t *pObj);
+extern fsm_tcb_t   *fsm_waitable_obj_rdy_task  (fsm_waitable_obj_t *pObj,
+                                                uint8_t             pendStat);
 
 
 #endif  //!< #ifndef __FSM_CORE_PUBLIC_H__
